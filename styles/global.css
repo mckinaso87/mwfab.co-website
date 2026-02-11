@@ -1,0 +1,60 @@
+@import "tailwindcss";
+
+/* Industrial theme: dark duotone gradients, metallic-compatible */
+:root {
+  --charcoal: #1a1d21;
+  --steel: #2d3748;
+  --gunmetal: #1e2530;
+  --slate: #334155;
+  --navy: #0f172a;
+  --graphite: #1c2128;
+  --steel-blue: #3b4a5c;
+  --midnight-navy: #0c1222;
+  --dark-slate: #1e293b;
+  --foreground: #e2e8f0;
+  --foreground-muted: #94a3b8;
+}
+
+@theme inline {
+  --color-charcoal: var(--charcoal);
+  --color-steel: var(--steel);
+  --color-gunmetal: var(--gunmetal);
+  --color-slate: var(--slate);
+  --color-navy: var(--navy);
+  --color-graphite: var(--graphite);
+  --color-steel-blue: var(--steel-blue);
+  --color-midnight-navy: var(--midnight-navy);
+  --color-dark-slate: var(--dark-slate);
+  --color-foreground: var(--foreground);
+  --color-foreground-muted: var(--foreground-muted);
+  --font-sans: var(--font-geist-sans);
+}
+
+/* Gradient utilities: industrial duotone */
+.gradient-hero {
+  background: linear-gradient(135deg, var(--charcoal) 0%, var(--steel-blue) 100%);
+}
+
+.gradient-section {
+  background: linear-gradient(180deg, var(--gunmetal) 0%, var(--midnight-navy) 100%);
+}
+
+.gradient-footer {
+  background: linear-gradient(180deg, var(--graphite) 0%, var(--dark-slate) 100%);
+}
+
+body {
+  background-color: var(--charcoal);
+  color: var(--foreground);
+  font-family: var(--font-sans), system-ui, sans-serif;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}

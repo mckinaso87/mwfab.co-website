@@ -1,0 +1,16 @@
+export function SteelBeamIcon({ className }: { className?: string }) {
+  return (
+    <svg
+      xmlns="http://www.w3.org/2000/svg"
+      viewBox="0 0 48 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.5"
+      strokeLinecap="square"
+      className={className}
+      aria-hidden
+    >
+      <path d="M4 8h40M4 16h40M8 4v16M40 4v16M12 8h24M12 16h24" />
+    </svg>
+  );
+}
