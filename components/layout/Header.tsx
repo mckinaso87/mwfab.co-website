@@ -24,13 +24,14 @@ export function Header() {
           className="flex items-center gap-2 text-foreground no-underline transition-opacity hover:opacity-90"
           aria-label="McKinados Welding & Fabrication home"
         >
-          <span className="relative h-8 w-8 flex-shrink-0 md:h-9 md:w-9">
+          <span className="relative h-8 w-[92px] flex-shrink-0 md:h-9 md:w-[116px]">
             <Image
-              src="/images/logo/logo.svg"
-              alt=""
-              width={36}
-              height={36}
-              className="object-contain"
+              src="/images/logo/mwf-logo.png"
+              alt="MWFAB logo"
+              width={320}
+              height={120}
+              className="h-full w-full object-contain"
+              priority
             />
           </span>
           <span className="font-semibold tracking-tight md:text-lg">

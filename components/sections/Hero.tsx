@@ -23,10 +23,10 @@ export function Hero({ className }: { className?: string }) {
           </div>
           <div className="relative aspect-video w-full overflow-hidden rounded-md border border-steel/30">
             <Image
-              src="/images/hero-placeholder.svg"
-              alt=""
-              width={1200}
-              height={675}
+              src="/images/hero.png"
+              alt="Steel fabrication team and structural steel frame"
+              width={1024}
+              height={768}
               className="object-cover"
               priority
               sizes="(max-width: 1024px) 100vw, 50vw"
