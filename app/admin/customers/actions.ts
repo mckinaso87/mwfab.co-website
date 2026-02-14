@@ -39,7 +39,7 @@ export async function createCustomer(formData: FormData) {
   if (error) return { error: error.message };
   revalidatePath("/admin/customers");
   revalidatePath("/admin/dashboard");
-  redirect(`/admin/customers/${data.id}`);
+  redirect("/admin/customers");
 }
 
 export async function updateCustomer(id: string, formData: FormData) {

@@ -1,5 +1,6 @@
 "use server";
 
+import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { createAdminClient } from "@/lib/supabase/admin";
 import type { JobStatus } from "@/lib/db-types";
@@ -29,7 +30,7 @@ export async function createJob(formData: FormData) {
   revalidatePath("/admin/jobs");
   revalidatePath("/admin/dashboard");
   if (job) revalidatePath(`/admin/customers/${customer_id}`);
-  return { success: true, jobId: job?.id };
+  redirect("/admin/jobs");
 }
 
 export async function updateJob(id: string, formData: FormData) {

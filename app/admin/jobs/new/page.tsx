@@ -37,6 +37,9 @@ export default async function NewJobPage({
         </Link>
       </div>
       <h1 className="mt-4 text-2xl font-bold text-foreground">New job</h1>
+      <p className="mt-1 text-sm text-foreground-muted">
+        After saving, you’ll be taken back to the jobs list.
+      </p>
       <JobForm
         action={createOrUpdateJob}
         customers={(customers ?? []) as Customer[]}
