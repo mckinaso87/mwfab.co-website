@@ -1,6 +1,6 @@
 # Schema migrations (Phase 2+)
 
-Run in order: `001_users.sql` → `002_customers.sql` → `003_jobs.sql` → `004_job_files.sql` → `005_job_status_history.sql`.
+Run in order: `001_users.sql` → `002_customers.sql` → `003_jobs.sql` → `004_job_files.sql` → `005_job_status_history.sql` → `006_storage_bucket.sql` → `007_users_optional_clerk.sql`.
 
 **Apply via Supabase Dashboard:** SQL Editor → paste and run each file in order.
 

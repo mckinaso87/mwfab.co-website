@@ -10,6 +10,7 @@ const ADMIN_NAV = [
   { href: "/admin/dashboard", label: "Dashboard" },
   { href: "/admin/customers", label: "Customers" },
   { href: "/admin/jobs", label: "Jobs" },
+  { href: "/admin/staff", label: "Staff" },
 ] as const;
 
 export function AdminSidebar() {

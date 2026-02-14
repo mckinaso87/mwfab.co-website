@@ -12,7 +12,7 @@ export interface User {
   id: string;
   name: string | null;
   role: "admin" | "estimator" | "office" | "read_only";
-  clerk_id: string;
+  clerk_id: string | null;
   created_at: string;
 }
 
