@@ -49,6 +49,11 @@ body {
   font-family: var(--font-sans), system-ui, sans-serif;
 }
 
+/* Admin form inputs: consistent, accessible */
+.input-admin {
+  @apply mt-1 w-full rounded-lg border border-steel/50 bg-charcoal/80 px-3 py-2.5 text-foreground transition-colors placeholder:text-foreground-muted/70 focus:border-steel-blue focus:outline-none focus:ring-1 focus:ring-steel-blue;
+}
+
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,

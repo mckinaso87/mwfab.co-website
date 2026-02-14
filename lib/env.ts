@@ -29,6 +29,8 @@ export const env = {
   supabase: {
     url: optional("NEXT_PUBLIC_SUPABASE_URL"),
     anonKey: optional("NEXT_PUBLIC_SUPABASE_ANON_KEY"),
+    /** Server-only; bypasses RLS. Required for admin CRUD. */
+    serviceRoleKey: optional("SUPABASE_SERVICE_ROLE_KEY"),
   },
 
   resend: {

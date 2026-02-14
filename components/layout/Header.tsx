@@ -3,7 +3,11 @@
 import Link from "next/link";
 import Image from "next/image";
 import { useState } from "react";
+import { useUser } from "@clerk/nextjs";
 import { cn } from "@/lib/utils";
+import { isAdminRole } from "@/lib/auth-constants";
+import { HeaderNav } from "./HeaderNav";
+import { HeaderAuth } from "./HeaderAuth";
 
 const NAV_LINKS = [
   { href: "/", label: "Home" },
@@ -15,6 +19,9 @@ const NAV_LINKS = [
 
 export function Header() {
   const [mobileOpen, setMobileOpen] = useState(false);
+  const { user } = useUser();
+  const role = user?.publicMetadata?.role as string | undefined;
+  const isAdmin = isAdminRole(role);
 
   return (
     <header className="sticky top-0 z-50 w-full border-b border-steel/50 bg-charcoal/95 backdrop-blur supports-[backdrop-filter]:bg-charcoal/80">
@@ -40,21 +47,7 @@ export function Header() {
         </Link>
 
         <nav className="hidden items-center gap-6 md:flex" aria-label="Main">
-          {NAV_LINKS.map(({ href, label }) => (
-            <Link
-              key={href}
-              href={href}
-              className="text-sm text-foreground-muted transition-colors hover:text-foreground"
-            >
-              {label}
-            </Link>
-          ))}
-          <Link
-            href="/contact"
-            className="rounded-md bg-steel-blue px-4 py-2 text-sm font-medium text-foreground transition-colors hover:bg-steel"
-          >
-            Request a Bid
-          </Link>
+          <HeaderNav />
         </nav>
 
         <button
@@ -118,6 +111,18 @@ export function Header() {
           >
             Request a Bid
           </Link>
+          {isAdmin && (
+            <Link
+              href="/admin"
+              className="mt-2 rounded-md border border-steel/50 px-3 py-2 text-center font-medium text-foreground"
+              onClick={() => setMobileOpen(false)}
+            >
+              Admin
+            </Link>
+          )}
+          <div className="mt-3 flex justify-center">
+            <HeaderAuth />
+          </div>
         </div>
       </div>
     </header>

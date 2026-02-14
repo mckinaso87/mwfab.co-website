@@ -1,0 +1,4 @@
+-- Phase 2: Job files bucket.
+-- Create the bucket via Supabase Dashboard: Storage → New bucket → id: job-files, public: no.
+-- Or the app will create it on first upload (see uploadJobFile in app/admin/jobs/files/actions.ts).
+-- RLS: ensure only service_role can access; app uses createAdminClient() for upload/delete.
