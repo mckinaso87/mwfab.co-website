@@ -3,7 +3,7 @@ import { cn } from "@/lib/utils";
 const POINTS = [
   "17+ years of structural and ornamental steel experience",
   "Licensed and insured steel contractor in Florida",
-  "Full-service fabrication: structural, ornamental, miscellaneous metals, and finishes",
+  "Full-service fabrication: structural, ornamental steel, and finishes",
   "Service area from St. Augustine to Miami",
   "Commercial, industrial, and custom projects",
 ] as const;

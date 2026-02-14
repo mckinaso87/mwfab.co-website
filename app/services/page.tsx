@@ -3,7 +3,6 @@ import Image from "next/image";
 import {
   SteelBeamIcon,
   ColumnIcon,
-  WeldingSparkIcon,
   StructuralFrameIcon,
 } from "@/components/ui/icons";
 
@@ -14,7 +13,7 @@ const SECTIONS = [
     description:
       "We provide full-service structural steel construction for commercial and industrial projects across East Coast Florida. From building frames and load-bearing systems to beams and columns, our licensed team delivers precise, code-compliant structural steel fabrication. Whether you need a new build or an expansion, we handle design coordination, fabrication, and erection.",
     Icon: SteelBeamIcon,
-    imageUrl: "/images/hero-placeholder.svg",
+    imageUrl: "/images/projects/structural/image1.jpeg",
     imageWidth: 1200,
     imageHeight: 675,
   },
@@ -24,17 +23,7 @@ const SECTIONS = [
     description:
       "Custom ornamental steel work including railings, gates, stairs, and architectural metalwork. We fabricate and install ornamental steel that meets both aesthetic and code requirements. Our ornamental steel services cover residential, commercial, and public projects throughout Florida.",
     Icon: ColumnIcon,
-    imageUrl: "/images/hero-placeholder.svg",
-    imageWidth: 1200,
-    imageHeight: 675,
-  },
-  {
-    id: "miscellaneous",
-    title: "Miscellaneous Metals",
-    description:
-      "Miscellaneous metals fabrication: stairs, platforms, handrails, lintels, and specialty metalwork. We handle everything from small custom pieces to large-scale industrial installations. All work is fabricated to spec and installed by our experienced crew.",
-    Icon: WeldingSparkIcon,
-    imageUrl: "/images/hero-placeholder.svg",
+    imageUrl: "/images/projects/ornamental/image1.jpeg",
     imageWidth: 1200,
     imageHeight: 675,
   },
@@ -44,7 +33,7 @@ const SECTIONS = [
     description:
       "Powder coating, galvanizing, and other protective finishes to extend the life and appearance of your steel. We coordinate finishes with your project requirements and offer options for both structural and ornamental steel. Finishes are applied in controlled environments for consistent quality.",
     Icon: StructuralFrameIcon,
-    imageUrl: "/images/hero-placeholder.svg",
+    imageUrl: "/images/projects/finishes/image1.jpeg",
     imageWidth: 1200,
     imageHeight: 675,
   },
@@ -53,16 +42,16 @@ const SECTIONS = [
 export const metadata: Metadata = {
   title: "Services | Structural & Ornamental Steel | McKinados Welding & Fabrication",
   description:
-    "Structural steel, ornamental steel, miscellaneous metals, and finishes. Licensed steel fabrication East Coast Florida. Powder coat, galvanizing.",
+    "Structural steel, ornamental steel, and finishes. Licensed steel fabrication East Coast Florida. Powder coat, galvanizing.",
   openGraph: {
     title: "Services | McKinados Welding & Fabrication",
-    description: "Structural steel, ornamental steel, miscellaneous metals, and finishes. East Coast Florida.",
+    description: "Structural steel, ornamental steel, and finishes. East Coast Florida.",
     url: "https://mwfab.co/services",
   },
   twitter: {
     card: "summary_large_image",
     title: "Services | McKinados Welding & Fabrication",
-    description: "Structural steel, ornamental steel, miscellaneous metals, and finishes.",
+    description: "Structural steel, ornamental steel, and finishes.",
   },
 };
 
@@ -74,7 +63,7 @@ export default function ServicesPage() {
           Our Services
         </h1>
         <p className="mt-4 text-lg text-foreground-muted">
-          Structural and ornamental steel construction, miscellaneous metals, and finishes. Licensed steel contractor serving East Coast Florida.
+          Structural and ornamental steel construction, and finishes. Licensed steel contractor serving East Coast Florida.
         </p>
       </div>
       {SECTIONS.map((section) => (
@@ -96,7 +85,7 @@ export default function ServicesPage() {
               <div className="relative aspect-video w-full overflow-hidden rounded-lg border border-steel/30">
                 <Image
                   src={section.imageUrl}
-                  alt=""
+                  alt={`${section.title} — McKinados Welding & Fabrication`}
                   width={section.imageWidth}
                   height={section.imageHeight}
                   className="object-cover"

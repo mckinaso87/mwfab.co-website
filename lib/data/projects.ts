@@ -3,7 +3,7 @@
  * Replace with Supabase/API in future.
  */
 
-export type ProjectCategory = "structural" | "ornamental" | "miscellaneous" | "finishes";
+export type ProjectCategory = "structural" | "ornamental" | "finishes";
 
 export interface Project {
   id: string;
@@ -14,8 +14,6 @@ export interface Project {
   imageWidth: number;
   imageHeight: number;
 }
-
-const placeholderImage = "/images/project-placeholder.svg";
 
 function project(
   id: string,
@@ -50,21 +48,17 @@ export const PROJECTS: Project[] = [
   project("o3", "ornamental", "/images/projects/ornamental/image3.jpeg", "Ornamental Steel 3", "Decorative steel elements."),
   project("o4", "ornamental", "/images/projects/ornamental/image4.jpeg", "Ornamental Steel 4", "Custom ornamental fabrication."),
   project("o5", "ornamental", "/images/projects/ornamental/image5.jpeg", "Ornamental Steel 5", "Railings and ornamental work."),
-  project("o6", "ornamental", "/images/projects/ornamental/image6.jpeg", "Ornamental Steel 6", "Ornamental steel project."),
-  project("o7", "ornamental", "/images/projects/ornamental/image7.jpeg", "Ornamental Steel 7", "Custom ornamental steel."),
-  // Miscellaneous (no images in folder yet)
-  project("m1", "miscellaneous", placeholderImage, "Industrial Miscellaneous Metals", "Stairs, platforms, and metalwork."),
-  project("m2", "miscellaneous", placeholderImage, "Steel Fabrication", "Custom fabrication and finishes."),
-  // Finishes (4 images)
+  // Finishes (6 images)
   project("f1", "finishes", "/images/projects/finishes/image1.jpeg", "Finishes 1", "Powder coat and protective finishes."),
   project("f2", "finishes", "/images/projects/finishes/image2.jpeg", "Finishes 2", "Galvanizing and coatings."),
   project("f3", "finishes", "/images/projects/finishes/image3.jpeg", "Finishes 3", "Steel finish application."),
   project("f4", "finishes", "/images/projects/finishes/image4.jpeg", "Finishes 4", "Protective finishes."),
+  project("f5", "finishes", "/images/projects/finishes/image5.jpeg", "Finishes 5", "Protective finishes."),
+  project("f6", "finishes", "/images/projects/finishes/image6.jpeg", "Finishes 6", "Protective finishes."),
 ];
 
 export const PROJECT_CATEGORIES: { value: ProjectCategory; label: string }[] = [
   { value: "structural", label: "Structural" },
   { value: "ornamental", label: "Ornamental" },
-  { value: "miscellaneous", label: "Miscellaneous" },
   { value: "finishes", label: "Finishes" },
 ];

@@ -31,7 +31,7 @@ export default function AboutPage() {
             Experience & Capability
           </h2>
           <p>
-            Our team specializes in structural steel construction, ornamental steel (railings, gates, architectural metalwork), miscellaneous metals, and protective finishes including powder coating and galvanizing. We work with developers, general contractors, and owners to meet code requirements and project schedules.
+            Our team specializes in structural steel construction, ornamental steel (railings, gates, architectural metalwork), and protective finishes including powder coating and galvanizing. We work with developers, general contractors, and owners to meet code requirements and project schedules.
           </p>
           <h2 className="text-xl font-semibold text-foreground">
             Licensed & Insured

@@ -8,7 +8,7 @@ export function JsonLd() {
     "@type": ["LocalBusiness", "ProfessionalService"],
     name: "McKinados Welding & Fabrication",
     description:
-      "Licensed structural and ornamental steel construction. East Coast Florida. 17+ years experience. Structural steel, ornamental steel, miscellaneous metals, and finishes.",
+      "Licensed structural and ornamental steel construction. East Coast Florida. 17+ years experience. Structural steel, ornamental steel, and finishes.",
     url: "https://mwfab.co",
     areaServed: {
       "@type": "GeoCircle",

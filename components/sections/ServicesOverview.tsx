@@ -1,7 +1,6 @@
 import Link from "next/link";
 import { SteelBeamIcon } from "@/components/ui/icons/SteelBeamIcon";
 import { ColumnIcon } from "@/components/ui/icons/ColumnIcon";
-import { WeldingSparkIcon } from "@/components/ui/icons/WeldingSparkIcon";
 import { StructuralFrameIcon } from "@/components/ui/icons/StructuralFrameIcon";
 import { cn } from "@/lib/utils";
 
@@ -17,12 +16,6 @@ const SERVICES = [
     title: "Ornamental Steel",
     description: "Railings, gates, and custom architectural metalwork.",
     Icon: ColumnIcon,
-  },
-  {
-    href: "/services#miscellaneous",
-    title: "Miscellaneous Metals",
-    description: "Stairs, platforms, and specialty fabrication.",
-    Icon: WeldingSparkIcon,
   },
   {
     href: "/services#finishes",
@@ -42,7 +35,7 @@ export function ServicesOverview({ className }: { className?: string }) {
         <p className="mt-2 text-foreground-muted">
           Full-service structural and ornamental steel fabrication across East Coast Florida.
         </p>
-        <div className="mt-10 grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
+        <div className="mt-10 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
           {SERVICES.map(({ href, title, description, Icon }) => (
             <Link
               key={href}
