@@ -10,7 +10,7 @@ This document describes the database and product expansion. SQL migrations live 
 |-------|--------|--------|
 | **Phase 1** | Public website + scaffold | Done |
 | **Phase 2** | Admin Core (customers, jobs, workflow, files, dashboard) | **Implemented** |
-| **Phase 3** | Takeoff & Material Engine (`/data/materials/` catalog, weight-per-ft, buffers, line items) | Planned |
+| **Phase 3** | Takeoff & Material Engine (`/data/materials/` catalog, takeoff/proposal schema, grand totals) | **Implemented** |
 | **Phase 4** | Proposal automation (PDF, buffers, Resend, versioning) | Planned |
 | **Phase 5** | AI assist (suggestions, consistency checks, alerts, analytics) | Planned |
 
@@ -48,9 +48,13 @@ Phase 2 provides the structural backbone: customer management, job management, w
 
 ---
 
-## Phase 3 and beyond
+## Phase 3 (Takeoff & Material Engine) — Implemented
 
-- **Phase 3 — Takeoff & Material Engine:** Master material catalog seeded from **`/data/materials/`** (see that folder’s README), weight-per-foot logic, pricing buffers, line-item modeling, material summaries. This is where the core IP (expert judgment → repeatable systems) starts.
+- **Material catalog** — Table `material_catalog` seeded from **`/data/materials/`** (see that folder’s README). Categories: angles, wide_flange, bars_hr_rounds, bars_cf_rounds, bars_flat, channels, mc_channels, pipe, tube. Seed script: `npx tsx scripts/seed-material-catalog.ts`.
+- **Takeoff schema** — One takeoff per job. Tables: `takeoffs` (header, tax_rate, margin_rate, shop/field labor columns, stored totals), `takeoff_metal_lines` (catalog-linked or other metals), `takeoff_component_lines`, `takeoff_misc_lines`, `takeoff_field_misc`. Layout and column meanings follow **`/data/materials/grand-totals-view.csv`** so Phase 4 PDF can consume the same data.
+- **Admin UI** — From job detail, a Takeoff/Proposal section to build and edit the takeoff; catalog picker for metal lines; calculations run on save or for display.
+
+## Phase 4 and beyond
 - **Phase 4 — Proposal automation:** Auto-generate PDF proposals, buffer logic, margin visibility, send via Resend, version tracking.
 - **Phase 5 — AI assist:** Suggestions, consistency checks, price alerts, historical comparison, productivity analytics.
 
@@ -69,6 +73,6 @@ Phase 2 provides the structural backbone: customer management, job management, w
 
 ## Schema location
 
-- Migrations: **`/supabase/schema/`** — `001_users.sql` through `006_storage_bucket.sql`.
+- Migrations: **`/supabase/schema/`** — `001_users.sql` through `009_takeoffs.sql` (Phase 3: `008_material_catalog.sql`, `009_takeoffs.sql`).
 - Apply via Supabase Dashboard SQL Editor (run in order) or via `supabase db push` if using the CLI.
 - **Service role key:** Set `SUPABASE_SERVICE_ROLE_KEY` in env for admin server code.

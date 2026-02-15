@@ -18,8 +18,24 @@ This folder holds the canonical CSV exports for MWFAB base materials and pricing
 
 ## Usage
 
-- **Phase 1:** Not used by the app; stored for reference and future import.
-- **Phase 2:** When the Material Catalog and Supabase schema exist, use these CSVs to seed or sync the catalog (see `/docs/future-schema.md` and `/supabase/schema/`).
+- **Phase 3:** Material catalog is seeded from these CSVs into Supabase `material_catalog`. Apply `supabase/schema/008_material_catalog.sql` in the Supabase SQL Editor, then run:
+  ```bash
+  npx tsx scripts/seed-material-catalog.ts
+  ```
+  Requires `.env.local` with `NEXT_PUBLIC_SUPABASE_URL` and `SUPABASE_SERVICE_ROLE_KEY`. The script is idempotent (upserts by `category` + `item_code`); re-run to refresh prices.
+
+## Category mapping (grand-totals)
+
+| CSV file | material_catalog category |
+|----------|---------------------------|
+| mwfab-base-materials.csv | angles |
+| mwfab-base-materials2.csv | wide_flange |
+| mwfab-base-materials3.csv | bars_hr_rounds / bars_cf_rounds (by Type) |
+| mwfab-base-materials4.csv, mwfab-base-materials5.csv | bars_flat |
+| mwfab-base-materials6.csv | channels |
+| mwfab-base-materials7.csv | mc_channels |
+| mwfab-base-materials8.csv | pipe |
+| mwfab-base-materials9.csv | tube |
 
 ## Conventions
 

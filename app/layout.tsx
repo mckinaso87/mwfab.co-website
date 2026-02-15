@@ -3,7 +3,7 @@ import { Geist } from "next/font/google";
 import "@/styles/global.css";
 import { ClerkProvider } from "@/components/providers/ClerkProvider";
 import { Header } from "@/components/layout/Header";
-import { Footer } from "@/components/layout/Footer";
+import { ConditionalFooter } from "@/components/layout/ConditionalFooter";
 import { JsonLd } from "@/components/seo/JsonLd";
 
 const geistSans = Geist({
@@ -44,7 +44,7 @@ export default function RootLayout({
           <div className="flex min-h-screen flex-col">
             <Header />
             <main className="flex-1">{children}</main>
-            <Footer />
+            <ConditionalFooter />
           </div>
         </ClerkProvider>
       </body>

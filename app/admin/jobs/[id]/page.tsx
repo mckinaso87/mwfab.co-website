@@ -85,6 +85,15 @@ export default async function JobDetailPage({
         )}
       </div>
       <h1 className="mt-4 text-2xl font-bold text-foreground">{j.job_name}</h1>
+      <div className="mt-4 rounded-lg border border-steel/50 bg-gunmetal/50 p-4">
+        <p className="mb-2 text-sm font-medium text-foreground">Build quote and totals for this job</p>
+        <Link
+          href={`/admin/jobs/${id}/takeoff`}
+          className="inline-flex items-center gap-2 rounded-md bg-steel-blue px-4 py-2 text-sm font-medium text-foreground hover:bg-steel"
+        >
+          Takeoff / Proposal →
+        </Link>
+      </div>
       <JobForm
         action={createOrUpdateJob}
         job={j}

@@ -52,7 +52,12 @@ export default async function AdminJobsPage({
   return (
     <div>
       <div className="flex flex-wrap items-center justify-between gap-4">
-        <h1 className="text-2xl font-bold text-foreground">Jobs</h1>
+        <div>
+          <h1 className="text-2xl font-bold text-foreground">Jobs</h1>
+          <p className="mt-1 text-sm text-foreground-muted">
+            Open a job to build a takeoff and proposal (quote totals).
+          </p>
+        </div>
         <Link
           href="/admin/jobs/new"
           className="rounded-lg bg-steel-blue px-4 py-2.5 text-sm font-medium text-foreground transition-colors hover:bg-steel"
@@ -145,12 +150,20 @@ export default async function AdminJobsPage({
                         : "—"}
                     </td>
                     <td className="px-4 py-3 text-right">
-                      <Link
-                        href={`/admin/jobs/${j.id}`}
-                        className="text-sm text-steel-blue hover:underline"
-                      >
-                        Edit
-                      </Link>
+                      <span className="flex justify-end gap-3">
+                        <Link
+                          href={`/admin/jobs/${j.id}/takeoff`}
+                          className="text-sm text-steel-blue hover:underline"
+                        >
+                          Proposal
+                        </Link>
+                        <Link
+                          href={`/admin/jobs/${j.id}`}
+                          className="text-sm text-steel-blue hover:underline"
+                        >
+                          Edit
+                        </Link>
+                      </span>
                     </td>
                   </tr>
                 ))}
