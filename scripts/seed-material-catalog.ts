@@ -101,15 +101,19 @@ function rowToCatalog(
 ): CatalogRow | null {
   const itemCode =
     pickCol(row, "Item #", "Section Number", "Section number", "Size", "#");
-  if (!itemCode || itemCode === "" || /^,/.test(itemCode)) return null;
+  const weightPerFt =
+    pickNum(row, "Estimated Pounds Per Foot", "Estimated Lbs. Per Ft.", "Weight Per Ft. in Lbs.", "Weight per Ft. in Lbs.", "Weight Per Foot", "Weight per Foot", "Weight Per Ft. in Lbs.", "Weight Per Linear Ft.", "Weight Per Lbs.", "Weight Per Ft. in Lbs.", "Weight\nPer/Foot", "Weight Per/Foot") ??
+    pickNum(row, "Weight Per Foot");
+  // wide_flange (materials2) can have empty Section Number; we'll use weight for item_code
+  const isWideFlange = sourceFile === "mwfab-base-materials2.csv";
+  if (!isWideFlange && (!itemCode || itemCode === "" || /^,/.test(itemCode))) return null;
+  if (isWideFlange && weightPerFt == null) return null;
 
   const displayName =
     pickCol(row, "Item #", "Section Number") ||
     pickCol(row, "Size") ||
-    itemCode;
-  const weightPerFt =
-    pickNum(row, "Estimated Pounds Per Foot", "Estimated Lbs. Per Ft.", "Weight Per Ft. in Lbs.", "Weight per Ft. in Lbs.", "Weight Per Foot", "Weight per Foot", "Weight Per Ft. in Lbs.", "Weight Per Linear Ft.", "Weight Per Lbs.", "Weight Per Ft. in Lbs.", "Weight\nPer/Foot", "Weight Per/Foot") ??
-    pickNum(row, "Weight Per Foot");
+    itemCode ||
+    (isWideFlange && weightPerFt != null ? `W${weightPerFt}` : "");
   const costPerLb =
     pricingUnit === "per_lb"
       ? pickNum(row, "Current Cost per Lbs.", "Current Cost per Lbs", "Current Cost per ft. in Lbs.")
@@ -120,13 +124,13 @@ function rowToCatalog(
       : null;
 
   const dimensions: Record<string, unknown> = {};
-  const sizeA = pickCol(row, "Size A", "Thickness", "Pipe Size", "Width");
-  const sizeB = pickCol(row, "Size B", "Width", "Available Length", "Height");
+  const sizeA = pickCol(row, "Size A", "Size", "Thickness", "Pipe Size", "Width");
+  const sizeB = pickCol(row, "Size B", "Width", "Height");
   const sizeC = pickCol(row, "Size C", "Section Number", "Schedule", "Gauge");
-  const sizeD = pickCol(row, "Section Depth A", "Outer Diameter", "Average Wall Thickness");
-  const flangeB = pickCol(row, "Flange Width B");
-  const flangeC = pickCol(row, "Flange Thickness C");
-  const webD = pickCol(row, "Web Thickness D", "Wall Thickness");
+  const sizeD = pickCol(row, "Section Depth A", "Depth of Section", "Outer Diameter", "Average Wall Thickness");
+  const flangeB = pickCol(row, "Flange Width B", "Flange Width");
+  const flangeC = pickCol(row, "Flange Thickness C", "Flange Thickness");
+  const webD = pickCol(row, "Web Thickness D", "Web Thickness", "Wall Thickness");
   if (sizeA) dimensions.size_a = sizeA;
   if (sizeB) dimensions.size_b = sizeB;
   if (sizeC) dimensions.size_c = sizeC;
@@ -136,10 +140,36 @@ function rowToCatalog(
   if (webD) dimensions.web_thickness_d = webD;
   const typeCol = pickCol(row, "Type", "Angle Type", "Materials");
   if (typeCol) dimensions.type = typeCol;
+  const availableLength = pickCol(row, "Available Length(s)", "Available Lengths", "Available Length");
+  if (availableLength) dimensions.available_length = availableLength;
+  if (sourceFile === "mwfab-base-materials8.csv") {
+    const pipeSize = pickCol(row, "Pipe Size");
+    const schedule = pickCol(row, "Schedule");
+    const od = pickCol(row, "Outer Diameter");
+    const wall = pickCol(row, "Wall Thickness");
+    if (pipeSize) dimensions.pipe_size = pipeSize;
+    if (schedule) dimensions.schedule = schedule;
+    if (od) dimensions.outer_diameter = od;
+    if (wall) dimensions.wall_thickness = wall;
+  }
+  if (sourceFile === "mwfab-base-materials9.csv") {
+    const w = pickCol(row, "Width");
+    const h = pickCol(row, "Height");
+    const gauge = pickCol(row, "Gauge");
+    if (w) dimensions.width = w;
+    if (h) dimensions.height = h;
+    if (gauge) dimensions.gauge = gauge;
+  }
+
+  // wide_flange has many rows per Section Number (different weights); need unique item_code so we don't lose rows when deduping
+  const finalItemCode =
+    sourceFile === "mwfab-base-materials2.csv" && weightPerFt != null
+      ? ((itemCode && String(itemCode).trim()) ? String(itemCode).trim() + "-" : "WF-") + String(weightPerFt)
+      : String(itemCode ?? "").trim().slice(0, 255);
 
   return {
     category,
-    item_code: String(itemCode).trim().slice(0, 255),
+    item_code: finalItemCode,
     display_name: displayName ? String(displayName).trim().slice(0, 512) : null,
     dimensions: Object.keys(dimensions).length ? dimensions : null,
     weight_per_ft: weightPerFt,

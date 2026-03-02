@@ -1,164 +1,185 @@
 "use client";
 
-import { useActionState, useEffect, useMemo, useRef, useState } from "react";
-import { upsertMetalLine, deleteMetalLineForm } from "./actions";
+import { useActionState, useCallback, useEffect, useMemo, useState } from "react";
+import { upsertMetalLine, deleteMetalLineForm, getCatalogDimensionOptions, getCatalogRow } from "./actions";
 import type { TakeoffMetalLine } from "@/lib/db-types";
 import type { MaterialCatalogRow } from "@/lib/db-types";
-
-const CATALOG_SEARCH_LIMIT = 40;
-
-function searchableCatalogLabel(row: MaterialCatalogRow): string {
-  const name =
-    row.display_name && row.display_name.trim() !== "" && row.display_name !== row.item_code
-      ? row.display_name
-      : row.item_code;
-  const parts = [name];
-  if (row.item_code && name !== row.item_code) parts.push(`[${row.item_code}]`);
-  if (row.weight_per_ft != null && Number.isFinite(row.weight_per_ft))
-    parts.push(`${Number(row.weight_per_ft)} lb/ft`);
-  const cost =
-    row.pricing_unit === "per_lb"
-      ? row.cost_per_lb
-      : row.pricing_unit === "per_foot"
-        ? row.cost_per_foot
-        : null;
-  if (cost != null && Number.isFinite(cost))
-    parts.push(row.pricing_unit === "per_foot" ? `$${Number(cost).toFixed(2)}/ft` : `$${Number(cost).toFixed(2)}/lb`);
-  return parts.join(" · ");
-}
-
-function catalogMatchesSearch(row: MaterialCatalogRow, q: string): boolean {
-  if (!q || q.length < 1) return true;
-  const lower = q.toLowerCase().trim();
-  if (row.item_code?.toLowerCase().includes(lower)) return true;
-  if (row.display_name?.toLowerCase().includes(lower)) return true;
-  const dims = row.dimensions && typeof row.dimensions === "object"
-    ? Object.values(row.dimensions).join(" ").toLowerCase()
-    : "";
-  if (dims.includes(lower)) return true;
-  return false;
-}
+import {
+  CATEGORY_ORDER,
+  getCategorySpec,
+  type CategorySpec,
+} from "@/lib/takeoff-catalog-spec";
 
 type Props = {
   takeoffId: string;
   jobId: string;
   lines: TakeoffMetalLine[];
-  catalogByCategory: Record<string, MaterialCatalogRow[]>;
-  categoryOrder: TakeoffMetalLine["category"][];
 };
 
+function displayCatalogRow(row: MaterialCatalogRow): string {
+  const name = row.display_name?.trim() ? row.display_name : row.item_code;
+  const parts = [name, `[${row.item_code}]`];
+  if (row.weight_per_ft != null && Number.isFinite(row.weight_per_ft))
+    parts.push(`${Number(row.weight_per_ft)} lb/ft`);
+  const cost =
+    row.pricing_unit === "per_lb" ? row.cost_per_lb : row.cost_per_foot;
+  if (cost != null && Number.isFinite(cost))
+    parts.push(row.pricing_unit === "per_foot" ? `$${Number(cost).toFixed(2)}/ft` : `$${Number(cost).toFixed(2)}/lb`);
+  return parts.join(" · ");
+}
 
-export function TakeoffMetalSection({
-  takeoffId,
-  jobId,
-  lines,
-  catalogByCategory,
-  categoryOrder,
-}: Props) {
-  const catalogById = useMemo(() => {
-    const map: Record<string, MaterialCatalogRow> = {};
-    for (const rows of Object.values(catalogByCategory)) {
-      for (const row of rows) map[row.id] = row;
-    }
-    return map;
-  }, [catalogByCategory]);
-
+export function TakeoffMetalSection({ takeoffId, jobId, lines }: Props) {
   const [state, formAction, isPending] = useActionState(
-    async (_: unknown, formData: FormData) =>
-      upsertMetalLine(takeoffId, jobId, formData),
+    async (_: unknown, formData: FormData) => upsertMetalLine(takeoffId, jobId, formData),
     null as { error?: string } | null
   );
   const deleteAction = (lineId: string) =>
     deleteMetalLineForm.bind(null, takeoffId, lineId, jobId);
 
   const [category, setCategory] = useState<string>("angles");
-  const [catalogId, setCatalogId] = useState<string>("");
-  const [catalogSearch, setCatalogSearch] = useState("");
-  const [catalogOpen, setCatalogOpen] = useState(false);
-  const catalogPickerRef = useRef<HTMLDivElement>(null);
-  const [displayName, setDisplayName] = useState("");
+  const [selections, setSelections] = useState<Record<string, string>>({});
+  const [stepOptions, setStepOptions] = useState<string[]>([]);
+  const [stepOptionsLoading, setStepOptionsLoading] = useState(false);
+  const [catalogRow, setCatalogRow] = useState<MaterialCatalogRow | null>(null);
+  const [catalogRowLoading, setCatalogRowLoading] = useState(false);
   const [count, setCount] = useState(1);
-  const [totalLengthFt, setTotalLengthFt] = useState<string>("");
-  const [totalPounds, setTotalPounds] = useState<string>("");
-  const [costPerUnit, setCostPerUnit] = useState<string>("");
-  const [totalPrice, setTotalPrice] = useState<string>("");
+  const [displayName, setDisplayName] = useState("");
+  const [totalLengthFt, setTotalLengthFt] = useState("");
+  const [totalPounds, setTotalPounds] = useState("");
+  const [costPerUnit, setCostPerUnit] = useState("");
 
-  const filteredCatalog = useMemo(() => {
-    const items = catalogByCategory[category] ?? [];
-    const q = catalogSearch.trim();
-    const matched = q.length < 1
-      ? items
-      : items.filter((row) => catalogMatchesSearch(row, q));
-    return matched.slice(0, CATALOG_SEARCH_LIMIT);
-  }, [catalogByCategory, category, catalogSearch]);
+  const spec = getCategorySpec(category as TakeoffMetalLine["category"]);
+  const isOther = category === "other";
+  const steps = useMemo(() => spec?.steps ?? [], [spec]);
+  const currentStepIndex = steps.findIndex((s) => !selections[s.key]?.trim());
+  const allStepsFilled = steps.length > 0 && currentStepIndex === -1;
 
-  useEffect(() => {
-    if (!catalogOpen) return;
-    const onMouseDown = (e: MouseEvent) => {
-      if (catalogPickerRef.current && !catalogPickerRef.current.contains(e.target as Node)) {
-        setCatalogOpen(false);
+  const filtersForStep = useCallback(
+    (stepIndex: number): Record<string, string> => {
+      const f: Record<string, string> = {};
+      for (let i = 0; i < stepIndex; i++) {
+        const k = steps[i]!.key;
+        if (selections[k]) f[k] = selections[k]!;
       }
-    };
-    document.addEventListener("mousedown", onMouseDown);
-    return () => document.removeEventListener("mousedown", onMouseDown);
-  }, [catalogOpen]);
-
-  const weightPerFt = catalogId ? catalogById[catalogId]?.weight_per_ft ?? null : null;
-  const pricingUnit = catalogId ? catalogById[catalogId]?.pricing_unit ?? null : null;
+      return f;
+    },
+    [steps, selections]
+  );
 
   useEffect(() => {
-    if (!catalogId) return;
-    const row = catalogById[catalogId];
-    if (!row) return;
-    setCategory(row.category);
-    const name =
-      row.display_name && row.display_name.trim() !== "" ? row.display_name : row.item_code;
-    setDisplayName(name);
-    const cost =
-      row.pricing_unit === "per_lb"
-        ? row.cost_per_lb
-        : row.pricing_unit === "per_foot"
-          ? row.cost_per_foot
-          : null;
-    if (cost != null && Number.isFinite(cost)) setCostPerUnit(String(cost));
-  }, [catalogId, catalogById]);
+    if (isOther || steps.length === 0) {
+      setStepOptions([]);
+      setCatalogRow(null);
+      return;
+    }
+    if (allStepsFilled) {
+      setStepOptionsLoading(false);
+      setStepOptions([]);
+      setCatalogRowLoading(true);
+      getCatalogRow(category, selections)
+        .then(({ row }) => {
+          setCatalogRow(row ?? null);
+        })
+        .finally(() => setCatalogRowLoading(false));
+      return;
+    }
+    setCatalogRow(null);
+    if (currentStepIndex < 0) return;
+    const stepKey = steps[currentStepIndex]!.key;
+    setStepOptionsLoading(true);
+    getCatalogDimensionOptions(category, stepKey, filtersForStep(currentStepIndex))
+      .then(({ options }) => setStepOptions(options))
+      .catch(() => setStepOptions([]))
+      .finally(() => setStepOptionsLoading(false));
+  }, [category, isOther, steps, selections, currentStepIndex, allStepsFilled, filtersForStep]);
 
-  useEffect(() => {
+  const weightPerFt =
+    catalogRow?.weight_per_ft != null ? Number(catalogRow.weight_per_ft) : null;
+  const pricingUnit = catalogRow?.pricing_unit ?? null;
+  const costFromRow =
+    pricingUnit === "per_lb" ? catalogRow?.cost_per_lb : catalogRow?.cost_per_foot;
+  const costFromRowNum =
+    costFromRow != null && Number.isFinite(Number(costFromRow)) ? Number(costFromRow) : NaN;
+  const manualCost = costPerUnit.trim() !== "" ? parseFloat(costPerUnit) : NaN;
+  const cost = Number.isFinite(manualCost) ? manualCost : (Number.isFinite(costFromRowNum) ? costFromRowNum : NaN);
+
+  // Total = (length OR weight) × current cost — per_foot: length × cost; per_lb: weight × cost
+  function getComputedTotalPrice(): string {
     const length = parseFloat(totalLengthFt);
     const pounds = parseFloat(totalPounds);
-    const cost = parseFloat(costPerUnit);
+    const c = parseFloat(costPerUnit);
+    const effectiveCost = Number.isFinite(cost) ? cost : (Number.isFinite(c) ? c : NaN);
+    if (!Number.isFinite(effectiveCost)) return "";
+
+    const hasPounds = Number.isFinite(pounds) && pounds > 0;
+    const hasLength = Number.isFinite(length) && length > 0;
+
+    if (isOther) {
+      return hasPounds ? (pounds * effectiveCost).toFixed(2) : "";
+    }
+
+    const unit = catalogRow ? pricingUnit : spec?.pricingUnit ?? "per_lb";
+
+    if (unit === "per_foot") {
+      const effectiveLength =
+        hasLength
+          ? length
+          : catalogRow && weightPerFt != null && weightPerFt > 0 && hasPounds
+            ? pounds / weightPerFt
+            : NaN;
+      if (Number.isFinite(effectiveLength)) return (effectiveLength * effectiveCost).toFixed(2);
+      return "";
+    }
+
+    // per_lb: total = weight × cost (use entered pounds or derive from length × weight_per_ft when catalog row known)
     const computedPounds =
-      Number.isFinite(length) && weightPerFt != null && Number.isFinite(weightPerFt)
-        ? length * weightPerFt
-        : null;
-    const poundsVal =
-      Number.isFinite(pounds) && pounds > 0
-        ? pounds
-        : computedPounds ?? 0;
-    if (pricingUnit === "per_foot" && catalogId && Number.isFinite(length)) {
-      const row = catalogById[catalogId];
-      const rate = row?.cost_per_foot;
-      if (rate != null && Number.isFinite(rate)) {
-        setTotalPrice((length * rate).toFixed(2));
-        return;
-      }
+      catalogRow && hasLength && weightPerFt != null && weightPerFt > 0 ? length * weightPerFt : null;
+    const weightForTotal = hasPounds ? pounds : (computedPounds ?? NaN);
+    if (Number.isFinite(weightForTotal) && weightForTotal > 0)
+      return (weightForTotal * effectiveCost).toFixed(2);
+    return "";
+  }
+  const computedTotalPrice = getComputedTotalPrice();
+
+  useEffect(() => {
+    if (catalogRow) {
+      setDisplayName(catalogRow.display_name?.trim() || catalogRow.item_code);
+      if (catalogRow.pricing_unit === "per_lb" && catalogRow.cost_per_lb != null)
+        setCostPerUnit(String(catalogRow.cost_per_lb));
+      else if (catalogRow.pricing_unit === "per_foot" && catalogRow.cost_per_foot != null)
+        setCostPerUnit(String(catalogRow.cost_per_foot));
+      else
+        setCostPerUnit(""); // No price in catalog — user can type cost; total will update automatically
     }
-    if (Number.isFinite(poundsVal) && Number.isFinite(cost)) {
-      setTotalPrice((poundsVal * cost).toFixed(2));
-    } else {
-      setTotalPrice("");
-    }
-  }, [totalLengthFt, totalPounds, costPerUnit, weightPerFt, pricingUnit, catalogId, catalogById]);
+  }, [catalogRow]);
 
   const resetForm = () => {
-    setCatalogId("");
+    setSelections({});
+    setCatalogRow(null);
     setDisplayName("");
     setCount(1);
     setTotalLengthFt("");
     setTotalPounds("");
     setCostPerUnit("");
-    setTotalPrice("");
   };
+
+  const handleCategoryChange = (next: string) => {
+    setCategory(next);
+    setSelections({});
+    setCatalogRow(null);
+    setDisplayName("");
+    setCostPerUnit("");
+  };
+
+  const handleStepSelect = (stepKey: string, value: string) => {
+    const idx = steps.findIndex((s) => s.key === stepKey);
+    const next: Record<string, string> = {};
+    for (let i = 0; i < idx; i++) next[steps[i]!.key] = selections[steps[i]!.key] ?? "";
+    next[stepKey] = value;
+    setSelections(next);
+  };
+
+  const catalogId = catalogRow?.id ?? "";
 
   return (
     <section className="mt-8 rounded-lg border border-border bg-card p-6">
@@ -193,108 +214,63 @@ export function TakeoffMetalSection({
         className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4"
       >
         <input type="hidden" name="sort_order" value={lines.length} />
-        <input type="hidden" name="category" value={category} />
         <input type="hidden" name="material_catalog_id" value={catalogId} />
         <div>
           <label htmlFor="metal_category" className="block text-sm text-foreground-muted">Category</label>
           <select
             id="metal_category"
+            name="category"
             className="input-admin"
             value={category}
-            onChange={(e) => {
-              const next = e.target.value;
-              setCategory(next);
-              if (catalogId && catalogById[catalogId]?.category !== next) {
-                setCatalogId("");
-                setCatalogSearch("");
-              }
-            }}
+            onChange={(e) => handleCategoryChange(e.target.value)}
           >
-            {categoryOrder.map((c) => (
+            {CATEGORY_ORDER.map((c) => (
               <option key={c} value={c}>{c}</option>
             ))}
           </select>
         </div>
-        <div className="relative" ref={catalogPickerRef}>
-          <label htmlFor="metal_catalog_search" className="block text-sm text-foreground-muted">
-            Catalog item (optional)
-          </label>
-          <input type="hidden" name="material_catalog_id" value={catalogId} />
-          {catalogId && catalogById[catalogId] ? (
-            <div className="flex items-center gap-2 rounded-md border border-border bg-steel/20 px-3 py-2 text-sm">
-              <span className="min-w-0 flex-1 truncate text-foreground">
-                {searchableCatalogLabel(catalogById[catalogId])}
-              </span>
-              <button
-                type="button"
-                onClick={() => {
-                  setCatalogId("");
-                  setCatalogSearch("");
-                  setDisplayName("");
-                  setCostPerUnit("");
-                  setTotalPrice("");
-                }}
-                className="shrink-0 text-steel-blue hover:underline"
-              >
-                Clear
-              </button>
-            </div>
-          ) : (
-            <>
-              <input
-                id="metal_catalog_search"
-                type="text"
-                className="input-admin"
-                placeholder="Search by item #, name, or size (e.g. LS12 or 1/2)"
-                value={catalogSearch}
-                onChange={(e) => {
-                  setCatalogSearch(e.target.value);
-                  setCatalogOpen(true);
-                }}
-                onFocus={() => setCatalogOpen(true)}
-              />
-              {catalogOpen && (
-                <ul
-                  className="absolute left-0 top-full z-10 mt-1 max-h-60 w-full overflow-auto rounded-md border border-border bg-gunmetal py-1 shadow-lg"
-                  role="listbox"
-                >
-                  {filteredCatalog.length === 0 ? (
-                    <li className="px-3 py-2 text-sm text-foreground-muted">
-                      {catalogSearch.trim() ? "No matches. Try another search or category." : `Type to search in ${category}.`}
-                    </li>
-                  ) : (
-                    filteredCatalog.map((row) => (
-                      <li
-                        key={row.id}
-                        role="option"
-                        className="cursor-pointer px-3 py-2 text-sm text-foreground hover:bg-steel-blue/30"
-                        onClick={() => {
-                          setCatalogId(row.id);
-                          setCatalogSearch("");
-                          setCatalogOpen(false);
-                        }}
-                      >
-                        {searchableCatalogLabel(row)}
-                      </li>
-                    ))
-                  )}
-                </ul>
-              )}
-            </>
-          )}
-        </div>
-        <div>
-          <label htmlFor="metal_display_name" className="block text-sm text-foreground-muted">Display name</label>
-          <input
-            id="metal_display_name"
-            name="display_name"
-            type="text"
-            className="input-admin"
-            placeholder="e.g. Plate 12 x 12 x 1/2"
-            value={displayName}
-            onChange={(e) => setDisplayName(e.target.value)}
-          />
-        </div>
+
+        {!isOther && steps.length > 0 && (
+          <>
+            {steps.map((step, idx) => {
+              const value = selections[step.key] ?? "";
+              const isCurrentStep = idx === currentStepIndex;
+              const isPastStep = idx < currentStepIndex;
+              return (
+                <div key={step.key}>
+                  <label className="block text-sm text-foreground-muted">{step.label}</label>
+                  {isPastStep ? (
+                    <div className="rounded-md border border-border bg-steel/20 px-3 py-2 text-sm text-foreground">
+                      {value}
+                    </div>
+                  ) : isCurrentStep ? (
+                    <select
+                      className="input-admin"
+                      value={value}
+                      onChange={(e) => handleStepSelect(step.key, e.target.value)}
+                      disabled={stepOptionsLoading}
+                    >
+                      <option value="">Select {step.label.toLowerCase()}…</option>
+                      {stepOptions.map((opt) => (
+                        <option key={opt} value={opt}>{opt}</option>
+                      ))}
+                    </select>
+                  ) : null}
+                </div>
+              );
+            })}
+            {allStepsFilled && (
+              <div className="col-span-full rounded-md border border-border bg-steel/20 p-3 text-sm">
+                {catalogRowLoading ? (
+                  <span className="text-foreground-muted">Loading…</span>
+                ) : catalogRow ? (
+                  <span className="text-foreground">{displayCatalogRow(catalogRow)}</span>
+                ) : null}
+              </div>
+            )}
+          </>
+        )}
+
         <div>
           <label htmlFor="metal_count" className="block text-sm text-foreground-muted">Count</label>
           <input
@@ -309,7 +285,7 @@ export function TakeoffMetalSection({
           />
         </div>
         <div>
-          <label htmlFor="metal_total_length_ft" className="block text-sm text-foreground-muted">Total length (ft)</label>
+          <label htmlFor="metal_total_length_ft" className="block text-sm text-foreground-muted">Length (ft)</label>
           <input
             id="metal_total_length_ft"
             name="total_length_ft"
@@ -335,7 +311,12 @@ export function TakeoffMetalSection({
           />
         </div>
         <div>
-          <label htmlFor="metal_cost_per_unit" className="block text-sm text-foreground-muted">Cost per unit ($/lb or $/ft)</label>
+          <label htmlFor="metal_cost_per_unit" className="block text-sm text-foreground-muted">
+            Cost per unit {!isOther && catalogRow ? `(${spec?.pricingUnit === "per_foot" ? "$/ft" : "$/lb"})` : "($/lb or $/ft)"}
+            {!isOther && catalogRow && !Number.isFinite(costFromRowNum) && (
+              <span className="ml-1 text-amber-600">— enter manually if not in catalog</span>
+            )}
+          </label>
           <input
             id="metal_cost_per_unit"
             name="cost_per_unit"
@@ -349,16 +330,26 @@ export function TakeoffMetalSection({
         </div>
         <div>
           <label htmlFor="metal_total_price" className="block text-sm text-foreground-muted">Total price (auto)</label>
+          <input type="hidden" name="total_price" value={computedTotalPrice ?? ""} />
           <input
             id="metal_total_price"
-            name="total_price"
-            type="number"
-            step="0.01"
-            min="0"
+            type="text"
             readOnly
             className="input-admin bg-steel/30"
-            value={totalPrice}
-            title="Auto-calculated from pounds × cost (or length × $/ft)"
+            value={computedTotalPrice ? `$${computedTotalPrice}` : ""}
+            placeholder="—"
+          />
+        </div>
+        <div className="col-span-full">
+          <label htmlFor="metal_display_name" className="block text-sm text-foreground-muted">Display name</label>
+          <input
+            id="metal_display_name"
+            name="display_name"
+            type="text"
+            className="input-admin"
+            placeholder={isOther ? "e.g. Plate 12 x 12 x 1/2" : undefined}
+            value={displayName}
+            onChange={(e) => setDisplayName(e.target.value)}
           />
         </div>
         {state?.error && <p className="col-span-full text-sm text-red-500">{state.error}</p>}

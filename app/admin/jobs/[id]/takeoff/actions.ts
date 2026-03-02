@@ -12,7 +12,85 @@ import type {
   TakeoffComponentLine,
   TakeoffMiscLine,
   TakeoffFieldMisc,
+  MaterialCatalogRow,
 } from "@/lib/db-types";
+
+const TOP_LEVEL_KEYS = new Set(["weight_per_ft", "cost_per_lb", "cost_per_foot", "pricing_unit", "item_code", "display_name"]);
+
+function valuesEqual(a: string | null, b: string): boolean {
+  if (a == null || a === "") return false;
+  if (a === b) return true;
+  const na = parseFloat(a);
+  const nb = parseFloat(b);
+  if (Number.isFinite(na) && Number.isFinite(nb)) return na === nb;
+  return false;
+}
+
+function catalogRowMatchesFilters(
+  row: { dimensions: Record<string, unknown> | null; [k: string]: unknown },
+  filters: Record<string, string>
+): boolean {
+  for (const [key, value] of Object.entries(filters)) {
+    if (!value) continue;
+    const val = TOP_LEVEL_KEYS.has(key)
+      ? (row[key] != null ? String(row[key]) : null)
+      : (row.dimensions && typeof row.dimensions === "object" ? (row.dimensions as Record<string, unknown>)[key] : undefined);
+    const strVal = val != null ? String(val) : null;
+    if (!valuesEqual(strVal, value)) return false;
+  }
+  return true;
+}
+
+function getValueForStepKey(
+  row: { dimensions: Record<string, unknown> | null; [k: string]: unknown },
+  stepKey: string
+): string | null {
+  if (TOP_LEVEL_KEYS.has(stepKey)) {
+    const v = row[stepKey];
+    return v != null ? String(v) : null;
+  }
+  if (row.dimensions && typeof row.dimensions === "object") {
+    const v = (row.dimensions as Record<string, unknown>)[stepKey];
+    return v != null ? String(v) : null;
+  }
+  return null;
+}
+
+/** Returns distinct option values for a cascading dropdown step. */
+export async function getCatalogDimensionOptions(
+  category: string,
+  stepKey: string,
+  filters: Record<string, string>
+): Promise<{ options: string[]; error?: string }> {
+  const supabase = createAdminClient();
+  const { data: rows, error } = await supabase
+    .from("material_catalog")
+    .select("id, dimensions, weight_per_ft, item_code, display_name")
+    .eq("category", category);
+  if (error) return { options: [], error: error.message };
+  const filtered = (rows ?? []).filter((row) => catalogRowMatchesFilters(row, filters));
+  const values = new Set<string>();
+  for (const row of filtered) {
+    const v = getValueForStepKey(row, stepKey);
+    if (v != null && v.trim() !== "") values.add(v.trim());
+  }
+  return { options: Array.from(values).sort() };
+}
+
+/** Returns the first catalog row matching the full selection (for pricing/weight). */
+export async function getCatalogRow(
+  category: string,
+  selections: Record<string, string>
+): Promise<{ row: MaterialCatalogRow | null; error?: string }> {
+  const supabase = createAdminClient();
+  const { data: rows, error } = await supabase
+    .from("material_catalog")
+    .select("*")
+    .eq("category", category);
+  if (error) return { row: null, error: error.message };
+  const match = (rows ?? []).find((row) => catalogRowMatchesFilters(row, selections));
+  return { row: match ? (match as MaterialCatalogRow) : null };
+}
 
 export async function getOrCreateTakeoff(
   jobId: string

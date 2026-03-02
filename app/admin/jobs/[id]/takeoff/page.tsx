@@ -9,27 +9,14 @@ import { TakeoffComponentSection } from "./TakeoffComponentSection";
 import { TakeoffMiscSection } from "./TakeoffMiscSection";
 import { TakeoffFieldMiscSection } from "./TakeoffFieldMiscSection";
 import { TakeoffTotalsSection } from "./TakeoffTotalsSection";
+import { CATEGORY_ORDER } from "@/lib/takeoff-catalog-spec";
 import type { Takeoff, TakeoffMetalLine, TakeoffComponentLine, TakeoffMiscLine, TakeoffFieldMisc } from "@/lib/db-types";
-import type { MaterialCatalogRow } from "@/lib/db-types";
 
 export const metadata: Metadata = {
   title: "Takeoff | Admin | McKinados Welding & Fabrication",
   description: "Build takeoff and proposal.",
   robots: "noindex, nofollow",
 };
-
-const METAL_CATEGORY_ORDER: TakeoffMetalLine["category"][] = [
-  "angles",
-  "wide_flange",
-  "bars_hr_rounds",
-  "bars_cf_rounds",
-  "bars_flat",
-  "channels",
-  "mc_channels",
-  "pipe",
-  "tube",
-  "other",
-];
 
 export default async function TakeoffPage({
   params,
@@ -54,7 +41,6 @@ export default async function TakeoffPage({
     { data: componentLines },
     { data: miscLines },
     { data: fieldMiscLines },
-    { data: catalogRows },
   ] = await Promise.all([
     supabase
       .from("takeoff_metal_lines")
@@ -76,25 +62,15 @@ export default async function TakeoffPage({
       .select("*")
       .eq("takeoff_id", takeoff.id)
       .order("sort_order"),
-    supabase.from("material_catalog").select("*").order("category").order("item_code"),
   ]);
 
   const metal = (metalLines ?? []) as TakeoffMetalLine[];
   const components = (componentLines ?? []) as TakeoffComponentLine[];
   const misc = (miscLines ?? []) as TakeoffMiscLine[];
   const fieldMisc = (fieldMiscLines ?? []) as TakeoffFieldMisc[];
-  const catalog = (catalogRows ?? []) as MaterialCatalogRow[];
-  const catalogByCategory = catalog.reduce(
-    (acc, row) => {
-      if (!acc[row.category]) acc[row.category] = [];
-      acc[row.category].push(row);
-      return acc;
-    },
-    {} as Record<string, MaterialCatalogRow[]>
-  );
   const metalSorted = [...metal].sort(
     (a, b) =>
-      METAL_CATEGORY_ORDER.indexOf(a.category) - METAL_CATEGORY_ORDER.indexOf(b.category) ||
+      CATEGORY_ORDER.indexOf(a.category) - CATEGORY_ORDER.indexOf(b.category) ||
       a.sort_order - b.sort_order
   );
 
@@ -125,13 +101,7 @@ export default async function TakeoffPage({
 
       <TakeoffHeaderForm takeoff={takeoff} jobId={jobId} />
 
-      <TakeoffMetalSection
-        takeoffId={takeoff.id}
-        jobId={jobId}
-        lines={metalSorted}
-        catalogByCategory={catalogByCategory}
-        categoryOrder={METAL_CATEGORY_ORDER}
-      />
+      <TakeoffMetalSection takeoffId={takeoff.id} jobId={jobId} lines={metalSorted} />
 
       <TakeoffComponentSection takeoffId={takeoff.id} jobId={jobId} lines={components} />
 
