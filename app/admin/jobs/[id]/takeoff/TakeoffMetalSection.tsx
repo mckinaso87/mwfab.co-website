@@ -1,6 +1,7 @@
 "use client";
 
 import { useActionState, useCallback, useEffect, useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
 import { upsertMetalLine, deleteMetalLineForm, getCatalogDimensionOptions, getCatalogRow } from "./actions";
 import type { TakeoffMetalLine } from "@/lib/db-types";
 import type { MaterialCatalogRow } from "@/lib/db-types";
@@ -30,6 +31,7 @@ function displayCatalogRow(row: MaterialCatalogRow): string {
 }
 
 export function TakeoffMetalSection({ takeoffId, jobId, lines }: Props) {
+  const router = useRouter();
   const [state, formAction, isPending] = useActionState(
     async (_: unknown, formData: FormData) => upsertMetalLine(takeoffId, jobId, formData),
     null as { error?: string } | null
@@ -112,7 +114,7 @@ export function TakeoffMetalSection({ takeoffId, jobId, lines }: Props) {
   const manualCost = costPerUnit.trim() !== "" ? parseFloat(costPerUnit) : NaN;
   const cost = Number.isFinite(manualCost) ? manualCost : (Number.isFinite(costFromRowNum) ? costFromRowNum : NaN);
 
-  // Total = (length OR weight) × current cost — per_foot: length × cost; per_lb: weight × cost
+  // Total = (length OR weight) × count × cost — per_foot: (length × count) × cost; per_lb: weight × cost (weight can be total or length×count×wpf)
   function getComputedTotalPrice(): string {
     const length = parseFloat(totalLengthFt);
     const pounds = parseFloat(totalPounds);
@@ -120,10 +122,12 @@ export function TakeoffMetalSection({ takeoffId, jobId, lines }: Props) {
     const effectiveCost = Number.isFinite(cost) ? cost : (Number.isFinite(c) ? c : NaN);
     if (!Number.isFinite(effectiveCost)) return "";
 
+    const mult = Math.max(1, Math.floor(Number(count) || 1));
     const hasPounds = Number.isFinite(pounds) && pounds > 0;
     const hasLength = Number.isFinite(length) && length > 0;
 
     if (isOther) {
+      // total_pounds is total for line; if you use per-piece pounds, enter total or count×per-piece
       return hasPounds ? (pounds * effectiveCost).toFixed(2) : "";
     }
 
@@ -132,18 +136,21 @@ export function TakeoffMetalSection({ takeoffId, jobId, lines }: Props) {
     if (unit === "per_foot") {
       const effectiveLength =
         hasLength
-          ? length
+          ? length * mult
           : catalogRow && weightPerFt != null && weightPerFt > 0 && hasPounds
-            ? pounds / weightPerFt
+            ? (pounds / weightPerFt) * mult
             : NaN;
       if (Number.isFinite(effectiveLength)) return (effectiveLength * effectiveCost).toFixed(2);
       return "";
     }
 
-    // per_lb: total = weight × cost (use entered pounds or derive from length × weight_per_ft when catalog row known)
+    // per_lb: prefer computed weight (length × count × weight_per_ft) when we have catalog so count and lb/ft are reflected
     const computedPounds =
-      catalogRow && hasLength && weightPerFt != null && weightPerFt > 0 ? length * weightPerFt : null;
-    const weightForTotal = hasPounds ? pounds : (computedPounds ?? NaN);
+      catalogRow && hasLength && weightPerFt != null && weightPerFt > 0 ? length * mult * weightPerFt : null;
+    const weightForTotal =
+      computedPounds != null && Number.isFinite(computedPounds)
+        ? computedPounds
+        : (hasPounds ? pounds : NaN);
     if (Number.isFinite(weightForTotal) && weightForTotal > 0)
       return (weightForTotal * effectiveCost).toFixed(2);
     return "";
@@ -165,6 +172,18 @@ export function TakeoffMetalSection({ takeoffId, jobId, lines }: Props) {
         setCostPerUnit(""); // No price in catalog — user can type cost; total will update automatically
     }
   }, [catalogRow]);
+
+  // When catalog has weight_per_ft and user has length + count, auto-fill Total pounds (length × count × lb/ft)
+  useEffect(() => {
+    if (!catalogRow?.weight_per_ft) return;
+    const length = parseFloat(totalLengthFt);
+    const mult = Math.max(1, Math.floor(Number(count) || 1));
+    if (Number.isFinite(length) && length > 0) {
+      const wpf = Number(catalogRow.weight_per_ft);
+      if (Number.isFinite(wpf) && wpf > 0)
+        setTotalPounds(String(length * mult * wpf));
+    }
+  }, [catalogRow?.id, catalogRow?.weight_per_ft, totalLengthFt, count]);
 
   const resetForm = () => {
     setSelections({});
@@ -216,6 +235,7 @@ export function TakeoffMetalSection({ takeoffId, jobId, lines }: Props) {
             <form
               action={async (fd: FormData) => {
                 await deleteAction(line.id)(fd);
+                router.refresh();
               }}
               className="inline"
             >
@@ -227,8 +247,9 @@ export function TakeoffMetalSection({ takeoffId, jobId, lines }: Props) {
         ))}
       </ul>
       <form
-        action={(formData) => {
-          formAction(formData);
+        action={async (formData) => {
+          await formAction(formData);
+          router.refresh();
           resetForm();
         }}
         className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4"

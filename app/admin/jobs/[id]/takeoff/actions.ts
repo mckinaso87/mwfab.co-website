@@ -262,6 +262,7 @@ export async function upsertMetalLine(
   let resolvedTotalPounds = totalPounds;
   let resolvedCostPerUnit = costPerUnit;
   let resolvedTotalPrice = totalPrice;
+  const countNum = Math.max(1, Math.floor(count));
   if (materialCatalogId) {
     const { data: catalogRow } = await supabase
       .from("material_catalog")
@@ -274,14 +275,18 @@ export async function upsertMetalLine(
         resolvedCostPerUnit = (catalogRow.cost_per_lb ?? catalogRow.cost_per_foot) ?? 0;
       const wpf = catalogRow.weight_per_ft;
       if (Number.isFinite(totalLengthFt) && wpf != null && Number.isFinite(wpf)) {
-        resolvedTotalPounds = totalLengthFt * wpf;
+        const effectiveLength = totalLengthFt * countNum;
+        resolvedTotalPounds = effectiveLength * wpf;
         if (catalogRow.pricing_unit === "per_lb" && Number.isFinite(resolvedCostPerUnit))
           resolvedTotalPrice = resolvedTotalPounds * resolvedCostPerUnit;
         else if (catalogRow.pricing_unit === "per_foot" && catalogRow.cost_per_foot != null)
-          resolvedTotalPrice = totalLengthFt * catalogRow.cost_per_foot;
+          resolvedTotalPrice = effectiveLength * catalogRow.cost_per_foot;
       }
     }
   }
+  // If no catalog or catalog didn't set price, use form total_price (client already applied count)
+  if (!Number.isFinite(resolvedTotalPrice) || resolvedTotalPrice === 0)
+    resolvedTotalPrice = totalPrice;
   const payload = {
     takeoff_id: takeoffId,
     material_catalog_id: materialCatalogId || null,
