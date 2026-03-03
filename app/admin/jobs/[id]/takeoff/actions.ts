@@ -17,12 +17,19 @@ import type {
 
 const TOP_LEVEL_KEYS = new Set(["weight_per_ft", "cost_per_lb", "cost_per_foot", "pricing_unit", "item_code", "display_name"]);
 
+/** True if a and b are the same dimension value. Use string match first; only use numeric for plain numbers (e.g. "1.5") so "1/2 in" never equals "1 in". */
 function valuesEqual(a: string | null, b: string): boolean {
   if (a == null || a === "") return false;
-  if (a === b) return true;
-  const na = parseFloat(a);
-  const nb = parseFloat(b);
-  if (Number.isFinite(na) && Number.isFinite(nb)) return na === nb;
+  const ta = a.trim();
+  const tb = b.trim();
+  if (ta === tb) return true;
+  // Only compare as numbers when both look like a single number (no fractions like 1/2, no units like "in")
+  const plainNumber = /^-?\d+(\.\d+)?\s*$/;
+  if (plainNumber.test(ta) && plainNumber.test(tb)) {
+    const na = parseFloat(ta);
+    const nb = parseFloat(tb);
+    if (Number.isFinite(na) && Number.isFinite(nb)) return na === nb;
+  }
   return false;
 }
 
@@ -85,7 +92,7 @@ export async function getCatalogRow(
   const supabase = createAdminClient();
   const { data: rows, error } = await supabase
     .from("material_catalog")
-    .select("*")
+    .select("id, category, item_code, display_name, dimensions, weight_per_ft, cost_per_lb, cost_per_foot, pricing_unit, source_file, created_at")
     .eq("category", category);
   if (error) return { row: null, error: error.message };
   const match = (rows ?? []).find((row) => catalogRowMatchesFilters(row, selections));

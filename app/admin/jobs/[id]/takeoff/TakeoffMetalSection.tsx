@@ -6,6 +6,7 @@ import type { TakeoffMetalLine } from "@/lib/db-types";
 import type { MaterialCatalogRow } from "@/lib/db-types";
 import {
   CATEGORY_ORDER,
+  CATEGORY_LABELS,
   getCategorySpec,
   type CategorySpec,
 } from "@/lib/takeoff-catalog-spec";
@@ -78,7 +79,15 @@ export function TakeoffMetalSection({ takeoffId, jobId, lines }: Props) {
       setCatalogRowLoading(true);
       getCatalogRow(category, selections)
         .then(({ row }) => {
-          setCatalogRow(row ?? null);
+          if (row) {
+            setCatalogRow(row);
+            setDisplayName(row.display_name?.trim() || row.item_code || "");
+            const costVal = row.pricing_unit === "per_lb" ? row.cost_per_lb : row.cost_per_foot;
+            const numCost = costVal != null && String(costVal).trim() !== "" ? Number(costVal) : NaN;
+            setCostPerUnit(Number.isFinite(numCost) ? String(numCost) : "");
+          } else {
+            setCatalogRow(null);
+          }
         })
         .finally(() => setCatalogRowLoading(false));
       return;
@@ -144,10 +153,14 @@ export function TakeoffMetalSection({ takeoffId, jobId, lines }: Props) {
   useEffect(() => {
     if (catalogRow) {
       setDisplayName(catalogRow.display_name?.trim() || catalogRow.item_code);
-      if (catalogRow.pricing_unit === "per_lb" && catalogRow.cost_per_lb != null)
-        setCostPerUnit(String(catalogRow.cost_per_lb));
-      else if (catalogRow.pricing_unit === "per_foot" && catalogRow.cost_per_foot != null)
-        setCostPerUnit(String(catalogRow.cost_per_foot));
+      const costLb = catalogRow.cost_per_lb;
+      const costFt = catalogRow.cost_per_foot;
+      const hasLb = costLb != null && String(costLb).trim() !== "" && Number.isFinite(Number(costLb));
+      const hasFt = costFt != null && String(costFt).trim() !== "" && Number.isFinite(Number(costFt));
+      if (catalogRow.pricing_unit === "per_lb" && hasLb)
+        setCostPerUnit(String(Number(costLb)));
+      else if (catalogRow.pricing_unit === "per_foot" && hasFt)
+        setCostPerUnit(String(Number(costFt)));
       else
         setCostPerUnit(""); // No price in catalog — user can type cost; total will update automatically
     }
@@ -179,6 +192,13 @@ export function TakeoffMetalSection({ takeoffId, jobId, lines }: Props) {
     setSelections(next);
   };
 
+  const clearCatalogSelection = () => {
+    setSelections({});
+    setCatalogRow(null);
+    setDisplayName("");
+    setCostPerUnit("");
+  };
+
   const catalogId = catalogRow?.id ?? "";
 
   return (
@@ -188,7 +208,7 @@ export function TakeoffMetalSection({ takeoffId, jobId, lines }: Props) {
         {lines.map((line) => (
           <li key={line.id} className="flex flex-wrap items-center gap-2 border-b border-border pb-2">
             <span className="font-medium">{line.display_name}</span>
-            <span className="text-foreground-muted">({line.category})</span>
+            <span className="text-foreground-muted">({CATEGORY_LABELS[line.category] ?? line.category})</span>
             <span>Count: {line.count}</span>
             {line.total_length_ft != null && <span>{line.total_length_ft} ft</span>}
             {line.total_pounds != null && <span>{line.total_pounds} lb</span>}
@@ -225,7 +245,7 @@ export function TakeoffMetalSection({ takeoffId, jobId, lines }: Props) {
             onChange={(e) => handleCategoryChange(e.target.value)}
           >
             {CATEGORY_ORDER.map((c) => (
-              <option key={c} value={c}>{c}</option>
+              <option key={c} value={c}>{CATEGORY_LABELS[c] ?? c}</option>
             ))}
           </select>
         </div>
@@ -266,6 +286,17 @@ export function TakeoffMetalSection({ takeoffId, jobId, lines }: Props) {
                 ) : catalogRow ? (
                   <span className="text-foreground">{displayCatalogRow(catalogRow)}</span>
                 ) : null}
+              </div>
+            )}
+            {Object.keys(selections).length > 0 && (
+              <div className="col-span-full">
+                <button
+                  type="button"
+                  onClick={clearCatalogSelection}
+                  className="text-sm text-foreground-muted hover:text-foreground underline"
+                >
+                  Clear selection
+                </button>
               </div>
             )}
           </>

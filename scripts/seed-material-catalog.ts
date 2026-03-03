@@ -29,6 +29,21 @@ const CATEGORY_BY_FILE: Record<string, string> = {
   "mwfab-base-materials9.csv": "tube",
 };
 
+/** CSV cost column aliases by category – matches headers in data/materials CSVs. See data/materials/SCHEMA_AND_MAPPING.md */
+const COST_PER_LB_ALIASES: Record<string, string[]> = {
+  angles: ["Current cost per lbs.", "Current Cost per Lbs.", "Current Cost per Lbs", "Current Cost per Lb."],
+  bars_hr_rounds: ["Current cost per ft. in lbs.", "Current Cost per ft. in Lbs.", "Current Cost per ft. in Lbs", "Current Cost per Lbs.", "Current Cost per Lbs"],
+  bars_cf_rounds: ["Current cost per lbs.", "Current Cost per Lbs.", "Current Cost per Lbs", "Current Cost per Lb."],
+  bars_flat: ["Current Cost per ft. in Lbs.", "Current cost per ft. in lbs.", "Current Cost per Lbs.", "Current Cost per Lbs"],
+  channels: ["Current Cost per Lbs.", "Current cost per lbs.", "Current Cost per Lbs"],
+  mc_channels: ["Current Cost per Lbs.", "Current cost per lbs.", "Current Cost per Lbs"],
+  pipe: ["Current Cost per Lbs.", "Current cost per lbs.", "Current Cost per Lbs"],
+  tube: ["Current Cost per Lbs.", "Current cost per lbs.", "Current Cost per Lbs"],
+};
+const COST_PER_FOOT_ALIASES: Record<string, string[]> = {
+  wide_flange: ["Current cost per foot", "Current Cost per Foot", "Current Cost per foot"],
+};
+
 type CatalogRow = {
   category: string;
   item_code: string;
@@ -49,15 +64,21 @@ function parseNum(s: unknown): number | null {
 }
 
 function parseCsvFile(filePath: string): Record<string, string>[] {
-  const raw = fs.readFileSync(filePath, "utf-8");
+  let raw = fs.readFileSync(filePath, "utf-8");
+  if (raw.charCodeAt(0) === 0xfeff) raw = raw.slice(1); // strip BOM
   const lines = raw.split(/\r?\n/);
-  const headerLineIndex = lines.findIndex(
-    (l) =>
-      l.includes("Item #") ||
-      l.includes("Section Number") ||
-      l.includes("Size") ||
-      l.includes("Weight Per")
-  );
+  // Angles file has two header lines; always use line 0 so we get "Available Length(s)" and "Current Cost per Lbs."
+  const fileName = path.basename(filePath);
+  const headerLineIndex =
+    fileName === "mwfab-base-materials.csv"
+      ? 0
+      : lines.findIndex(
+          (l) =>
+            l.includes("Item #") ||
+            l.includes("Section Number") ||
+            l.includes("Size") ||
+            l.includes("Weight Per")
+        );
   const start = headerLineIndex >= 0 ? headerLineIndex : 0;
   const toParse = lines.slice(start).join("\n");
   const parsed = parse(toParse, {
@@ -101,12 +122,14 @@ function rowToCatalog(
 ): CatalogRow | null {
   const itemCode =
     pickCol(row, "Item #", "Section Number", "Section number", "Size", "#");
+  // Skip subheader/header rows (second line in CSVs that have two header lines)
+  if (itemCode === "Item #" || itemCode === "Section Number") return null;
   const weightPerFt =
     pickNum(row, "Estimated Pounds Per Foot", "Estimated Lbs. Per Ft.", "Weight Per Ft. in Lbs.", "Weight per Ft. in Lbs.", "Weight Per Foot", "Weight per Foot", "Weight Per Ft. in Lbs.", "Weight Per Linear Ft.", "Weight Per Lbs.", "Weight Per Ft. in Lbs.", "Weight\nPer/Foot", "Weight Per/Foot") ??
     pickNum(row, "Weight Per Foot");
   // wide_flange (materials2) can have empty Section Number; we'll use weight for item_code
   const isWideFlange = sourceFile === "mwfab-base-materials2.csv";
-  if (!isWideFlange && (!itemCode || itemCode === "" || /^,/.test(itemCode))) return null;
+  if (!isWideFlange && (!itemCode || itemCode === "" || /^,/.test(itemCode) || itemCode === "Item #")) return null;
   if (isWideFlange && weightPerFt == null) return null;
 
   const displayName =
@@ -114,13 +137,15 @@ function rowToCatalog(
     pickCol(row, "Size") ||
     itemCode ||
     (isWideFlange && weightPerFt != null ? `W${weightPerFt}` : "");
+  const lbAliases = COST_PER_LB_ALIASES[category];
+  const ftAliases = COST_PER_FOOT_ALIASES[category];
   const costPerLb =
-    pricingUnit === "per_lb"
-      ? pickNum(row, "Current Cost per Lbs.", "Current Cost per Lbs", "Current Cost per ft. in Lbs.")
+    pricingUnit === "per_lb" && lbAliases
+      ? pickNum(row, ...lbAliases)
       : null;
   const costPerFoot =
-    pricingUnit === "per_foot"
-      ? pickNum(row, "Current Cost per Foot", "Current Cost per foot")
+    pricingUnit === "per_foot" && ftAliases
+      ? pickNum(row, ...ftAliases)
       : null;
 
   const dimensions: Record<string, unknown> = {};
@@ -140,8 +165,28 @@ function rowToCatalog(
   if (webD) dimensions.web_thickness_d = webD;
   const typeCol = pickCol(row, "Type", "Angle Type", "Materials");
   if (typeCol) dimensions.type = typeCol;
-  const availableLength = pickCol(row, "Available Length(s)", "Available Lengths", "Available Length");
-  if (availableLength) dimensions.available_length = availableLength;
+  let availableLength = pickCol(
+    row,
+    "Available Length(s)",
+    "Available Lengths",
+    "Available Length",
+    "Available lengths"
+  );
+  if (!availableLength && sourceFile === "mwfab-base-materials.csv") {
+    const key = Object.keys(row).find((k) => /available/i.test(k) && /length/i.test(k));
+    if (key) availableLength = row[key]?.trim() || null;
+    // Fallback: any cell value that looks like "20 ft 40 ft"
+    if (!availableLength) {
+      for (const v of Object.values(row)) {
+        const s = typeof v === "string" ? v.trim() : "";
+        if (s && /^\d+\s*ft(\s+\d+\s*ft)*\s*$/i.test(s)) {
+          availableLength = s;
+          break;
+        }
+      }
+    }
+  }
+  if (availableLength && String(availableLength).trim()) dimensions.available_length = String(availableLength).trim();
   if (sourceFile === "mwfab-base-materials8.csv") {
     const pipeSize = pickCol(row, "Pipe Size");
     const schedule = pickCol(row, "Schedule");

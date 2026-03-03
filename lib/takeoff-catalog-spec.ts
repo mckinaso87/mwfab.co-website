@@ -100,6 +100,20 @@ const SPECS: Record<Exclude<TakeoffMetalLine["category"], "other">, CategorySpec
   },
 };
 
+/** UI display names for category (used in Materials and Takeoff metal lines). */
+export const CATEGORY_LABELS: Record<TakeoffMetalLine["category"], string> = {
+  angles: "Angles",
+  wide_flange: "Wide Flange",
+  bars_hr_rounds: "Bars HR Rounds",
+  bars_cf_rounds: "Bars CF Rounds",
+  bars_flat: "Bars Flat",
+  channels: "Channels",
+  mc_channels: "MC Channels",
+  pipe: "Pipe",
+  tube: "Tube",
+  other: "Other",
+};
+
 export const CATEGORY_ORDER: TakeoffMetalLine["category"][] = [
   "angles",
   "wide_flange",

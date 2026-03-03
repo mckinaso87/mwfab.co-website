@@ -7,19 +7,7 @@ import {
   type MaterialCatalogUpdate,
 } from "@/app/admin/materials/actions";
 import type { MaterialCatalogRow } from "@/lib/db-types";
-import { getCatalogCategories } from "@/lib/takeoff-catalog-spec";
-
-const CATEGORY_LABELS: Record<string, string> = {
-  angles: "Angles",
-  wide_flange: "Wide Flange",
-  bars_hr_rounds: "Bars HR Rounds",
-  bars_cf_rounds: "Bars CF Rounds",
-  bars_flat: "Bars Flat",
-  channels: "Channels",
-  mc_channels: "MC Channels",
-  pipe: "Pipe",
-  tube: "Tube",
-};
+import { getCatalogCategories, CATEGORY_LABELS } from "@/lib/takeoff-catalog-spec";
 
 function formatNum(n: number | null): string {
   if (n == null) return "—";
