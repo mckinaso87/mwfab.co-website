@@ -4,6 +4,7 @@ import { notFound } from "next/navigation";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createOrUpdateCustomer } from "../actions";
 import { CustomerForm } from "../CustomerForm";
+import { AdminPageHeader, AdminSectionCard } from "@/components/admin";
 import type { Customer } from "@/lib/db-types";
 
 export const metadata: Metadata = {
@@ -35,40 +36,41 @@ export default async function CustomerDetailPage({
     .order("created_at", { ascending: false });
 
   return (
-    <div>
-      <div className="flex items-center gap-4">
+    <div className="space-y-8">
+      <div>
         <Link
           href="/admin/customers"
-          className="text-sm text-foreground-muted transition-colors hover:text-foreground"
+          className="text-sm text-foreground-muted transition-colors hover:text-foreground focus-visible:outline focus-visible:ring-2 focus-visible:ring-steel-blue focus-visible:ring-offset-2 focus-visible:ring-offset-charcoal"
         >
           ← Customers
         </Link>
       </div>
-      <h1 className="mt-4 text-2xl font-bold text-foreground">{c.company_name}</h1>
+      <AdminPageHeader title={c.company_name} />
 
-      <section className="mt-8 rounded-xl border border-steel/50 bg-gunmetal/30 p-6">
-        <h2 className="text-lg font-semibold text-foreground">Edit customer</h2>
-        <p className="mt-1 text-sm text-foreground-muted">
+      <AdminSectionCard
+        title="Edit customer"
+        className="[&>h2]:mb-1 [&>h2]+p:mb-6"
+      >
+        <p className="mb-6 text-sm text-foreground-muted">
           Update company and contact details. Changes save to this view.
         </p>
         <CustomerForm action={createOrUpdateCustomer} customer={c} />
-      </section>
+      </AdminSectionCard>
 
-      <section className="mt-10">
-        <h2 className="text-lg font-semibold text-foreground">Jobs</h2>
+      <AdminSectionCard title="Jobs">
         {!jobs?.length ? (
-          <p className="mt-2 text-sm text-foreground-muted">No jobs yet.</p>
+          <p className="text-sm text-foreground-muted">No jobs yet.</p>
         ) : (
-          <ul className="mt-2 space-y-2">
+          <ul className="space-y-2 text-sm text-foreground">
             {jobs.map((j) => (
               <li key={j.id}>
                 <Link
                   href={`/admin/jobs/${j.id}`}
-                  className="font-medium text-foreground hover:underline"
+                  className="font-medium text-foreground hover:underline focus-visible:outline focus-visible:ring-2 focus-visible:ring-steel-blue focus-visible:ring-offset-2 focus-visible:ring-offset-charcoal"
                 >
                   {j.job_name}
                 </Link>
-                <span className="ml-2 text-sm text-foreground-muted">
+                <span className="ml-2 text-foreground-muted">
                   {j.status}
                   {j.bid_due_date ? ` · Due ${j.bid_due_date}` : ""}
                 </span>
@@ -78,11 +80,11 @@ export default async function CustomerDetailPage({
         )}
         <Link
           href={`/admin/jobs/new?customer_id=${id}`}
-          className="mt-3 inline-block rounded-lg border border-steel/50 px-4 py-2 text-sm font-medium text-foreground transition-colors hover:bg-steel/30"
+          className="mt-4 inline-block rounded-lg border border-steel/50 px-4 py-2.5 text-sm font-medium text-foreground transition-colors hover:bg-steel/30 focus-visible:outline focus-visible:ring-2 focus-visible:ring-steel-blue focus-visible:ring-offset-2 focus-visible:ring-offset-charcoal"
         >
           Add job
         </Link>
-      </section>
+      </AdminSectionCard>
     </div>
   );
 }

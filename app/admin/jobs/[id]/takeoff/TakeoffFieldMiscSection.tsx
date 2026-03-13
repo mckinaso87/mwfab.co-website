@@ -1,7 +1,9 @@
 "use client";
 
 import { useActionState, useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import { upsertFieldMiscLine, deleteFieldMiscLineForm } from "./actions";
+import { formatMoney } from "./formatMoney";
 import type { TakeoffFieldMisc } from "@/lib/db-types";
 
 type Props = {
@@ -15,6 +17,7 @@ export function TakeoffFieldMiscSection({
   jobId,
   lines,
 }: Props) {
+  const router = useRouter();
   const [state, formAction, isPending] = useActionState(
     async (_: unknown, formData: FormData) =>
       upsertFieldMiscLine(takeoffId, jobId, formData),
@@ -43,37 +46,65 @@ export function TakeoffFieldMiscSection({
     setTotal("");
   };
 
+  const labelClass = "block text-sm font-medium text-foreground";
+
   return (
-    <section className="mt-8 rounded-lg border border-border bg-card p-6">
-      <h2 className="text-lg font-semibold text-foreground">Field – Miscellaneous</h2>
-      <ul className="mt-4 space-y-2 text-sm">
-        {lines.map((line) => (
-          <li key={line.id} className="flex flex-wrap items-center gap-2 border-b border-border pb-2">
-            <span className="font-medium">{line.label}</span>
-            <span>${Number(line.total ?? 0).toLocaleString("en-US", { minimumFractionDigits: 2 })}</span>
-            <form
-              action={async (fd: FormData) => {
-                await deleteAction(line.id)(fd);
-              }}
-              className="inline"
-            >
-              <button type="submit" className="text-red-500 hover:underline">
-                Delete
-              </button>
-            </form>
-          </li>
-        ))}
-      </ul>
+    <section className="rounded-xl border border-steel/50 bg-card p-6">
+      <h2 className="mb-1 text-lg font-semibold text-foreground">Field – Miscellaneous</h2>
+      <p className="mb-4 text-sm text-foreground-muted">Field costs: crane, transport, per diem, lodging, etc.</p>
+
+      {lines.length > 0 ? (
+        <div className="overflow-x-auto border border-steel/50 rounded-lg mb-6">
+          <table className="w-full min-w-[360px] text-sm">
+            <thead>
+              <tr className="border-b border-steel/50 bg-steel/20">
+                <th className="px-4 py-3 text-left font-medium text-foreground">Label</th>
+                <th className="px-4 py-3 text-right font-medium text-foreground">Total</th>
+                <th className="px-4 py-3 text-right font-medium text-foreground w-20">Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {lines.map((line) => (
+                <tr key={line.id} className="border-b border-steel/30 hover:bg-steel/10">
+                  <td className="px-4 py-2.5 font-medium text-foreground">{line.label}</td>
+                  <td className="px-4 py-2.5 text-right tabular-nums font-medium text-foreground">{formatMoney(line.total)}</td>
+                  <td className="px-4 py-2.5 text-right">
+                    <form
+                      action={async (fd: FormData) => {
+                        await deleteAction(line.id)(fd);
+                        router.refresh();
+                      }}
+                      className="inline"
+                    >
+                      <button
+                        type="submit"
+                        className="text-red-400 hover:text-red-300 hover:underline focus-visible:outline focus-visible:ring-2 focus-visible:ring-red-400 focus-visible:ring-offset-2 focus-visible:ring-offset-charcoal"
+                      >
+                        Delete
+                      </button>
+                    </form>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      ) : (
+        <p className="mb-6 text-sm text-foreground-muted">No field misc lines yet. Add one below.</p>
+      )}
+
+      <h3 className="mb-3 text-sm font-semibold text-foreground">Add field misc line</h3>
       <form
-        action={(formData) => {
-          formAction(formData);
+        action={async (formData) => {
+          await formAction(formData);
+          router.refresh();
           resetForm();
         }}
-        className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4"
+        className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4"
       >
         <input type="hidden" name="sort_order" value={lines.length} />
         <div>
-          <label htmlFor="field_misc_label" className="block text-sm text-foreground-muted">Label</label>
+          <label htmlFor="field_misc_label" className={labelClass}>Label</label>
           <select id="field_misc_label" name="label" className="input-admin">
             <option value="Rental - Crane">Rental - Crane</option>
             <option value="w/ $200.00 - Fuel Deposit">Fuel Deposit</option>
@@ -84,7 +115,7 @@ export function TakeoffFieldMiscSection({
           </select>
         </div>
         <div>
-          <label htmlFor="field_misc_amount" className="block text-sm text-foreground-muted">Amount</label>
+          <label htmlFor="field_misc_amount" className={labelClass}>Amount</label>
           <input
             id="field_misc_amount"
             name="amount"
@@ -97,7 +128,7 @@ export function TakeoffFieldMiscSection({
           />
         </div>
         <div>
-          <label htmlFor="field_misc_price_per" className="block text-sm text-foreground-muted">Price per</label>
+          <label htmlFor="field_misc_price_per" className={labelClass}>Price per</label>
           <input
             id="field_misc_price_per"
             name="price_per"
@@ -110,11 +141,11 @@ export function TakeoffFieldMiscSection({
           />
         </div>
         <div>
-          <label htmlFor="field_misc_hrs_days_nights" className="block text-sm text-foreground-muted">Hr, Days, or Nights</label>
+          <label htmlFor="field_misc_hrs_days_nights" className={labelClass}>Hr, Days, or Nights</label>
           <input id="field_misc_hrs_days_nights" name="hrs_days_nights" type="text" className="input-admin" placeholder="e.g. 1" />
         </div>
         <div>
-          <label htmlFor="field_misc_total" className="block text-sm text-foreground-muted">Total (auto)</label>
+          <label htmlFor="field_misc_total" className={labelClass}>Total (auto)</label>
           <input
             id="field_misc_total"
             name="total"

@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { listMaterialCatalog } from "@/app/admin/materials/actions";
 import { MaterialsTable } from "@/app/admin/materials/MaterialsTable";
+import { AdminPageHeader } from "@/components/admin";
 
 export const metadata: Metadata = {
   title: "Materials | Admin | McKinados Welding & Fabrication",
@@ -16,17 +17,19 @@ export default async function AdminMaterialsPage({ searchParams }: Props) {
   const { rows, error } = await listMaterialCatalog(category);
 
   return (
-    <div>
-      <h1 className="text-2xl font-bold text-foreground">Materials</h1>
-      <p className="mt-1 text-sm text-foreground-muted">
-        Edit pricing and display names for the material catalog used in takeoffs.
-      </p>
+    <div className="space-y-8">
+      <AdminPageHeader
+        title="Materials"
+        subtitle="Edit pricing and display names for the material catalog used in takeoffs."
+      />
+
       {error && (
-        <p className="mt-4 rounded-md bg-red-900/30 px-3 py-2 text-sm text-red-200">{error}</p>
+        <p className="rounded-lg border border-red-500/50 bg-red-500/10 px-4 py-3 text-sm text-red-200">
+          {error}
+        </p>
       )}
-      <div className="mt-6">
-        <MaterialsTable rows={rows} currentCategory={category} />
-      </div>
+
+      <MaterialsTable rows={rows} currentCategory={category} />
     </div>
   );
 }

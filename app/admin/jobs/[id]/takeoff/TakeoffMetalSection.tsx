@@ -3,6 +3,7 @@
 import { useActionState, useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { upsertMetalLine, deleteMetalLineForm, getCatalogDimensionOptions, getCatalogRow } from "./actions";
+import { formatMoney } from "./formatMoney";
 import type { TakeoffMetalLine } from "@/lib/db-types";
 import type { MaterialCatalogRow } from "@/lib/db-types";
 import {
@@ -219,33 +220,62 @@ export function TakeoffMetalSection({ takeoffId, jobId, lines }: Props) {
   };
 
   const catalogId = catalogRow?.id ?? "";
+  const labelClass = "block text-sm font-medium text-foreground";
 
   return (
-    <section className="mt-8 rounded-lg border border-border bg-card p-6">
-      <h2 className="text-lg font-semibold text-foreground">Metal lines</h2>
-      <ul className="mt-4 space-y-2 text-sm">
-        {lines.map((line) => (
-          <li key={line.id} className="flex flex-wrap items-center gap-2 border-b border-border pb-2">
-            <span className="font-medium">{line.display_name}</span>
-            <span className="text-foreground-muted">({CATEGORY_LABELS[line.category] ?? line.category})</span>
-            <span>Count: {line.count}</span>
-            {line.total_length_ft != null && <span>{line.total_length_ft} ft</span>}
-            {line.total_pounds != null && <span>{line.total_pounds} lb</span>}
-            <span>${Number(line.total_price ?? 0).toLocaleString("en-US", { minimumFractionDigits: 2 })}</span>
-            <form
-              action={async (fd: FormData) => {
-                await deleteAction(line.id)(fd);
-                router.refresh();
-              }}
-              className="inline"
-            >
-              <button type="submit" className="text-red-500 hover:underline">
-                Delete
-              </button>
-            </form>
-          </li>
-        ))}
-      </ul>
+    <section className="rounded-xl border border-steel/50 bg-card p-6">
+      <h2 className="mb-1 text-lg font-semibold text-foreground">Metal lines</h2>
+      <p className="mb-4 text-sm text-foreground-muted">Catalog-based and custom metal line items.</p>
+
+      {lines.length > 0 ? (
+        <div className="overflow-x-auto border border-steel/50 rounded-lg mb-6">
+          <table className="w-full min-w-[640px] text-sm">
+            <thead>
+              <tr className="border-b border-steel/50 bg-steel/20">
+                <th className="px-4 py-3 text-left font-medium text-foreground">Description</th>
+                <th className="px-4 py-3 text-left font-medium text-foreground">Category</th>
+                <th className="px-4 py-3 text-right font-medium text-foreground">Count</th>
+                <th className="px-4 py-3 text-right font-medium text-foreground">Length</th>
+                <th className="px-4 py-3 text-right font-medium text-foreground">Pounds</th>
+                <th className="px-4 py-3 text-right font-medium text-foreground">Total</th>
+                <th className="px-4 py-3 text-right font-medium text-foreground w-20">Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {lines.map((line) => (
+                <tr key={line.id} className="border-b border-steel/30 hover:bg-steel/10">
+                  <td className="px-4 py-2.5 font-medium text-foreground">{line.display_name}</td>
+                  <td className="px-4 py-2.5 text-foreground-muted">{CATEGORY_LABELS[line.category] ?? line.category}</td>
+                  <td className="px-4 py-2.5 text-right tabular-nums text-foreground">{line.count}</td>
+                  <td className="px-4 py-2.5 text-right tabular-nums text-foreground">{line.total_length_ft != null ? `${line.total_length_ft} ft` : "—"}</td>
+                  <td className="px-4 py-2.5 text-right tabular-nums text-foreground">{line.total_pounds != null ? `${line.total_pounds} lb` : "—"}</td>
+                  <td className="px-4 py-2.5 text-right tabular-nums font-medium text-foreground">{formatMoney(line.total_price)}</td>
+                  <td className="px-4 py-2.5 text-right">
+                    <form
+                      action={async (fd: FormData) => {
+                        await deleteAction(line.id)(fd);
+                        router.refresh();
+                      }}
+                      className="inline"
+                    >
+                      <button
+                        type="submit"
+                        className="text-red-400 hover:text-red-300 hover:underline focus-visible:outline focus-visible:ring-2 focus-visible:ring-red-400 focus-visible:ring-offset-2 focus-visible:ring-offset-charcoal"
+                      >
+                        Delete
+                      </button>
+                    </form>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      ) : (
+        <p className="mb-6 text-sm text-foreground-muted">No metal lines yet. Add one below.</p>
+      )}
+
+      <h3 className="mb-3 text-sm font-semibold text-foreground">Add metal line</h3>
       <form
         action={async (formData) => {
           await formAction(formData);
@@ -257,7 +287,7 @@ export function TakeoffMetalSection({ takeoffId, jobId, lines }: Props) {
         <input type="hidden" name="sort_order" value={lines.length} />
         <input type="hidden" name="material_catalog_id" value={catalogId} />
         <div>
-          <label htmlFor="metal_category" className="block text-sm text-foreground-muted">Category</label>
+          <label htmlFor="metal_category" className={labelClass}>Category</label>
           <select
             id="metal_category"
             name="category"
@@ -279,9 +309,9 @@ export function TakeoffMetalSection({ takeoffId, jobId, lines }: Props) {
               const isPastStep = idx < currentStepIndex;
               return (
                 <div key={step.key}>
-                  <label className="block text-sm text-foreground-muted">{step.label}</label>
+                  <label className={labelClass}>{step.label}</label>
                   {isPastStep ? (
-                    <div className="rounded-md border border-border bg-steel/20 px-3 py-2 text-sm text-foreground">
+                    <div className="rounded-md border border-steel/50 bg-steel/20 px-3 py-2 text-sm text-foreground">
                       {value}
                     </div>
                   ) : isCurrentStep ? (
@@ -301,7 +331,7 @@ export function TakeoffMetalSection({ takeoffId, jobId, lines }: Props) {
               );
             })}
             {allStepsFilled && (
-              <div className="col-span-full rounded-md border border-border bg-steel/20 p-3 text-sm">
+              <div className="col-span-full rounded-md border border-steel/50 bg-steel/20 p-3 text-sm">
                 {catalogRowLoading ? (
                   <span className="text-foreground-muted">Loading…</span>
                 ) : catalogRow ? (
@@ -324,7 +354,7 @@ export function TakeoffMetalSection({ takeoffId, jobId, lines }: Props) {
         )}
 
         <div>
-          <label htmlFor="metal_count" className="block text-sm text-foreground-muted">Count</label>
+          <label htmlFor="metal_count" className={labelClass}>Count</label>
           <input
             id="metal_count"
             name="count"
@@ -337,7 +367,7 @@ export function TakeoffMetalSection({ takeoffId, jobId, lines }: Props) {
           />
         </div>
         <div>
-          <label htmlFor="metal_total_length_ft" className="block text-sm text-foreground-muted">Length (ft)</label>
+          <label htmlFor="metal_total_length_ft" className={labelClass}>Length (ft)</label>
           <input
             id="metal_total_length_ft"
             name="total_length_ft"
@@ -350,7 +380,7 @@ export function TakeoffMetalSection({ takeoffId, jobId, lines }: Props) {
           />
         </div>
         <div>
-          <label htmlFor="metal_total_pounds" className="block text-sm text-foreground-muted">Total pounds</label>
+          <label htmlFor="metal_total_pounds" className={labelClass}>Total pounds</label>
           <input
             id="metal_total_pounds"
             name="total_pounds"
@@ -363,10 +393,10 @@ export function TakeoffMetalSection({ takeoffId, jobId, lines }: Props) {
           />
         </div>
         <div>
-          <label htmlFor="metal_cost_per_unit" className="block text-sm text-foreground-muted">
+          <label htmlFor="metal_cost_per_unit" className={labelClass}>
             Cost per unit {!isOther && catalogRow ? `(${spec?.pricingUnit === "per_foot" ? "$/ft" : "$/lb"})` : "($/lb or $/ft)"}
             {!isOther && catalogRow && !Number.isFinite(costFromRowNum) && (
-              <span className="ml-1 text-amber-600">— enter manually if not in catalog</span>
+              <span className="ml-1 text-amber-500">— enter manually if not in catalog</span>
             )}
           </label>
           <input
@@ -381,7 +411,7 @@ export function TakeoffMetalSection({ takeoffId, jobId, lines }: Props) {
           />
         </div>
         <div>
-          <label htmlFor="metal_total_price" className="block text-sm text-foreground-muted">Total price (auto)</label>
+          <label htmlFor="metal_total_price" className={labelClass}>Total price (auto)</label>
           <input type="hidden" name="total_price" value={computedTotalPrice ?? ""} />
           <input
             id="metal_total_price"
@@ -393,7 +423,7 @@ export function TakeoffMetalSection({ takeoffId, jobId, lines }: Props) {
           />
         </div>
         <div className="col-span-full">
-          <label htmlFor="metal_display_name" className="block text-sm text-foreground-muted">Display name</label>
+          <label htmlFor="metal_display_name" className={labelClass}>Display name</label>
           <input
             id="metal_display_name"
             name="display_name"

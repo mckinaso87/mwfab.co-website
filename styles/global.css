@@ -13,6 +13,10 @@
   --dark-slate: #1e293b;
   --foreground: #e2e8f0;
   --foreground-muted: #94a3b8;
+  /* Admin: consistent border and card surface */
+  --border: rgba(45, 55, 72, 0.5);
+  --card: #232a34;
+  --surface: #1e2530;
 }
 
 @theme inline {
@@ -27,6 +31,9 @@
   --color-dark-slate: var(--dark-slate);
   --color-foreground: var(--foreground);
   --color-foreground-muted: var(--foreground-muted);
+  --color-border: var(--border);
+  --color-card: var(--card);
+  --color-surface: var(--surface);
   --font-sans: var(--font-geist-sans);
 }
 
@@ -51,7 +58,7 @@ body {
 
 /* Admin form inputs: consistent, accessible */
 .input-admin {
-  @apply mt-1 w-full rounded-lg border border-steel/50 bg-charcoal/80 px-3 py-2.5 text-foreground transition-colors placeholder:text-foreground-muted/70 focus:border-steel-blue focus:outline-none focus:ring-1 focus:ring-steel-blue;
+  @apply mt-1 w-full rounded-lg border border-steel/50 bg-charcoal/80 px-3 py-2.5 text-foreground transition-colors placeholder:text-foreground-muted/70 focus:border-steel-blue focus:outline-none focus:ring-1 focus:ring-steel-blue focus-visible:ring-2 focus-visible:ring-steel-blue focus-visible:ring-offset-2 focus-visible:ring-offset-charcoal;
 }
 
 @media (prefers-reduced-motion: reduce) {

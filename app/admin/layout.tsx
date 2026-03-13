@@ -24,10 +24,10 @@ export default async function AdminLayout({
   }
 
   return (
-    <div className="relative min-h-[calc(100vh-4rem)]">
+    <div className="relative flex min-h-[calc(100vh-4rem)]">
       <AdminSidebar />
       <main className="min-h-[calc(100vh-4rem)] min-w-0 flex-1 overflow-auto lg:ml-64">
-        <div className="p-6 lg:p-8">{children}</div>
+        <div className="mx-auto max-w-7xl p-6 lg:p-8">{children}</div>
       </main>
     </div>
   );

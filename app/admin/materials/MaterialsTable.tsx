@@ -6,6 +6,16 @@ import {
   updateMaterialCatalogRow,
   type MaterialCatalogUpdate,
 } from "@/app/admin/materials/actions";
+import {
+  AdminDataTable,
+  AdminDataTableBody,
+  AdminDataTableCell,
+  AdminDataTableHead,
+  AdminDataTableHeaderCell,
+  AdminDataTableRow,
+  AdminEmptyState,
+  AdminToolbar,
+} from "@/components/admin";
 import type { MaterialCatalogRow } from "@/lib/db-types";
 import { getCatalogCategories, CATEGORY_LABELS } from "@/lib/takeoff-catalog-spec";
 
@@ -49,14 +59,14 @@ export function MaterialsTable({
   }
 
   return (
-    <div className="space-y-4">
-      <div className="flex flex-wrap items-center gap-4">
+    <div className="space-y-6">
+      <AdminToolbar>
         <label className="flex items-center gap-2 text-sm text-foreground-muted">
           Category
           <select
             value={currentCategory ?? "all"}
             onChange={handleCategoryChange}
-            className="rounded-md border border-steel/50 bg-gunmetal px-3 py-2 text-foreground focus:border-steel-blue focus:outline-none focus:ring-1 focus:ring-steel-blue"
+            className="rounded-lg border border-steel/50 bg-card px-3 py-2 text-sm text-foreground focus:border-steel-blue focus:outline-none focus:ring-1 focus:ring-steel-blue focus-visible:ring-2 focus-visible:ring-steel-blue focus-visible:ring-offset-2 focus-visible:ring-offset-charcoal"
           >
             <option value="all">All</option>
             {categories.map((c) => (
@@ -66,68 +76,63 @@ export function MaterialsTable({
             ))}
           </select>
         </label>
-      </div>
+      </AdminToolbar>
 
       {rows.length === 0 ? (
-        <div className="rounded-xl border border-steel/50 bg-gunmetal/50 p-12 text-center text-foreground-muted">
-          No materials in this category.
-        </div>
+        <AdminEmptyState message="No materials in this category." />
       ) : (
-        <div className="overflow-hidden rounded-xl border border-steel/50">
-          <div className="overflow-x-auto">
-            <table className="w-full min-w-[800px] border-collapse text-sm">
-              <thead>
-                <tr className="border-b border-steel/50 bg-gunmetal/80 text-left">
-                  <th className="px-4 py-3 font-medium text-foreground-muted">Category</th>
-                  <th className="px-4 py-3 font-medium text-foreground-muted">Item code</th>
-                  <th className="px-4 py-3 font-medium text-foreground-muted">Display name</th>
-                  <th className="px-4 py-3 font-medium text-foreground-muted text-right">Weight/ft</th>
-                  <th className="px-4 py-3 font-medium text-foreground-muted text-right">Cost/lb</th>
-                  <th className="px-4 py-3 font-medium text-foreground-muted text-right">Cost/ft</th>
-                  <th className="px-4 py-3 font-medium text-foreground-muted">Pricing unit</th>
-                  <th className="px-4 py-3 font-medium text-foreground-muted">Source file</th>
-                  <th className="w-24 px-4 py-3 font-medium text-foreground-muted text-right">
-                    Actions
-                  </th>
-                </tr>
-              </thead>
-              <tbody>
-                {rows.map((row) => (
-                  <tr
-                    key={row.id}
-                    className="border-b border-steel/30 transition-colors last:border-0 hover:bg-steel/20"
+        <AdminDataTable stickyHeader>
+          <AdminDataTableHead>
+            <AdminDataTableHeaderCell>Category</AdminDataTableHeaderCell>
+            <AdminDataTableHeaderCell>Item code</AdminDataTableHeaderCell>
+            <AdminDataTableHeaderCell>Display name</AdminDataTableHeaderCell>
+            <AdminDataTableHeaderCell align="right">Weight/ft</AdminDataTableHeaderCell>
+            <AdminDataTableHeaderCell align="right">Cost/lb</AdminDataTableHeaderCell>
+            <AdminDataTableHeaderCell align="right">Cost/ft</AdminDataTableHeaderCell>
+            <AdminDataTableHeaderCell>Pricing unit</AdminDataTableHeaderCell>
+            <AdminDataTableHeaderCell>Source file</AdminDataTableHeaderCell>
+            <AdminDataTableHeaderCell align="right">Actions</AdminDataTableHeaderCell>
+          </AdminDataTableHead>
+          <AdminDataTableBody>
+            {rows.map((row) => (
+              <AdminDataTableRow key={row.id}>
+                <AdminDataTableCell className="text-foreground-muted">
+                  {CATEGORY_LABELS[row.category] ?? row.category}
+                </AdminDataTableCell>
+                <AdminDataTableCell className="font-mono text-foreground">
+                  {row.item_code}
+                </AdminDataTableCell>
+                <AdminDataTableCell className="text-foreground">
+                  {row.display_name ?? "—"}
+                </AdminDataTableCell>
+                <AdminDataTableCell align="right" className="text-foreground-muted">
+                  {formatNum(row.weight_per_ft)}
+                </AdminDataTableCell>
+                <AdminDataTableCell align="right" className="text-foreground-muted">
+                  {formatNum(row.cost_per_lb)}
+                </AdminDataTableCell>
+                <AdminDataTableCell align="right" className="text-foreground-muted">
+                  {formatNum(row.cost_per_foot)}
+                </AdminDataTableCell>
+                <AdminDataTableCell className="text-foreground-muted">
+                  {row.pricing_unit}
+                </AdminDataTableCell>
+                <AdminDataTableCell className="text-xs text-foreground-muted">
+                  {row.source_file ?? "—"}
+                </AdminDataTableCell>
+                <AdminDataTableCell align="right">
+                  <button
+                    type="button"
+                    onClick={() => setEditingRow(row)}
+                    className="text-sm font-medium text-steel-blue hover:underline focus-visible:outline focus-visible:ring-2 focus-visible:ring-steel-blue focus-visible:ring-offset-2 focus-visible:ring-offset-charcoal"
                   >
-                    <td className="px-4 py-3 text-foreground-muted">
-                      {CATEGORY_LABELS[row.category] ?? row.category}
-                    </td>
-                    <td className="px-4 py-3 font-mono text-foreground">{row.item_code}</td>
-                    <td className="px-4 py-3 text-foreground">{row.display_name ?? "—"}</td>
-                    <td className="px-4 py-3 text-right text-foreground-muted">
-                      {formatNum(row.weight_per_ft)}
-                    </td>
-                    <td className="px-4 py-3 text-right text-foreground-muted">
-                      {formatNum(row.cost_per_lb)}
-                    </td>
-                    <td className="px-4 py-3 text-right text-foreground-muted">
-                      {formatNum(row.cost_per_foot)}
-                    </td>
-                    <td className="px-4 py-3 text-foreground-muted">{row.pricing_unit}</td>
-                    <td className="px-4 py-3 text-foreground-muted text-xs">{row.source_file ?? "—"}</td>
-                    <td className="px-4 py-3 text-right">
-                      <button
-                        type="button"
-                        onClick={() => setEditingRow(row)}
-                        className="text-sm text-steel-blue hover:underline"
-                      >
-                        Edit
-                      </button>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </div>
+                    Edit
+                  </button>
+                </AdminDataTableCell>
+              </AdminDataTableRow>
+            ))}
+          </AdminDataTableBody>
+        </AdminDataTable>
       )}
 
       {editingRow && (

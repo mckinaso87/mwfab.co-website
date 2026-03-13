@@ -22,7 +22,7 @@ export function AdminSidebar() {
     <>
       <button
         type="button"
-        className="fixed left-4 top-20 z-50 flex h-10 w-10 items-center justify-center rounded-md border border-steel/50 bg-charcoal text-foreground lg:hidden"
+        className="fixed left-4 top-20 z-50 flex h-10 w-10 items-center justify-center rounded-md border border-steel/50 bg-charcoal text-foreground focus-visible:outline focus-visible:ring-2 focus-visible:ring-steel-blue focus-visible:ring-offset-2 focus-visible:ring-offset-charcoal lg:hidden"
         aria-label="Toggle admin menu"
         onClick={() => setMobileOpen((o) => !o)}
       >
@@ -48,7 +48,7 @@ export function AdminSidebar() {
         <div className="flex flex-1 flex-col overflow-y-auto px-3 py-4">
           <Link
             href="/admin"
-            className="mb-6 px-3 py-2 text-lg font-semibold text-foreground no-underline"
+            className="mb-6 rounded-md px-3 py-2 text-lg font-semibold text-foreground no-underline focus-visible:outline focus-visible:ring-2 focus-visible:ring-steel-blue focus-visible:ring-offset-2 focus-visible:ring-offset-charcoal"
             onClick={() => setMobileOpen(false)}
           >
             Admin
@@ -62,7 +62,7 @@ export function AdminSidebar() {
                   href={href}
                   onClick={() => setMobileOpen(false)}
                   className={cn(
-                    "rounded-md px-3 py-2.5 text-sm font-medium transition-colors",
+                    "rounded-md px-3 py-2.5 text-sm font-medium transition-colors focus-visible:outline focus-visible:ring-2 focus-visible:ring-steel-blue focus-visible:ring-offset-2 focus-visible:ring-offset-charcoal",
                     active
                       ? "bg-steel-blue text-foreground"
                       : "text-foreground-muted hover:bg-steel/50 hover:text-foreground"
@@ -76,7 +76,7 @@ export function AdminSidebar() {
           <div className="mt-auto border-t border-steel/50 pt-4">
             <Link
               href="/"
-              className="mb-3 block rounded-md px-3 py-2 text-sm text-foreground-muted hover:bg-steel/50 hover:text-foreground"
+              className="mb-3 block rounded-md px-3 py-2 text-sm text-foreground-muted hover:bg-steel/50 hover:text-foreground focus-visible:outline focus-visible:ring-2 focus-visible:ring-steel-blue focus-visible:ring-offset-2 focus-visible:ring-offset-charcoal focus-visible:text-foreground"
               onClick={() => setMobileOpen(false)}
             >
               ← Back to site

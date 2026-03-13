@@ -2,31 +2,32 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { createStaff } from "../actions";
 import { StaffForm } from "../StaffForm";
+import { AdminPageHeader, AdminSectionCard } from "@/components/admin";
 
 export const metadata: Metadata = {
   title: "Add staff | Admin | McKinados Welding & Fabrication",
-  description: "Add a staff member for job assignment.",
+  description: "Add a staff member.",
   robots: "noindex, nofollow",
 };
 
 export default function NewStaffPage() {
   return (
-    <div>
-      <div className="flex items-center gap-4">
+    <div className="space-y-8">
+      <div>
         <Link
           href="/admin/staff"
-          className="text-sm text-foreground-muted transition-colors hover:text-foreground"
+          className="text-sm text-foreground-muted transition-colors hover:text-foreground focus-visible:outline focus-visible:ring-2 focus-visible:ring-steel-blue focus-visible:ring-offset-2 focus-visible:ring-offset-charcoal"
         >
           ← Staff
         </Link>
       </div>
-      <h1 className="mt-4 text-2xl font-bold text-foreground">Add staff</h1>
-      <p className="mt-1 text-sm text-foreground-muted">
-        Staff can be assigned to jobs. They are managed here only; Clerk sign-in is separate.
-      </p>
-      <div className="mt-6 rounded-xl border border-steel/50 bg-gunmetal/30 p-6">
+      <AdminPageHeader
+        title="Add staff"
+        subtitle="After saving, the staff member can be assigned to jobs."
+      />
+      <AdminSectionCard>
         <StaffForm action={createStaff} />
-      </div>
+      </AdminSectionCard>
     </div>
   );
 }

@@ -1,7 +1,9 @@
 "use client";
 
 import { useActionState, useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import { upsertComponentLine, deleteComponentLineForm } from "./actions";
+import { formatMoney } from "./formatMoney";
 import type { TakeoffComponentLine } from "@/lib/db-types";
 
 type Props = {
@@ -15,6 +17,7 @@ export function TakeoffComponentSection({
   jobId,
   lines,
 }: Props) {
+  const router = useRouter();
   const [state, formAction, isPending] = useActionState(
     async (_: unknown, formData: FormData) =>
       upsertComponentLine(takeoffId, jobId, formData),
@@ -56,38 +59,67 @@ export function TakeoffComponentSection({
     setTotalPrice("");
   };
 
+  const labelClass = "block text-sm font-medium text-foreground";
+
   return (
-    <section className="mt-8 rounded-lg border border-border bg-card p-6">
-      <h2 className="text-lg font-semibold text-foreground">Components</h2>
-      <ul className="mt-4 space-y-2 text-sm">
-        {lines.map((line) => (
-          <li key={line.id} className="flex flex-wrap items-center gap-2 border-b border-border pb-2">
-            <span className="font-medium">{line.display_name}</span>
-            <span>Count: {line.count}</span>
-            <span>${Number(line.total_price ?? 0).toLocaleString("en-US", { minimumFractionDigits: 2 })}</span>
-            <form
-              action={async (fd: FormData) => {
-                await deleteAction(line.id)(fd);
-              }}
-              className="inline"
-            >
-              <button type="submit" className="text-red-500 hover:underline">
-                Delete
-              </button>
-            </form>
-          </li>
-        ))}
-      </ul>
+    <section className="rounded-xl border border-steel/50 bg-card p-6">
+      <h2 className="mb-1 text-lg font-semibold text-foreground">Components</h2>
+      <p className="mb-4 text-sm text-foreground-muted">Component line items by count and weight.</p>
+
+      {lines.length > 0 ? (
+        <div className="overflow-x-auto border border-steel/50 rounded-lg mb-6">
+          <table className="w-full min-w-[400px] text-sm">
+            <thead>
+              <tr className="border-b border-steel/50 bg-steel/20">
+                <th className="px-4 py-3 text-left font-medium text-foreground">Name</th>
+                <th className="px-4 py-3 text-right font-medium text-foreground">Count</th>
+                <th className="px-4 py-3 text-right font-medium text-foreground">Total</th>
+                <th className="px-4 py-3 text-right font-medium text-foreground w-20">Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {lines.map((line) => (
+                <tr key={line.id} className="border-b border-steel/30 hover:bg-steel/10">
+                  <td className="px-4 py-2.5 font-medium text-foreground">{line.display_name}</td>
+                  <td className="px-4 py-2.5 text-right tabular-nums text-foreground">{line.count}</td>
+                  <td className="px-4 py-2.5 text-right tabular-nums font-medium text-foreground">{formatMoney(line.total_price)}</td>
+                  <td className="px-4 py-2.5 text-right">
+                    <form
+                      action={async (fd: FormData) => {
+                        await deleteAction(line.id)(fd);
+                        router.refresh();
+                      }}
+                      className="inline"
+                    >
+                      <button
+                        type="submit"
+                        className="text-red-400 hover:text-red-300 hover:underline focus-visible:outline focus-visible:ring-2 focus-visible:ring-red-400 focus-visible:ring-offset-2 focus-visible:ring-offset-charcoal"
+                      >
+                        Delete
+                      </button>
+                    </form>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      ) : (
+        <p className="mb-6 text-sm text-foreground-muted">No component lines yet. Add one below.</p>
+      )}
+
+      <h3 className="mb-3 text-sm font-semibold text-foreground">Add component line</h3>
       <form
-        action={(formData) => {
-          formAction(formData);
+        action={async (formData) => {
+          await formAction(formData);
+          router.refresh();
           resetForm();
         }}
-        className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4"
+        className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4"
       >
         <input type="hidden" name="sort_order" value={lines.length} />
         <div>
-          <label htmlFor="comp_display_name" className="block text-sm text-foreground-muted">Name</label>
+          <label htmlFor="comp_display_name" className={labelClass}>Name</label>
           <input
             id="comp_display_name"
             name="display_name"
@@ -99,7 +131,7 @@ export function TakeoffComponentSection({
           />
         </div>
         <div>
-          <label htmlFor="comp_count" className="block text-sm text-foreground-muted">Count</label>
+          <label htmlFor="comp_count" className={labelClass}>Count</label>
           <input
             id="comp_count"
             name="count"
@@ -112,7 +144,7 @@ export function TakeoffComponentSection({
           />
         </div>
         <div>
-          <label htmlFor="comp_total_pounds_per_piece" className="block text-sm text-foreground-muted">Total pounds per piece</label>
+          <label htmlFor="comp_total_pounds_per_piece" className={labelClass}>Total pounds per piece</label>
           <input
             id="comp_total_pounds_per_piece"
             name="total_pounds_per_piece"
@@ -125,7 +157,7 @@ export function TakeoffComponentSection({
           />
         </div>
         <div>
-          <label htmlFor="comp_total_pounds" className="block text-sm text-foreground-muted">Total pounds</label>
+          <label htmlFor="comp_total_pounds" className={labelClass}>Total pounds</label>
           <input
             id="comp_total_pounds"
             name="total_pounds"
@@ -138,7 +170,7 @@ export function TakeoffComponentSection({
           />
         </div>
         <div>
-          <label htmlFor="comp_cost_per_measure" className="block text-sm text-foreground-muted">Cost per measure ($)</label>
+          <label htmlFor="comp_cost_per_measure" className={labelClass}>Cost per measure ($)</label>
           <input
             id="comp_cost_per_measure"
             name="cost_per_measure"
@@ -151,7 +183,7 @@ export function TakeoffComponentSection({
           />
         </div>
         <div>
-          <label htmlFor="comp_total_price" className="block text-sm text-foreground-muted">Total price (auto)</label>
+          <label htmlFor="comp_total_price" className={labelClass}>Total price (auto)</label>
           <input
             id="comp_total_price"
             name="total_price"

@@ -3,6 +3,7 @@ import Link from "next/link";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createOrUpdateJob } from "../actions";
 import { JobForm } from "../JobForm";
+import { AdminPageHeader, AdminSectionCard } from "@/components/admin";
 import type { Customer } from "@/lib/db-types";
 
 export const metadata: Metadata = {
@@ -27,24 +28,26 @@ export default async function NewJobPage({
   ]);
 
   return (
-    <div>
-      <div className="flex items-center gap-4">
+    <div className="space-y-8">
+      <div>
         <Link
           href="/admin/jobs"
-          className="text-foreground-muted hover:text-foreground"
+          className="text-sm text-foreground-muted transition-colors hover:text-foreground focus-visible:outline focus-visible:ring-2 focus-visible:ring-steel-blue focus-visible:ring-offset-2 focus-visible:ring-offset-charcoal"
         >
           ← Jobs
         </Link>
       </div>
-      <h1 className="mt-4 text-2xl font-bold text-foreground">New job</h1>
-      <p className="mt-1 text-sm text-foreground-muted">
-        After saving, you’ll be taken back to the jobs list.
-      </p>
-      <JobForm
-        action={createOrUpdateJob}
-        customers={(customers ?? []) as Customer[]}
-        users={users ?? []}
+      <AdminPageHeader
+        title="New job"
+        subtitle="After saving, you'll be taken back to the jobs list."
       />
+      <AdminSectionCard>
+        <JobForm
+          action={createOrUpdateJob}
+          customers={(customers ?? []) as Customer[]}
+          users={users ?? []}
+        />
+      </AdminSectionCard>
     </div>
   );
 }

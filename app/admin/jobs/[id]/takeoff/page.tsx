@@ -1,8 +1,8 @@
 import type { Metadata } from "next";
-import Link from "next/link";
 import { notFound } from "next/navigation";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getOrCreateTakeoff } from "./actions";
+import { TakeoffWorkspaceHeader } from "./TakeoffWorkspaceHeader";
 import { TakeoffHeaderForm } from "./TakeoffHeaderForm";
 import { TakeoffMetalSection } from "./TakeoffMetalSection";
 import { TakeoffComponentSection } from "./TakeoffComponentSection";
@@ -81,23 +81,14 @@ export default async function TakeoffPage({
   };
 
   return (
-    <div>
-      <div className="flex items-center gap-4">
-        <Link href={`/admin/jobs/${jobId}`} className="text-foreground-muted hover:text-foreground">
-          ← Job
-        </Link>
-        {jobWithCustomer.customers && (
-          <Link
-            href={`/admin/customers/${jobWithCustomer.customers.id}`}
-            className="text-foreground-muted hover:text-foreground"
-          >
-            {jobWithCustomer.customers.company_name}
-          </Link>
-        )}
-      </div>
-      <h1 className="mt-4 text-2xl font-bold text-foreground">
-        Takeoff / Proposal — {jobWithCustomer.job_name}
-      </h1>
+    <div className="space-y-8">
+      <TakeoffWorkspaceHeader
+        jobId={jobId}
+        jobName={jobWithCustomer.job_name}
+        customerName={jobWithCustomer.customers?.company_name ?? null}
+        customerId={jobWithCustomer.customers?.id ?? null}
+        takeoff={takeoff}
+      />
 
       <TakeoffHeaderForm takeoff={takeoff} jobId={jobId} />
 

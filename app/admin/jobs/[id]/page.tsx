@@ -6,6 +6,7 @@ import { createOrUpdateJob } from "../actions";
 import { JobForm } from "../JobForm";
 import { JobFileUpload } from "../JobFileUpload";
 import { DeleteJobFileButton } from "../DeleteJobFileButton";
+import { AdminPageHeader, AdminSectionCard } from "@/components/admin";
 import type { Job, JobFile, JobStatusHistory } from "@/lib/db-types";
 import type { Customer } from "@/lib/db-types";
 
@@ -67,53 +68,57 @@ export default async function JobDetailPage({
   );
 
   return (
-    <div>
+    <div className="space-y-8">
       <div className="flex items-center gap-4">
         <Link
           href="/admin/jobs"
-          className="text-foreground-muted hover:text-foreground"
+          className="text-sm text-foreground-muted transition-colors hover:text-foreground focus-visible:outline focus-visible:ring-2 focus-visible:ring-steel-blue focus-visible:ring-offset-2 focus-visible:ring-offset-charcoal"
         >
           ← Jobs
         </Link>
         {j.customers && (
           <Link
             href={`/admin/customers/${j.customers.id}`}
-            className="text-foreground-muted hover:text-foreground"
+            className="text-sm text-foreground-muted transition-colors hover:text-foreground focus-visible:outline focus-visible:ring-2 focus-visible:ring-steel-blue focus-visible:ring-offset-2 focus-visible:ring-offset-charcoal"
           >
             {j.customers.company_name}
           </Link>
         )}
       </div>
-      <h1 className="mt-4 text-2xl font-bold text-foreground">{j.job_name}</h1>
-      <div className="mt-4 rounded-lg border border-steel/50 bg-gunmetal/50 p-4">
-        <p className="mb-2 text-sm font-medium text-foreground">Build quote and totals for this job</p>
-        <Link
-          href={`/admin/jobs/${id}/takeoff`}
-          className="inline-flex items-center gap-2 rounded-md bg-steel-blue px-4 py-2 text-sm font-medium text-foreground hover:bg-steel"
-        >
-          Takeoff / Proposal →
-        </Link>
-      </div>
-      <JobForm
-        action={createOrUpdateJob}
-        job={j}
-        customers={(customers ?? []) as Customer[]}
-        users={users ?? []}
+
+      <AdminPageHeader
+        title={j.job_name}
+        actions={
+          <Link
+            href={`/admin/jobs/${id}/takeoff`}
+            className="inline-flex items-center gap-2 rounded-lg bg-steel-blue px-4 py-2.5 text-sm font-medium text-foreground transition-colors hover:bg-steel focus-visible:outline focus-visible:ring-2 focus-visible:ring-steel-blue focus-visible:ring-offset-2 focus-visible:ring-offset-charcoal"
+          >
+            Takeoff / Proposal →
+          </Link>
+        }
       />
 
-      <section className="mt-10">
-        <h2 className="text-lg font-semibold text-foreground">Job files</h2>
+      <AdminSectionCard title="Edit job">
+        <JobForm
+          action={createOrUpdateJob}
+          job={j}
+          customers={(customers ?? []) as Customer[]}
+          users={users ?? []}
+        />
+      </AdminSectionCard>
+
+      <AdminSectionCard title="Job files">
         {filesWithUrls.length === 0 ? (
-          <p className="mt-2 text-sm text-foreground-muted">No files yet.</p>
+          <p className="text-sm text-foreground-muted">No files yet.</p>
         ) : (
-          <ul className="mt-2 space-y-2 text-sm">
+          <ul className="space-y-2 text-sm text-foreground">
             {filesWithUrls.map((f) => (
               <li key={f.id} className="flex items-center gap-3">
                 <a
                   href={f.signedUrl}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="text-foreground hover:underline"
+                  className="font-medium text-foreground hover:underline focus-visible:outline focus-visible:ring-2 focus-visible:ring-steel-blue focus-visible:ring-offset-2 focus-visible:ring-offset-charcoal"
                 >
                   {f.file_name}
                 </a>
@@ -126,14 +131,13 @@ export default async function JobDetailPage({
           </ul>
         )}
         <JobFileUpload jobId={id} />
-      </section>
+      </AdminSectionCard>
 
-      <section className="mt-8">
-        <h2 className="text-lg font-semibold text-foreground">Status history</h2>
+      <AdminSectionCard title="Status history">
         {historyList.length === 0 ? (
-          <p className="mt-2 text-sm text-foreground-muted">No status changes yet.</p>
+          <p className="text-sm text-foreground-muted">No status changes yet.</p>
         ) : (
-          <ul className="mt-2 space-y-1 text-sm text-foreground-muted">
+          <ul className="space-y-1 text-sm text-foreground-muted">
             {historyList.map((h) => (
               <li key={h.id}>
                 {h.previous_status ?? "—"} → {h.new_status} at{" "}
@@ -142,7 +146,7 @@ export default async function JobDetailPage({
             ))}
           </ul>
         )}
-      </section>
+      </AdminSectionCard>
     </div>
   );
 }

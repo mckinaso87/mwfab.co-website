@@ -1,5 +1,11 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import { createAdminClient } from "@/lib/supabase/admin";
+import {
+  AdminPageHeader,
+  AdminSectionCard,
+  AdminStatCard,
+} from "@/components/admin";
 
 export const metadata: Metadata = {
   title: "Dashboard | Admin | McKinados Welding & Fabrication",
@@ -70,7 +76,6 @@ export default async function AdminDashboardPage() {
   const estimatorCounts = jobsPerEstimator ?? {};
   const filesList = recentFiles ?? [];
 
-  // Resolve user names for assigned_to and recent files (we'll show job_id for now; can join jobs for job_name)
   const { data: usersList } = await supabase.from("users").select("id, name");
   const usersById = new Map((usersList ?? []).map((u) => [u.id, u.name]));
   const jobIds = [...new Set(filesList.map((f) => f.job_id))];
@@ -81,80 +86,84 @@ export default async function AdminDashboardPage() {
   const jobNameById = new Map((jobsForFiles ?? []).map((j) => [j.id, j.job_name]));
 
   return (
-    <div>
-      <h1 className="text-2xl font-bold text-foreground">Dashboard</h1>
+    <div className="space-y-8">
+      <AdminPageHeader title="Dashboard" />
 
-      <div className="mt-8 grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
-        <div className="rounded-xl border border-steel/50 bg-gunmetal/50 p-5">
-          <p className="text-sm text-foreground-muted">Open bids</p>
-          <p className="mt-1 text-3xl font-bold text-foreground">{openBidsCount}</p>
-        </div>
-        <div className="rounded-xl border border-steel/50 bg-gunmetal/50 p-5">
-          <p className="text-sm text-foreground-muted">Jobs by status</p>
-          <ul className="mt-2 text-sm text-foreground">
-            {Object.entries(statusBreakdown).map(([status, count]) => (
-              <li key={status}>
-                {status}: {count}
-              </li>
-            ))}
-            {Object.keys(statusBreakdown).length === 0 && (
-              <li className="text-foreground-muted">No jobs yet</li>
-            )}
-          </ul>
-        </div>
+      <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
+        <AdminStatCard label="Open bids" value={openBidsCount} />
+        <AdminSectionCard title="Jobs by status">
+          {Object.keys(statusBreakdown).length === 0 ? (
+            <p className="text-sm text-foreground-muted">No jobs yet</p>
+          ) : (
+            <ul className="space-y-1 text-sm text-foreground">
+              {Object.entries(statusBreakdown).map(([status, count]) => (
+                <li key={status}>
+                  {status}: {count}
+                </li>
+              ))}
+            </ul>
+          )}
+        </AdminSectionCard>
       </div>
 
-      <section className="mt-8 rounded-xl border border-steel/50 bg-gunmetal/30 p-5">
-        <h2 className="text-lg font-semibold text-foreground">Overdue bids</h2>
-        {overdueList.length === 0 ? (
-          <p className="mt-2 text-sm text-foreground-muted">None</p>
-        ) : (
-          <ul className="mt-2 list-inside list-disc text-sm text-foreground">
-            {overdueList.map((j) => (
-              <li key={j.id}>
-                <a href={`/admin/jobs/${j.id}`} className="hover:underline">
-                  {j.job_name}
-                </a>{" "}
-                — due {j.bid_due_date}
-              </li>
-            ))}
-          </ul>
-        )}
-      </section>
+      <div className="grid gap-6 lg:grid-cols-2">
+        <AdminSectionCard title="Overdue bids">
+          {overdueList.length === 0 ? (
+            <p className="text-sm text-foreground-muted">None</p>
+          ) : (
+            <ul className="space-y-1.5 text-sm text-foreground">
+              {overdueList.map((j) => (
+                <li key={j.id}>
+                  <Link
+                    href={`/admin/jobs/${j.id}`}
+                    className="font-medium text-foreground hover:underline focus-visible:outline focus-visible:ring-2 focus-visible:ring-steel-blue focus-visible:ring-offset-2 focus-visible:ring-offset-charcoal"
+                  >
+                    {j.job_name}
+                  </Link>{" "}
+                  <span className="text-foreground-muted">— due {j.bid_due_date}</span>
+                </li>
+              ))}
+            </ul>
+          )}
+        </AdminSectionCard>
 
-      <section className="mt-8 rounded-xl border border-steel/50 bg-gunmetal/30 p-5">
-        <h2 className="text-lg font-semibold text-foreground">Jobs per estimator</h2>
-        {Object.keys(estimatorCounts).length === 0 ? (
-          <p className="mt-2 text-sm text-foreground-muted">No assignments yet</p>
-        ) : (
-          <ul className="mt-2 list-inside list-disc text-sm text-foreground">
-            {Object.entries(estimatorCounts).map(([userId, count]) => (
-              <li key={userId}>
-                {usersById.get(userId) ?? userId}: {count}
-              </li>
-            ))}
-          </ul>
-        )}
-      </section>
+        <AdminSectionCard title="Jobs per estimator">
+          {Object.keys(estimatorCounts).length === 0 ? (
+            <p className="text-sm text-foreground-muted">No assignments yet</p>
+          ) : (
+            <ul className="space-y-1.5 text-sm text-foreground">
+              {Object.entries(estimatorCounts).map(([userId, count]) => (
+                <li key={userId}>
+                  {usersById.get(userId) ?? userId}: {count}
+                </li>
+              ))}
+            </ul>
+          )}
+        </AdminSectionCard>
+      </div>
 
-      <section className="mt-8 rounded-xl border border-steel/50 bg-gunmetal/30 p-5">
-        <h2 className="text-lg font-semibold text-foreground">Recently uploaded files</h2>
+      <AdminSectionCard title="Recently uploaded files">
         {filesList.length === 0 ? (
-          <p className="mt-2 text-sm text-foreground-muted">No files yet</p>
+          <p className="text-sm text-foreground-muted">No files yet</p>
         ) : (
-          <ul className="mt-2 space-y-1 text-sm text-foreground">
+          <ul className="space-y-1.5 text-sm text-foreground">
             {filesList.map((f) => (
               <li key={f.id}>
-                <a href={`/admin/jobs/${f.job_id}`} className="hover:underline">
+                <Link
+                  href={`/admin/jobs/${f.job_id}`}
+                  className="font-medium text-foreground hover:underline focus-visible:outline focus-visible:ring-2 focus-visible:ring-steel-blue focus-visible:ring-offset-2 focus-visible:ring-offset-charcoal"
+                >
                   {f.file_name}
-                </a>{" "}
-                — {jobNameById.get(f.job_id) ?? f.job_id} ·{" "}
-                {new Date(f.created_at).toLocaleDateString()}
+                </Link>{" "}
+                <span className="text-foreground-muted">
+                  — {jobNameById.get(f.job_id) ?? f.job_id} ·{" "}
+                  {new Date(f.created_at).toLocaleDateString()}
+                </span>
               </li>
             ))}
           </ul>
         )}
-      </section>
+      </AdminSectionCard>
     </div>
   );
 }
