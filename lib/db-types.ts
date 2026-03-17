@@ -177,3 +177,15 @@ export interface TakeoffFieldMisc {
   total: number;
   sort_order: number;
 }
+
+/** Phase 4: One row per proposal email sent; attached to customer for history. */
+export interface Proposal {
+  id: string;
+  customer_id: string;
+  job_id: string;
+  takeoff_id: string;
+  sent_at: string;
+  recipient_email: string;
+  subject: string | null;
+  created_at: string;
+}

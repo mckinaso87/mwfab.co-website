@@ -14,9 +14,23 @@ import {
   AdminToolbar,
 } from "@/components/admin";
 import { DeleteJobButton } from "./DeleteJobButton";
-import type { Job } from "@/lib/db-types";
+import type { Job, JobStatus } from "@/lib/db-types";
 import type { Customer } from "@/lib/db-types";
 import { JOB_STATUSES } from "@/lib/db-types";
+
+/** Tailwind classes for status badge (border + bg + text) on dark theme. */
+function getStatusBadgeClass(status: JobStatus): string {
+  const map: Record<JobStatus, string> = {
+    "To Bid": "border-slate-500/60 bg-slate-500/20 text-slate-200",
+    "In Takeoff": "border-amber-500/60 bg-amber-500/20 text-amber-200",
+    "Under Review": "border-blue-500/60 bg-blue-500/20 text-blue-200",
+    "Proposal Ready": "border-emerald-500/60 bg-emerald-500/20 text-emerald-200",
+    Sent: "border-cyan-500/60 bg-cyan-500/20 text-cyan-200",
+    Awarded: "border-green-500/60 bg-green-500/20 text-green-200",
+    Lost: "border-red-500/50 bg-red-500/15 text-red-300",
+  };
+  return map[status] ?? "border-steel/50 bg-steel/20 text-foreground-muted";
+}
 
 export const metadata: Metadata = {
   title: "Jobs | Admin | McKinados Welding & Fabrication",
@@ -139,7 +153,9 @@ export default async function AdminJobsPage({
                   </Link>
                 </AdminDataTableCell>
                 <AdminDataTableCell>
-                  <AdminBadge variant="muted">{j.status}</AdminBadge>
+                  <AdminBadge className={getStatusBadgeClass(j.status as JobStatus)}>
+                    {j.status}
+                  </AdminBadge>
                 </AdminDataTableCell>
                 <AdminDataTableCell className="text-foreground-muted">
                   {j.bid_due_date ?? "—"}

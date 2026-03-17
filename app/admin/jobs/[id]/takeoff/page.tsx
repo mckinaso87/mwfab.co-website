@@ -88,6 +88,7 @@ export default async function TakeoffPage({
         customerName={jobWithCustomer.customers?.company_name ?? null}
         customerId={jobWithCustomer.customers?.id ?? null}
         takeoff={takeoff}
+        previewHref={`/admin/jobs/${jobId}/proposal`}
       />
 
       <TakeoffHeaderForm takeoff={takeoff} jobId={jobId} />

@@ -29,11 +29,31 @@ export default async function CustomerDetailPage({
   if (!customer) notFound();
   const c = customer as Customer;
 
-  const { data: jobs } = await supabase
-    .from("jobs")
-    .select("id, job_name, status, bid_due_date")
-    .eq("customer_id", id)
-    .order("created_at", { ascending: false });
+  const [
+    { data: jobs },
+    { data: proposals },
+  ] = await Promise.all([
+    supabase
+      .from("jobs")
+      .select("id, job_name, status, bid_due_date")
+      .eq("customer_id", id)
+      .order("created_at", { ascending: false }),
+    supabase
+      .from("proposals")
+      .select("id, job_id, sent_at, recipient_email, subject, jobs(job_name)")
+      .eq("customer_id", id)
+      .order("sent_at", { ascending: false }),
+  ]);
+
+  type ProposalRow = {
+    id: string;
+    job_id: string;
+    sent_at: string;
+    recipient_email: string;
+    subject: string | null;
+    jobs: { job_name: string } | null;
+  };
+  const proposalsList = (proposals ?? []) as unknown as ProposalRow[];
 
   return (
     <div className="space-y-8">
@@ -84,6 +104,31 @@ export default async function CustomerDetailPage({
         >
           Add job
         </Link>
+      </AdminSectionCard>
+
+      <AdminSectionCard title="Proposals">
+        {proposalsList.length === 0 ? (
+          <p className="text-sm text-foreground-muted">
+            No proposals sent yet. Send one from a job&apos;s takeoff → Preview proposal.
+          </p>
+        ) : (
+          <ul className="space-y-2 text-sm text-foreground">
+            {proposalsList.map((p) => (
+              <li key={p.id} className="flex flex-wrap items-center gap-x-4 gap-y-1">
+                <span className="text-foreground-muted">
+                  {new Date(p.sent_at).toLocaleDateString(undefined, { dateStyle: "medium" })}
+                </span>
+                <Link
+                  href={`/admin/jobs/${p.job_id}/proposal`}
+                  className="font-medium text-foreground hover:underline focus-visible:outline focus-visible:ring-2 focus-visible:ring-steel-blue focus-visible:ring-offset-2 focus-visible:ring-offset-charcoal"
+                >
+                  {p.jobs?.job_name ?? "Job"}
+                </Link>
+                <span className="text-foreground-muted">to {p.recipient_email}</span>
+              </li>
+            ))}
+          </ul>
+        )}
       </AdminSectionCard>
     </div>
   );

@@ -7,6 +7,7 @@ type Props = {
   customerName: string | null;
   customerId: string | null;
   takeoff: Takeoff;
+  previewHref?: string;
 };
 
 export function TakeoffWorkspaceHeader({
@@ -15,6 +16,7 @@ export function TakeoffWorkspaceHeader({
   customerName,
   customerId,
   takeoff,
+  previewHref,
 }: Props) {
   const quoteParts: string[] = [];
   if (takeoff.quote_date) quoteParts.push(takeoff.quote_date);
@@ -53,6 +55,14 @@ export function TakeoffWorkspaceHeader({
             </p>
           )}
         </div>
+        {previewHref && (
+          <Link
+            href={previewHref}
+            className="shrink-0 rounded-lg bg-steel-blue px-4 py-2.5 text-sm font-medium text-foreground transition-colors hover:bg-steel focus-visible:outline focus-visible:ring-2 focus-visible:ring-steel-blue focus-visible:ring-offset-2 focus-visible:ring-offset-charcoal"
+          >
+            Preview proposal
+          </Link>
+        )}
       </div>
     </header>
   );
