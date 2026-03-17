@@ -124,7 +124,7 @@ export function MaterialsTable({
                   <button
                     type="button"
                     onClick={() => setEditingRow(row)}
-                    className="text-sm font-medium text-steel-blue hover:underline focus-visible:outline focus-visible:ring-2 focus-visible:ring-steel-blue focus-visible:ring-offset-2 focus-visible:ring-offset-charcoal"
+                    className="rounded-lg border border-steel/50 px-3 py-2 text-sm font-medium text-foreground transition-colors hover:bg-steel/30 focus-visible:outline focus-visible:ring-2 focus-visible:ring-steel-blue focus-visible:ring-offset-2 focus-visible:ring-offset-charcoal"
                   >
                     Edit
                   </button>

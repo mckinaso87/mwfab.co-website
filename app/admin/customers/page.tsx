@@ -11,6 +11,7 @@ import {
   AdminEmptyState,
   AdminPageHeader,
 } from "@/components/admin";
+import { DeleteCustomerButton } from "./DeleteCustomerButton";
 import type { Customer } from "@/lib/db-types";
 
 export const metadata: Metadata = {
@@ -78,12 +79,19 @@ export default async function AdminCustomersPage() {
                   {c.phone ?? "—"}
                 </AdminDataTableCell>
                 <AdminDataTableCell align="right">
-                  <Link
-                    href={`/admin/customers/${c.id}`}
-                    className="text-sm font-medium text-steel-blue hover:underline focus-visible:outline focus-visible:ring-2 focus-visible:ring-steel-blue focus-visible:ring-offset-2 focus-visible:ring-offset-charcoal"
-                  >
-                    Edit
-                  </Link>
+                  <span className="flex justify-end items-center gap-3">
+                    <Link
+                      href={`/admin/customers/${c.id}`}
+                      className="rounded-lg border border-steel/50 px-3 py-2 text-sm font-medium text-foreground transition-colors hover:bg-steel/30 focus-visible:outline focus-visible:ring-2 focus-visible:ring-steel-blue focus-visible:ring-offset-2 focus-visible:ring-offset-charcoal"
+                    >
+                      Edit
+                    </Link>
+                    <DeleteCustomerButton
+                      customerId={c.id}
+                      companyName={c.company_name}
+                      variant="list"
+                    />
+                  </span>
                 </AdminDataTableCell>
               </AdminDataTableRow>
             ))}

@@ -78,3 +78,18 @@ export async function createOrUpdateCustomer(formData: FormData) {
   if (id) return updateCustomer(id, formData);
   return createCustomer(formData);
 }
+
+export async function deleteCustomer(customerId: string) {
+  const supabase = createAdminClient();
+  const id = customerId?.trim();
+  if (!id) return { error: "Customer ID is required." };
+
+  const { data: jobs } = await supabase.from("jobs").select("id").eq("customer_id", id).limit(1);
+  if (jobs?.length) return { error: "Cannot remove customer with existing jobs. Reassign or remove jobs first." };
+
+  const { error } = await supabase.from("customers").delete().eq("id", id);
+  if (error) return { error: error.message };
+  revalidatePath("/admin/customers");
+  revalidatePath("/admin/dashboard");
+  return { success: true };
+}

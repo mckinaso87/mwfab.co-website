@@ -2,27 +2,31 @@
 
 import { useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { deleteJob } from "./actions";
+import { deleteStaff } from "./actions";
 
 type Props = {
-  jobId: string;
-  jobName: string;
+  staffId: string;
+  staffName: string;
   variant?: "list" | "detail";
 };
 
-export function DeleteJobButton({ jobId, jobName, variant = "list" }: Props) {
+export function DeleteStaffButton({
+  staffId,
+  staffName,
+  variant = "list",
+}: Props) {
   const [isPending, startTransition] = useTransition();
   const router = useRouter();
 
   const handleDelete = () => {
-    if (!confirm(`Remove job “${jobName}”? This cannot be undone.`)) return;
+    if (!confirm(`Remove “${staffName}” from staff? This cannot be undone.`)) return;
     startTransition(async () => {
-      const result = await deleteJob(jobId);
+      const result = await deleteStaff(staffId);
       if (result?.error) {
         alert(result.error);
         return;
       }
-      router.push("/admin/jobs");
+      router.push("/admin/staff");
       router.refresh();
     });
   };
@@ -35,7 +39,7 @@ export function DeleteJobButton({ jobId, jobName, variant = "list" }: Props) {
         disabled={isPending}
         className="rounded-lg border border-red-500/50 px-4 py-2.5 text-sm font-medium text-red-400 transition-colors hover:bg-red-500/10 disabled:opacity-50 focus-visible:outline focus-visible:ring-2 focus-visible:ring-red-400 focus-visible:ring-offset-2 focus-visible:ring-offset-charcoal"
       >
-        {isPending ? "Removing…" : "Remove job"}
+        {isPending ? "Removing…" : "Remove staff"}
       </button>
     );
   }

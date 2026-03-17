@@ -3,8 +3,10 @@
 import Link from "next/link";
 import { useActionState } from "react";
 import { AdminFormSection } from "@/components/admin";
+import type { User } from "@/lib/db-types";
 
 const ROLES = [
+  { value: "admin", label: "Admin" },
   { value: "estimator", label: "Estimator" },
   { value: "office", label: "Office" },
   { value: "read_only", label: "Read only" },
@@ -12,7 +14,10 @@ const ROLES = [
 
 type FormAction = (formData: FormData) => Promise<{ error?: string; success?: boolean }>;
 
-export function StaffForm({ action }: { action: FormAction }) {
+type Props = { action: FormAction; user?: User | null };
+
+export function StaffForm({ action, user }: Props) {
+  const isEdit = !!user;
   const [state, formAction, isPending] = useActionState(
     async (_: unknown, formData: FormData) => action(formData),
     null as { error?: string; success?: boolean } | null
@@ -20,6 +25,7 @@ export function StaffForm({ action }: { action: FormAction }) {
 
   return (
     <form action={formAction} className="space-y-8">
+      {user?.id && <input type="hidden" name="user_id" value={user.id} />}
       <AdminFormSection title="Staff member" description="Name and role for job assignment.">
         <div className="grid gap-4 sm:grid-cols-2">
           <div>
@@ -32,6 +38,7 @@ export function StaffForm({ action }: { action: FormAction }) {
               type="text"
               required
               placeholder="e.g. Alex"
+              defaultValue={user?.name ?? ""}
               className="input-admin"
             />
           </div>
@@ -39,7 +46,12 @@ export function StaffForm({ action }: { action: FormAction }) {
             <label htmlFor="role" className="block text-sm font-medium text-foreground">
               Role
             </label>
-            <select id="role" name="role" defaultValue="office" className="input-admin">
+            <select
+              id="role"
+              name="role"
+              defaultValue={user?.role ?? "office"}
+              className="input-admin"
+            >
               {ROLES.map((r) => (
                 <option key={r.value} value={r.value}>
                   {r.label}
@@ -57,7 +69,7 @@ export function StaffForm({ action }: { action: FormAction }) {
       )}
       {state?.success && (
         <div className="rounded-lg border border-green-500/50 bg-green-500/10 px-4 py-3 text-sm text-green-400">
-          Staff added.
+          {isEdit ? "Staff updated." : "Staff added."}
         </div>
       )}
 
@@ -67,7 +79,7 @@ export function StaffForm({ action }: { action: FormAction }) {
           disabled={isPending}
           className="rounded-lg bg-steel-blue px-5 py-2.5 text-sm font-medium text-foreground transition-colors hover:bg-steel disabled:opacity-50 focus-visible:outline focus-visible:ring-2 focus-visible:ring-steel-blue focus-visible:ring-offset-2 focus-visible:ring-offset-charcoal"
         >
-          {isPending ? "Adding…" : "Add staff"}
+          {isPending ? (isEdit ? "Saving…" : "Adding…") : isEdit ? "Update staff" : "Add staff"}
         </button>
         <Link
           href="/admin/staff"

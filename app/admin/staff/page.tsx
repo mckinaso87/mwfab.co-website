@@ -11,6 +11,7 @@ import {
   AdminEmptyState,
   AdminPageHeader,
 } from "@/components/admin";
+import { DeleteStaffButton } from "./DeleteStaffButton";
 import type { User } from "@/lib/db-types";
 
 export const metadata: Metadata = {
@@ -54,15 +55,36 @@ export default async function AdminStaffPage() {
           <AdminDataTableHead>
             <AdminDataTableHeaderCell>Name</AdminDataTableHeaderCell>
             <AdminDataTableHeaderCell>Role</AdminDataTableHeaderCell>
+            <AdminDataTableHeaderCell align="right">Actions</AdminDataTableHeaderCell>
           </AdminDataTableHead>
           <AdminDataTableBody>
             {list.map((u) => (
               <AdminDataTableRow key={u.id}>
                 <AdminDataTableCell className="font-medium text-foreground">
-                  {u.name ?? "—"}
+                  <Link
+                    href={`/admin/staff/${u.id}`}
+                    className="text-foreground hover:underline focus-visible:outline focus-visible:ring-2 focus-visible:ring-steel-blue focus-visible:ring-offset-2 focus-visible:ring-offset-charcoal"
+                  >
+                    {u.name ?? "—"}
+                  </Link>
                 </AdminDataTableCell>
                 <AdminDataTableCell className="capitalize text-foreground-muted">
                   {u.role.replace("_", " ")}
+                </AdminDataTableCell>
+                <AdminDataTableCell align="right">
+                  <span className="flex justify-end items-center gap-3">
+                    <Link
+                      href={`/admin/staff/${u.id}`}
+                      className="rounded-lg border border-steel/50 px-3 py-2 text-sm font-medium text-foreground transition-colors hover:bg-steel/30 focus-visible:outline focus-visible:ring-2 focus-visible:ring-steel-blue focus-visible:ring-offset-2 focus-visible:ring-offset-charcoal"
+                    >
+                      Edit
+                    </Link>
+                    <DeleteStaffButton
+                      staffId={u.id}
+                      staffName={u.name ?? "Staff"}
+                      variant="list"
+                    />
+                  </span>
                 </AdminDataTableCell>
               </AdminDataTableRow>
             ))}
