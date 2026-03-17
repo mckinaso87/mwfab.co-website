@@ -79,3 +79,37 @@ export async function createOrUpdateJob(formData: FormData) {
   if (jobId) return updateJob(jobId, formData);
   return createJob(formData);
 }
+
+export async function deleteJob(jobId: string) {
+  const supabase = createAdminClient();
+  const id = jobId?.trim();
+  if (!id) return { error: "Job ID is required." };
+
+  const { data: takeoff } = await supabase
+    .from("takeoffs")
+    .select("id")
+    .eq("job_id", id)
+    .maybeSingle();
+
+  if (takeoff?.id) {
+    await supabase.from("takeoff_metal_lines").delete().eq("takeoff_id", takeoff.id);
+    await supabase.from("takeoff_component_lines").delete().eq("takeoff_id", takeoff.id);
+    await supabase.from("takeoff_misc_lines").delete().eq("takeoff_id", takeoff.id);
+    await supabase.from("takeoff_field_misc").delete().eq("takeoff_id", takeoff.id);
+    await supabase.from("takeoffs").delete().eq("id", takeoff.id);
+  }
+
+  const { data: files } = await supabase.from("job_files").select("id, file_url").eq("job_id", id);
+  if (files?.length) {
+    await supabase.storage.from("job-files").remove(files.map((f) => f.file_url));
+    await supabase.from("job_files").delete().eq("job_id", id);
+  }
+
+  await supabase.from("job_status_history").delete().eq("job_id", id);
+  const { error } = await supabase.from("jobs").delete().eq("id", id);
+
+  if (error) return { error: error.message };
+  revalidatePath("/admin/jobs");
+  revalidatePath("/admin/dashboard");
+  return { success: true };
+}

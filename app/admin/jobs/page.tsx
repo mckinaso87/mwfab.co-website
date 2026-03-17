@@ -13,6 +13,7 @@ import {
   AdminPageHeader,
   AdminToolbar,
 } from "@/components/admin";
+import { DeleteJobButton } from "./DeleteJobButton";
 import type { Job } from "@/lib/db-types";
 import type { Customer } from "@/lib/db-types";
 import { JOB_STATUSES } from "@/lib/db-types";
@@ -149,7 +150,7 @@ export default async function AdminJobsPage({
                     : "—"}
                 </AdminDataTableCell>
                 <AdminDataTableCell align="right">
-                  <span className="flex justify-end gap-3">
+                  <span className="flex justify-end items-center gap-3">
                     <Link
                       href={`/admin/jobs/${j.id}/takeoff`}
                       className="text-sm font-medium text-steel-blue hover:underline focus-visible:outline focus-visible:ring-2 focus-visible:ring-steel-blue focus-visible:ring-offset-2 focus-visible:ring-offset-charcoal"
@@ -162,6 +163,7 @@ export default async function AdminJobsPage({
                     >
                       Edit
                     </Link>
+                    <DeleteJobButton jobId={j.id} jobName={j.job_name} variant="list" />
                   </span>
                 </AdminDataTableCell>
               </AdminDataTableRow>

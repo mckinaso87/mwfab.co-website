@@ -6,6 +6,7 @@ import { createOrUpdateJob } from "../actions";
 import { JobForm } from "../JobForm";
 import { JobFileUpload } from "../JobFileUpload";
 import { DeleteJobFileButton } from "../DeleteJobFileButton";
+import { DeleteJobButton } from "../DeleteJobButton";
 import { AdminPageHeader, AdminSectionCard } from "@/components/admin";
 import type { Job, JobFile, JobStatusHistory } from "@/lib/db-types";
 import type { Customer } from "@/lib/db-types";
@@ -89,12 +90,15 @@ export default async function JobDetailPage({
       <AdminPageHeader
         title={j.job_name}
         actions={
-          <Link
-            href={`/admin/jobs/${id}/takeoff`}
-            className="inline-flex items-center gap-2 rounded-lg bg-steel-blue px-4 py-2.5 text-sm font-medium text-foreground transition-colors hover:bg-steel focus-visible:outline focus-visible:ring-2 focus-visible:ring-steel-blue focus-visible:ring-offset-2 focus-visible:ring-offset-charcoal"
-          >
-            Takeoff / Proposal →
-          </Link>
+          <span className="flex flex-wrap items-center gap-3">
+            <Link
+              href={`/admin/jobs/${id}/takeoff`}
+              className="inline-flex items-center gap-2 rounded-lg bg-steel-blue px-4 py-2.5 text-sm font-medium text-foreground transition-colors hover:bg-steel focus-visible:outline focus-visible:ring-2 focus-visible:ring-steel-blue focus-visible:ring-offset-2 focus-visible:ring-offset-charcoal"
+            >
+              Takeoff / Proposal →
+            </Link>
+            <DeleteJobButton jobId={id} jobName={j.job_name} variant="detail" />
+          </span>
         }
       />
 
