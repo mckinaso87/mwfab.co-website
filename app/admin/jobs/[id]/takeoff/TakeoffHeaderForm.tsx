@@ -5,11 +5,22 @@ import { updateTakeoffHeader } from "./actions";
 import { AdminFormSection } from "@/components/admin";
 import type { Takeoff } from "@/lib/db-types";
 
-type Props = { takeoff: Takeoff; jobId: string };
+type StaffMember = { id: string; name: string | null };
+type Props = { takeoff: Takeoff; jobId: string; staff: StaffMember[] };
 
 const labelClass = "block text-sm font-medium text-foreground";
 
-export function TakeoffHeaderForm({ takeoff, jobId }: Props) {
+export function TakeoffHeaderForm({ takeoff, jobId, staff }: Props) {
+  const staffNames = staff
+    .map((s) => s.name?.trim())
+    .filter((n): n is string => !!n)
+    .sort((a, b) => a.localeCompare(b, "en", { sensitivity: "base" }));
+  const currentQuotedBy = takeoff.quoted_by?.trim() || "";
+  const quotedByOptions = [...new Set(staffNames)];
+  if (currentQuotedBy && !quotedByOptions.includes(currentQuotedBy)) {
+    quotedByOptions.push(currentQuotedBy);
+    quotedByOptions.sort((a, b) => a.localeCompare(b, "en", { sensitivity: "base" }));
+  }
   const action = updateTakeoffHeader.bind(null, takeoff.id, jobId);
   const [state, formAction, isPending] = useActionState(
     async (_: unknown, formData: FormData) => action(formData),
@@ -53,13 +64,20 @@ export function TakeoffHeaderForm({ takeoff, jobId }: Props) {
             <label htmlFor="quoted_by" className={labelClass}>
               Quoted by
             </label>
-            <input
+            <select
               id="quoted_by"
               name="quoted_by"
-              type="text"
-              defaultValue={takeoff.quoted_by ?? ""}
               className="input-admin"
-            />
+              defaultValue={currentQuotedBy || undefined}
+            >
+              <option value="">Select staff…</option>
+              {quotedByOptions.map((name) => (
+                <option key={name} value={name}>
+                  {name}
+                </option>
+              ))}
+            </select>
+            <p className="mt-1 text-xs text-foreground-muted">Staff member who prepared the quote (from Staff list).</p>
           </div>
           <div>
             <label htmlFor="tax_rate" className={labelClass}>

@@ -41,6 +41,7 @@ export default async function TakeoffPage({
     { data: componentLines },
     { data: miscLines },
     { data: fieldMiscLines },
+    { data: users },
   ] = await Promise.all([
     supabase
       .from("takeoff_metal_lines")
@@ -62,6 +63,7 @@ export default async function TakeoffPage({
       .select("*")
       .eq("takeoff_id", takeoff.id)
       .order("sort_order"),
+    supabase.from("users").select("id, name").order("name", { ascending: true, nullsFirst: false }),
   ]);
 
   const metal = (metalLines ?? []) as TakeoffMetalLine[];
@@ -91,7 +93,7 @@ export default async function TakeoffPage({
         previewHref={`/admin/jobs/${jobId}/proposal`}
       />
 
-      <TakeoffHeaderForm takeoff={takeoff} jobId={jobId} />
+      <TakeoffHeaderForm takeoff={takeoff} jobId={jobId} staff={users ?? []} />
 
       <TakeoffMetalSection takeoffId={takeoff.id} jobId={jobId} lines={metalSorted} />
 
