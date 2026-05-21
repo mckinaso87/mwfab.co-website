@@ -33,7 +33,7 @@ export default async function AdminStaffPage() {
     <div className="space-y-8">
       <AdminPageHeader
         title="Staff"
-        subtitle="Staff listed here can be assigned to jobs. Manage Clerk sign-in separately."
+        subtitle="Staff can be assigned to jobs. Enable login here to create or invite Clerk accounts."
         actions={
           <Link
             href="/admin/staff/new"
@@ -55,6 +55,8 @@ export default async function AdminStaffPage() {
           <AdminDataTableHead>
             <AdminDataTableHeaderCell>Name</AdminDataTableHeaderCell>
             <AdminDataTableHeaderCell>Role</AdminDataTableHeaderCell>
+            <AdminDataTableHeaderCell>Email</AdminDataTableHeaderCell>
+            <AdminDataTableHeaderCell>Login</AdminDataTableHeaderCell>
             <AdminDataTableHeaderCell align="right">Actions</AdminDataTableHeaderCell>
           </AdminDataTableHead>
           <AdminDataTableBody>
@@ -70,6 +72,12 @@ export default async function AdminStaffPage() {
                 </AdminDataTableCell>
                 <AdminDataTableCell className="capitalize text-foreground-muted">
                   {u.role.replace("_", " ")}
+                </AdminDataTableCell>
+                <AdminDataTableCell className="text-foreground-muted">
+                  {u.email ?? "—"}
+                </AdminDataTableCell>
+                <AdminDataTableCell className="text-foreground-muted">
+                  {u.clerk_id ? "Enabled" : "—"}
                 </AdminDataTableCell>
                 <AdminDataTableCell align="right">
                   <span className="flex justify-end items-center gap-3">

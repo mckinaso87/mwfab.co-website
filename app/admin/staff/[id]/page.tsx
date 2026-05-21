@@ -38,7 +38,7 @@ export default async function EditStaffPage({
       </div>
       <AdminPageHeader
         title={u.name ?? "Edit staff"}
-        subtitle="Update name and role."
+        subtitle="Update name and role. Manage login access below."
         actions={<DeleteStaffButton staffId={id} staffName={u.name ?? "Staff"} variant="detail" />}
       />
       <AdminSectionCard>

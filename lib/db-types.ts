@@ -12,6 +12,7 @@ export interface User {
   id: string;
   name: string | null;
   role: "admin" | "estimator" | "office" | "read_only";
+  email: string | null;
   clerk_id: string | null;
   created_at: string;
 }

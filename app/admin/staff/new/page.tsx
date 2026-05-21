@@ -23,7 +23,7 @@ export default function NewStaffPage() {
       </div>
       <AdminPageHeader
         title="Add staff"
-        subtitle="After saving, the staff member can be assigned to jobs."
+        subtitle="Add a display-only name for job assignment, or enable login to invite or create a Clerk account."
       />
       <AdminSectionCard>
         <StaffForm action={createStaff} />

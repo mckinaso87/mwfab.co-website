@@ -24,6 +24,7 @@ export const env = {
   /** Server-only; do not expose */
   clerk: {
     secretKey: optional("CLERK_SECRET_KEY"),
+    webhookSecret: optional("CLERK_WEBHOOK_SECRET"),
   },
 
   supabase: {
@@ -45,6 +46,11 @@ export function requireClerkEnv(): { publishableKey: string; secretKey: string }
     publishableKey: required("NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY"),
     secretKey: required("CLERK_SECRET_KEY"),
   };
+}
+
+/** Call in Clerk webhook route. Throws if webhook secret missing. */
+export function requireClerkWebhookEnv(): { webhookSecret: string } {
+  return { webhookSecret: required("CLERK_WEBHOOK_SECRET") };
 }
 
 /** Call in API routes that send email via Resend. */
