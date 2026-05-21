@@ -4,7 +4,12 @@ import { revalidatePath } from "next/cache";
 import { clerkClient } from "@clerk/nextjs/server";
 import { isStaffRole, type StaffRole } from "@/lib/auth-constants";
 import { getInviteAcceptUrl } from "@/lib/app-url";
-import { generateTempPassword, parseClerkError, staffPublicMetadata } from "@/lib/clerk-staff";
+import {
+  generateTempPassword,
+  getInvitationAcceptUrl,
+  parseClerkError,
+  staffPublicMetadata,
+} from "@/lib/clerk-staff";
 import { requireClerkEnv } from "@/lib/env";
 import { createAdminClient } from "@/lib/supabase/admin";
 
@@ -13,6 +18,8 @@ export type StaffActionResult = {
   success?: boolean;
   tempPassword?: string;
   message?: string;
+  /** Direct Clerk accept link when email delivery fails or is delayed */
+  inviteUrl?: string;
 };
 
 const STAFF_PATHS = ["/admin/staff", "/admin/jobs", "/admin/dashboard"] as const;
@@ -52,12 +59,60 @@ async function sendClerkInvite(email: string, role: StaffRole): Promise<StaffAct
   const client = await clerkClient();
   const redirectUrl = getInviteAcceptUrl();
   try {
-    await client.invitations.createInvitation({
+    const invitation = await client.invitations.createInvitation({
       emailAddress: email,
       publicMetadata: staffPublicMetadata(role),
       redirectUrl,
+      notify: true,
     });
-    return { success: true, message: `Invitation sent to ${email}.` };
+    const inviteUrl = getInvitationAcceptUrl(invitation);
+    return {
+      success: true,
+      inviteUrl: inviteUrl ?? undefined,
+      message: inviteUrl
+        ? `Invitation created for ${email}. Clerk will email the link; if it does not arrive, copy the link below (iCloud and some providers often delay or filter Clerk mail).`
+        : `Invitation created for ${email}. If no email arrives, use “Get invite link” on the staff edit page or resend from the Clerk Dashboard.`,
+    };
+  } catch (err) {
+    return { error: parseClerkError(err) };
+  }
+}
+
+/** Pending invite URL for staff who were invited but did not receive email. */
+export async function getPendingInviteLink(staffId: string): Promise<StaffActionResult> {
+  const supabase = createAdminClient();
+  const { data: user, error: fetchError } = await supabase
+    .from("users")
+    .select("email, clerk_id")
+    .eq("id", staffId)
+    .single();
+
+  if (fetchError || !user) return { error: "Staff member not found." };
+  if (user.clerk_id) return { error: "Login is already enabled for this staff member." };
+  if (!user.email) return { error: "No email on file for this staff member." };
+
+  requireClerkEnv();
+  const client = await clerkClient();
+  try {
+    const { data: invitations } = await client.invitations.getInvitationList({
+      status: "pending",
+      limit: 100,
+    });
+    const match = invitations.find(
+      (inv) => inv.emailAddress.toLowerCase() === user.email!.toLowerCase()
+    );
+    const inviteUrl = match ? getInvitationAcceptUrl(match) : null;
+    if (!inviteUrl) {
+      return {
+        error:
+          "No pending invitation found for this email. Send a new invite from this page (Enable login).",
+      };
+    }
+    return {
+      success: true,
+      inviteUrl,
+      message: "Copy this link and open it in a browser to set a password and finish signup.",
+    };
   } catch (err) {
     return { error: parseClerkError(err) };
   }

@@ -6,6 +6,12 @@ export function staffPublicMetadata(role: StaffRole): { role: StaffRole } {
   return { role };
 }
 
+/** Clerk includes a direct accept URL on the invitation resource (use when email is delayed or blocked). */
+export function getInvitationAcceptUrl(invitation: { url?: string | null }): string | null {
+  const url = invitation.url?.trim();
+  return url || null;
+}
+
 /** Meets typical Clerk password requirements (length, mixed case, digit). */
 export function generateTempPassword(): string {
   const lower = "abcdefghjkmnpqrstuvwxyz";

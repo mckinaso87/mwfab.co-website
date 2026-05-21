@@ -6,7 +6,8 @@ import { AdminFormSection } from "@/components/admin";
 import { STAFF_ROLES } from "@/lib/auth-constants";
 import type { User } from "@/lib/db-types";
 import type { StaffActionResult } from "./actions";
-import { revokeStaffLogin } from "./actions";
+import { getPendingInviteLink, revokeStaffLogin } from "./actions";
+import { InviteLinkDisplay } from "./InviteLinkDisplay";
 
 const ROLE_LABELS: Record<(typeof STAFF_ROLES)[number], string> = {
   admin: "Admin",
@@ -25,7 +26,10 @@ export function StaffForm({ action, user }: Props) {
   const [canLogin, setCanLogin] = useState(false);
   const [enableLoginMode, setEnableLoginMode] = useState(false);
   const [revokeError, setRevokeError] = useState<string | null>(null);
+  const [inviteLinkError, setInviteLinkError] = useState<string | null>(null);
+  const [fetchedInviteUrl, setFetchedInviteUrl] = useState<string | null>(null);
   const [revokePending, startRevoke] = useTransition();
+  const [inviteLinkPending, startInviteLink] = useTransition();
 
   const showLoginFields =
     (!isEdit && canLogin) || (isEdit && enableLoginMode && !hasLogin);
@@ -34,6 +38,22 @@ export function StaffForm({ action, user }: Props) {
     async (_: StaffActionResult | null, formData: FormData) => action(formData),
     null as StaffActionResult | null
   );
+
+  const displayInviteUrl = state?.inviteUrl ?? fetchedInviteUrl;
+
+  const handleGetInviteLink = () => {
+    if (!user?.id) return;
+    setInviteLinkError(null);
+    startInviteLink(async () => {
+      const result = await getPendingInviteLink(user.id);
+      if (result.error) {
+        setInviteLinkError(result.error);
+        setFetchedInviteUrl(null);
+        return;
+      }
+      setFetchedInviteUrl(result.inviteUrl ?? null);
+    });
+  };
 
   const handleRevokeLogin = () => {
     if (!user?.id) return;
@@ -129,6 +149,10 @@ export function StaffForm({ action, user }: Props) {
           </div>
         )}
 
+        {isEdit && !hasLogin && inviteLinkError && (
+          <p className="text-sm text-red-400">{inviteLinkError}</p>
+        )}
+
         {isEdit && !hasLogin && (
           <div className="space-y-3">
             <p className="text-sm text-foreground-muted">
@@ -136,13 +160,25 @@ export function StaffForm({ action, user }: Props) {
               {user?.email && ` (email on file: ${user.email})`}
             </p>
             {!enableLoginMode ? (
-              <button
-                type="button"
-                onClick={() => setEnableLoginMode(true)}
-                className="rounded-lg border border-steel/50 px-4 py-2 text-sm font-medium text-foreground transition-colors hover:bg-steel/30"
-              >
-                Enable login
-              </button>
+              <div className="flex flex-wrap gap-3">
+                <button
+                  type="button"
+                  onClick={() => setEnableLoginMode(true)}
+                  className="rounded-lg border border-steel/50 px-4 py-2 text-sm font-medium text-foreground transition-colors hover:bg-steel/30"
+                >
+                  Enable login
+                </button>
+                {user?.email && (
+                  <button
+                    type="button"
+                    onClick={handleGetInviteLink}
+                    disabled={inviteLinkPending}
+                    className="rounded-lg border border-steel/50 px-4 py-2 text-sm font-medium text-foreground transition-colors hover:bg-steel/30 disabled:opacity-50"
+                  >
+                    {inviteLinkPending ? "Loading…" : "Get invite link"}
+                  </button>
+                )}
+              </div>
             ) : (
               <button
                 type="button"
@@ -208,17 +244,28 @@ export function StaffForm({ action, user }: Props) {
                   Create with temporary password
                 </label>
               </div>
+              <p className="mt-2 text-xs text-foreground-muted">
+                Invite emails are sent by Clerk. iCloud and some providers often delay or filter them;
+                after submitting, copy the invite link if the email does not arrive.
+              </p>
             </fieldset>
           </div>
         )}
       </AdminFormSection>
+
+      {state?.message && displayInviteUrl && !state?.tempPassword && (
+        <div className="rounded-lg border border-green-500/50 bg-green-500/10 px-4 py-3 text-sm text-green-400">
+          {state.message}
+        </div>
+      )}
+      {displayInviteUrl && <InviteLinkDisplay inviteUrl={displayInviteUrl} />}
 
       {state?.error && (
         <div className="rounded-lg border border-red-500/50 bg-red-500/10 px-4 py-3 text-sm text-red-400">
           {state.error}
         </div>
       )}
-      {state?.message && !state?.tempPassword && (
+      {state?.message && !state?.tempPassword && !state?.inviteUrl && (
         <div className="rounded-lg border border-green-500/50 bg-green-500/10 px-4 py-3 text-sm text-green-400">
           {state.message}
           {!isEdit && (
@@ -229,6 +276,13 @@ export function StaffForm({ action, user }: Props) {
             </span>
           )}
         </div>
+      )}
+      {displayInviteUrl && !isEdit && (
+        <p className="text-sm">
+          <Link href="/admin/staff" className="text-steel-blue underline hover:no-underline">
+            Back to staff list
+          </Link>
+        </p>
       )}
       {state?.tempPassword && (
         <div className="rounded-lg border border-amber-500/50 bg-amber-500/10 px-4 py-3 text-sm text-amber-200">
