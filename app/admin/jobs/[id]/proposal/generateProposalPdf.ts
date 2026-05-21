@@ -4,7 +4,7 @@ import {
   subgroupSubtotal,
   SCOPE_SUBGROUP_TITLE,
 } from "@/lib/proposal-line-groups";
-import { LETTERHEAD } from "@/components/admin/proposal/Letterhead";
+import { LETTERHEAD, proposalLicenseLines } from "@/components/admin/proposal/Letterhead";
 import { isGalvanizerLine, normalizeRate } from "@/lib/takeoff-calculations";
 import type { ProposalData } from "./loadProposalData";
 import { deriveProposalScopeLabel } from "./loadProposalData";
@@ -276,9 +276,10 @@ export async function generateProposalPdf(data: ProposalData): Promise<Uint8Arra
       drawText(wrapped, MARGIN, 9);
     }
     y -= SECTION_GAP;
-    drawText(LETTERHEAD.companyName, MARGIN, 9, true);
-    drawText(LETTERHEAD.addressLine1, MARGIN, 8);
-    drawText(LETTERHEAD.addressLine2, MARGIN, 8);
+    drawText("Licenses", MARGIN, 9, true);
+    for (const line of proposalLicenseLines()) {
+      drawText(line, MARGIN, 8);
+    }
   }
 
   return doc.save();

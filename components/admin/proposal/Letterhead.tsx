@@ -10,6 +10,24 @@ export const LETTERHEAD = {
   fax: "(772) 345-1768",
 } as const;
 
+/** Shown at the end of Terms and Conditions (proposal preview, PDF). */
+export const PROPOSAL_LICENSES = [
+  { county: "Miami Dade", numbers: ["#10BS00296"] },
+  { county: "Broward", numbers: ["CC#10-MM-17000", "CC#10-SS-16942-X"] },
+  { county: "Palm Beach", numbers: ["#U21579"] },
+  { county: "Martin", numbers: ["#MCSS6779"] },
+  { county: "Port Saint Lucie", numbers: ["#11-11463"] },
+  { county: "Saint Lucie", numbers: ["#26391"] },
+  { county: "Indian River", numbers: ["#18904"] },
+] as const;
+
+/** Plain-text lines for PDF terms footer. */
+export function proposalLicenseLines(): string[] {
+  return PROPOSAL_LICENSES.map(
+    (entry) => `${entry.county}: ${entry.numbers.join(" · ")}`
+  );
+}
+
 export function Letterhead() {
   return (
     <div className="border-b-2 border-steel-blue/50 pb-6 print:border-gray-400">
