@@ -6,7 +6,8 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "seed:materials": "tsx scripts/seed-material-catalog.ts"
   },
   "dependencies": {
     "@clerk/nextjs": "^6.37.3",
@@ -14,6 +15,7 @@
     "@supabase/supabase-js": "^2.95.3",
     "clsx": "^2.1.1",
     "csv-parse": "^6.1.0",
+    "marked": "^18.0.4",
     "next": "16.1.6",
     "pdf-lib": "^1.17.1",
     "react": "19.2.3",

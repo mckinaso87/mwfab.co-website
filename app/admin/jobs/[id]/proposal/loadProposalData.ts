@@ -6,6 +6,10 @@ import type {
   TakeoffComponentLine,
   TakeoffMiscLine,
   TakeoffFieldMisc,
+  TakeoffSectionNote,
+  TakeoffSectionKey,
+  SettingsExclusion,
+  SettingsTerms,
 } from "@/lib/db-types";
 
 export type ProposalDataJob = {
@@ -22,6 +26,9 @@ export type ProposalData = {
   componentLines: TakeoffComponentLine[];
   miscLines: TakeoffMiscLine[];
   fieldMiscLines: TakeoffFieldMisc[];
+  sectionNotes: Partial<Record<TakeoffSectionKey, TakeoffSectionNote>>;
+  exclusions: SettingsExclusion[];
+  terms: SettingsTerms | null;
 };
 
 /** Load job, takeoff, and all line items for proposal preview/send. Returns null if no takeoff. */
@@ -49,6 +56,9 @@ export async function getProposalData(jobId: string): Promise<ProposalData | nul
     { data: componentLines },
     { data: miscLines },
     { data: fieldMiscLines },
+    { data: notesRows },
+    { data: takeoffExRows },
+    { data: termsRow },
   ] = await Promise.all([
     supabase
       .from("takeoff_metal_lines")
@@ -70,6 +80,15 @@ export async function getProposalData(jobId: string): Promise<ProposalData | nul
       .select("*")
       .eq("takeoff_id", takeoff.id)
       .order("sort_order"),
+    supabase.from("takeoff_section_notes").select("*").eq("takeoff_id", takeoff.id),
+    supabase.from("takeoff_exclusions").select("exclusion_id").eq("takeoff_id", takeoff.id),
+    supabase
+      .from("settings_terms")
+      .select("*")
+      .eq("is_active", true)
+      .order("version", { ascending: false })
+      .limit(1)
+      .maybeSingle(),
   ]);
 
   const metal = (metalLines ?? []) as TakeoffMetalLine[];
@@ -79,6 +98,22 @@ export async function getProposalData(jobId: string): Promise<ProposalData | nul
       a.sort_order - b.sort_order
   );
 
+  const sectionNotes: Partial<Record<TakeoffSectionKey, TakeoffSectionNote>> = {};
+  for (const n of (notesRows ?? []) as TakeoffSectionNote[]) {
+    sectionNotes[n.section] = n;
+  }
+
+  const exclusionIds = (takeoffExRows ?? []).map((r) => r.exclusion_id as string);
+  let exclusions: SettingsExclusion[] = [];
+  if (exclusionIds.length > 0) {
+    const { data: exRows } = await supabase
+      .from("settings_exclusions")
+      .select("*")
+      .in("id", exclusionIds)
+      .order("sort_order");
+    exclusions = (exRows ?? []) as SettingsExclusion[];
+  }
+
   return {
     job: job as unknown as ProposalDataJob,
     takeoff: takeoff as Takeoff,
@@ -86,5 +121,26 @@ export async function getProposalData(jobId: string): Promise<ProposalData | nul
     componentLines: (componentLines ?? []) as TakeoffComponentLine[],
     miscLines: (miscLines ?? []) as TakeoffMiscLine[],
     fieldMiscLines: (fieldMiscLines ?? []) as TakeoffFieldMisc[],
+    sectionNotes,
+    exclusions,
+    terms: (termsRow as SettingsTerms | null) ?? null,
   };
+}
+
+export function deriveProposalScopeLabel(
+  lines: Array<{ scope?: string | null }>
+): string {
+  const scopes = new Set(
+    lines.map((l) => l.scope).filter((s): s is string => !!s)
+  );
+  if (scopes.has("furnish") && scopes.has("furnish_install")) {
+    return "Mixed (furnish and furnish & install)";
+  }
+  if (scopes.has("furnish") && !scopes.has("furnish_install")) {
+    return "Furnish only";
+  }
+  if (scopes.has("furnish_install") && !scopes.has("furnish")) {
+    return "Furnish & install";
+  }
+  return "—";
 }

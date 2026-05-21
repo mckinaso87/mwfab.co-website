@@ -54,6 +54,7 @@ export default async function AdminJobsPage({
       job_name,
       description,
       bid_due_date,
+      date_of_plan,
       status,
       assigned_to,
       created_at,
@@ -128,8 +129,9 @@ export default async function AdminJobsPage({
           <AdminDataTableHead>
             <AdminDataTableHeaderCell>Job</AdminDataTableHeaderCell>
             <AdminDataTableHeaderCell>Customer</AdminDataTableHeaderCell>
+            <AdminDataTableHeaderCell>Bid due</AdminDataTableHeaderCell>
+            <AdminDataTableHeaderCell>Plan date</AdminDataTableHeaderCell>
             <AdminDataTableHeaderCell>Status</AdminDataTableHeaderCell>
-            <AdminDataTableHeaderCell>Due</AdminDataTableHeaderCell>
             <AdminDataTableHeaderCell>Assigned</AdminDataTableHeaderCell>
             <AdminDataTableHeaderCell align="right">Actions</AdminDataTableHeaderCell>
           </AdminDataTableHead>
@@ -152,13 +154,16 @@ export default async function AdminJobsPage({
                     {j.customers?.company_name ?? "—"}
                   </Link>
                 </AdminDataTableCell>
+                <AdminDataTableCell className="text-foreground-muted">
+                  {j.bid_due_date ?? "—"}
+                </AdminDataTableCell>
+                <AdminDataTableCell className="text-foreground-muted">
+                  {j.date_of_plan ?? "—"}
+                </AdminDataTableCell>
                 <AdminDataTableCell>
                   <AdminBadge className={getStatusBadgeClass(j.status as JobStatus)}>
                     {j.status}
                   </AdminBadge>
-                </AdminDataTableCell>
-                <AdminDataTableCell className="text-foreground-muted">
-                  {j.bid_due_date ?? "—"}
                 </AdminDataTableCell>
                 <AdminDataTableCell className="text-foreground-muted">
                   {j.assigned_to

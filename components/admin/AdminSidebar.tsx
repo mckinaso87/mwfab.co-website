@@ -12,6 +12,7 @@ const ADMIN_NAV = [
   { href: "/admin/jobs", label: "Jobs" },
   { href: "/admin/materials", label: "Materials" },
   { href: "/admin/staff", label: "Staff" },
+  { href: "/admin/settings", label: "Settings" },
 ] as const;
 
 export function AdminSidebar() {

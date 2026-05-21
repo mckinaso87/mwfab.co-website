@@ -18,22 +18,24 @@ This folder holds the canonical CSV exports for MWFAB base materials and pricing
 
 ## Usage
 
-- **Phase 3:** Material catalog is seeded from these CSVs into Supabase `material_catalog`. Apply `supabase/schema/008_material_catalog.sql` in the Supabase SQL Editor, then run:
+- Apply `supabase/schema/011_materials_restructure.sql` in the Supabase SQL Editor, then seed:
   ```bash
-  npx tsx scripts/seed-material-catalog.ts
+  npm run seed:materials
   ```
-  Requires `.env.local` with `NEXT_PUBLIC_SUPABASE_URL` and `SUPABASE_SERVICE_ROLE_KEY`. The script is idempotent (upserts by `category` + `item_code`); re-run to refresh prices.
+  Requires `ALLOWED_SEED_HOSTS`, `NEXT_PUBLIC_SUPABASE_URL`, and `SUPABASE_SERVICE_ROLE_KEY` in `.env.local`. The script truncates and re-inserts catalog rows (source of truth).
 
-## Category mapping (grand-totals)
+See [SCHEMA_AND_MAPPING.md](./SCHEMA_AND_MAPPING.md) for column details and category mapping.
+
+## Category mapping
 
 | CSV file | material_catalog category |
 |----------|---------------------------|
-| mwfab-base-materials.csv | angles |
+| mwfab-base-materials.csv | angle |
 | mwfab-base-materials2.csv | wide_flange |
-| mwfab-base-materials3.csv | bars_hr_rounds / bars_cf_rounds (by Type) |
-| mwfab-base-materials4.csv, mwfab-base-materials5.csv | bars_flat |
-| mwfab-base-materials6.csv | channels |
-| mwfab-base-materials7.csv | mc_channels |
+| mwfab-base-materials3.csv | round_bar (HR/CF finish) |
+| mwfab-base-materials4.csv, mwfab-base-materials5.csv | flat_bar |
+| mwfab-base-materials6.csv | channel |
+| mwfab-base-materials7.csv | mc_channel |
 | mwfab-base-materials8.csv | pipe |
 | mwfab-base-materials9.csv | tube |
 

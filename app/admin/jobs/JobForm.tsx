@@ -81,7 +81,7 @@ export function JobForm(props: Props) {
       </AdminFormSection>
 
       <AdminFormSection title="Schedule & assignment" description="Due date, status, and assignee.">
-        <div className="grid gap-4 sm:grid-cols-3">
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
           <div>
             <label htmlFor="bid_due_date" className="block text-sm font-medium text-foreground">
               Bid due date
@@ -91,6 +91,18 @@ export function JobForm(props: Props) {
               name="bid_due_date"
               type="date"
               defaultValue={j?.bid_due_date ?? ""}
+              className="input-admin"
+            />
+          </div>
+          <div>
+            <label htmlFor="date_of_plan" className="block text-sm font-medium text-foreground">
+              Date of plan
+            </label>
+            <input
+              id="date_of_plan"
+              name="date_of_plan"
+              type="date"
+              defaultValue={j?.date_of_plan ?? ""}
               className="input-admin"
             />
           </div>

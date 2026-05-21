@@ -20,6 +20,7 @@ export async function createJob(formData: FormData) {
       job_name,
       description: (formData.get("description") as string)?.trim() || null,
       bid_due_date: (formData.get("bid_due_date") as string)?.trim() || null,
+      date_of_plan: (formData.get("date_of_plan") as string)?.trim() || null,
       status,
       assigned_to: (formData.get("assigned_to") as string)?.trim() || null,
     })
@@ -61,6 +62,7 @@ export async function updateJob(id: string, formData: FormData) {
       job_name,
       description: (formData.get("description") as string)?.trim() || null,
       bid_due_date: (formData.get("bid_due_date") as string)?.trim() || null,
+      date_of_plan: (formData.get("date_of_plan") as string)?.trim() || null,
       status: newStatus,
       assigned_to: (formData.get("assigned_to") as string)?.trim() || null,
     })

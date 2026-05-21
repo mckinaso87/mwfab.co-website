@@ -2,10 +2,18 @@
 
 import { revalidatePath } from "next/cache";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { getCatalogFieldValue } from "@/lib/catalog-field-value";
+import { sortCatalogRows } from "@/lib/catalog-sort";
 import {
   computeTakeoffTotals,
+  computeMiscLineTotal,
+  computeFieldMiscTotal,
+  isGalvanizerLine,
+  normalizeRate,
+  type GalvMode,
   type TakeoffTotalsInput,
 } from "@/lib/takeoff-calculations";
+import { STEEL_DENSITY_LB_PER_IN3 } from "@/lib/takeoff-catalog-spec";
 import type {
   Takeoff,
   TakeoffMetalLine,
@@ -13,90 +21,128 @@ import type {
   TakeoffMiscLine,
   TakeoffFieldMisc,
   MaterialCatalogRow,
+  MaterialFieldConfig,
+  LineScope,
+  TakeoffSectionKey,
+  SettingsExclusion,
 } from "@/lib/db-types";
 
-const TOP_LEVEL_KEYS = new Set(["weight_per_ft", "cost_per_lb", "cost_per_foot", "pricing_unit", "item_code", "display_name"]);
-
-/** True if a and b are the same dimension value. Use string match first; only use numeric for plain numbers (e.g. "1.5") so "1/2 in" never equals "1 in". */
-function valuesEqual(a: string | null, b: string): boolean {
-  if (a == null || a === "") return false;
-  const ta = a.trim();
-  const tb = b.trim();
-  if (ta === tb) return true;
-  // Only compare as numbers when both look like a single number (no fractions like 1/2, no units like "in")
-  const plainNumber = /^-?\d+(\.\d+)?\s*$/;
-  if (plainNumber.test(ta) && plainNumber.test(tb)) {
-    const na = parseFloat(ta);
-    const nb = parseFloat(tb);
-    if (Number.isFinite(na) && Number.isFinite(nb)) return na === nb;
-  }
-  return false;
+function parseScope(formData: FormData): LineScope {
+  const s = (formData.get("scope") as string)?.trim();
+  return s === "furnish" ? "furnish" : "furnish_install";
 }
 
-function catalogRowMatchesFilters(
-  row: { dimensions: Record<string, unknown> | null; [k: string]: unknown },
-  filters: Record<string, string>
-): boolean {
-  for (const [key, value] of Object.entries(filters)) {
-    if (!value) continue;
-    const val = TOP_LEVEL_KEYS.has(key)
-      ? (row[key] != null ? String(row[key]) : null)
-      : (row.dimensions && typeof row.dimensions === "object" ? (row.dimensions as Record<string, unknown>)[key] : undefined);
-    const strVal = val != null ? String(val) : null;
-    if (!valuesEqual(strVal, value)) return false;
-  }
-  return true;
-}
+const CATALOG_SELECT =
+  "id, category, item_code, shorthand_code, size_label, finish, dimensions, weight_per_ft, cost_per_lb, cost_per_foot, pricing_unit, is_active, source_file, created_at";
 
-function getValueForStepKey(
-  row: { dimensions: Record<string, unknown> | null; [k: string]: unknown },
-  stepKey: string
-): string | null {
-  if (TOP_LEVEL_KEYS.has(stepKey)) {
-    const v = row[stepKey];
-    return v != null ? String(v) : null;
-  }
-  if (row.dimensions && typeof row.dimensions === "object") {
-    const v = (row.dimensions as Record<string, unknown>)[stepKey];
-    return v != null ? String(v) : null;
-  }
-  return null;
-}
-
-/** Returns distinct option values for a cascading dropdown step. */
-export async function getCatalogDimensionOptions(
-  category: string,
-  stepKey: string,
-  filters: Record<string, string>
-): Promise<{ options: string[]; error?: string }> {
-  const supabase = createAdminClient();
-  const { data: rows, error } = await supabase
-    .from("material_catalog")
-    .select("id, dimensions, weight_per_ft, item_code, display_name")
-    .eq("category", category);
-  if (error) return { options: [], error: error.message };
-  const filtered = (rows ?? []).filter((row) => catalogRowMatchesFilters(row, filters));
-  const values = new Set<string>();
-  for (const row of filtered) {
-    const v = getValueForStepKey(row, stepKey);
-    if (v != null && v.trim() !== "") values.add(v.trim());
-  }
-  return { options: Array.from(values).sort() };
-}
-
-/** Returns the first catalog row matching the full selection (for pricing/weight). */
-export async function getCatalogRow(
-  category: string,
-  selections: Record<string, string>
+export async function getCatalogRowById(
+  id: string
 ): Promise<{ row: MaterialCatalogRow | null; error?: string }> {
   const supabase = createAdminClient();
-  const { data: rows, error } = await supabase
+  const { data, error } = await supabase
     .from("material_catalog")
-    .select("id, category, item_code, display_name, dimensions, weight_per_ft, cost_per_lb, cost_per_foot, pricing_unit, source_file, created_at")
-    .eq("category", category);
+    .select(CATALOG_SELECT)
+    .eq("id", id)
+    .maybeSingle();
   if (error) return { row: null, error: error.message };
-  const match = (rows ?? []).find((row) => catalogRowMatchesFilters(row, selections));
-  return { row: match ? (match as MaterialCatalogRow) : null };
+  return { row: (data as MaterialCatalogRow | null) ?? null };
+}
+
+const LINE_TABLE_MAP = {
+  metal: "takeoff_metal_lines",
+  component: "takeoff_component_lines",
+  misc: "takeoff_misc_lines",
+  field_misc: "takeoff_field_misc",
+} as const;
+
+export type TakeoffLineTable = keyof typeof LINE_TABLE_MAP;
+
+export async function setLineScope(
+  table: TakeoffLineTable,
+  lineId: string,
+  jobId: string,
+  scope: "furnish" | "furnish_install"
+): Promise<{ error?: string }> {
+  if (scope !== "furnish" && scope !== "furnish_install") {
+    return { error: "Invalid scope." };
+  }
+  const supabase = createAdminClient();
+  const tableName = LINE_TABLE_MAP[table];
+  const { data: row, error: fetchErr } = await supabase
+    .from(tableName)
+    .select("takeoff_id")
+    .eq("id", lineId)
+    .single();
+  if (fetchErr || !row) return { error: fetchErr?.message ?? "Line not found." };
+
+  const { error } = await supabase.from(tableName).update({ scope }).eq("id", lineId);
+  if (error) return { error: error.message };
+
+  const takeoffId = row.takeoff_id as string;
+  revalidatePath(`/admin/jobs/${jobId}/takeoff`);
+  revalidatePath(`/admin/jobs/${jobId}/proposal`);
+  await recomputeAndSaveTotals(takeoffId, jobId);
+  return {};
+}
+
+export async function searchCatalogByShorthand(
+  query: string,
+  limit = 25
+): Promise<{ rows: MaterialCatalogRow[]; error?: string }> {
+  const q = query.trim();
+  if (!q) return { rows: [] };
+  const supabase = createAdminClient();
+  const escaped = q.replace(/[%_]/g, "\\$&").replace(/"/g, '\\"');
+  const pattern = `"%${escaped}%"`;
+  const { data, error } = await supabase
+    .from("material_catalog")
+    .select(CATALOG_SELECT)
+    .eq("is_active", true)
+    .or(`shorthand_code.ilike.${pattern},size_label.ilike.${pattern}`)
+    .order("category")
+    .order("shorthand_code")
+    .limit(limit);
+  if (error) return { rows: [], error: error.message };
+  const rows = sortCatalogRows((data ?? []) as MaterialCatalogRow[]);
+  return { rows: rows.slice(0, limit) };
+}
+
+export async function getMaterialFieldConfig(
+  category: string
+): Promise<{ fields: MaterialFieldConfig[]; error?: string }> {
+  const supabase = createAdminClient();
+  const { data, error } = await supabase
+    .from("material_field_config")
+    .select("category, field_key, label, show_in_takeoff, sort_order")
+    .eq("category", category)
+    .eq("show_in_takeoff", true)
+    .order("sort_order");
+  if (error) return { fields: [], error: error.message };
+  return { fields: (data ?? []) as MaterialFieldConfig[] };
+}
+
+export async function getSumGalvPounds(takeoffId: string): Promise<number> {
+  const supabase = createAdminClient();
+  const { data } = await supabase
+    .from("takeoff_metal_lines")
+    .select("galv_pounds")
+    .eq("takeoff_id", takeoffId);
+  return (data ?? []).reduce((s, r) => s + (Number(r.galv_pounds) || 0), 0);
+}
+
+export async function setGalvTotalOverride(
+  takeoffId: string,
+  jobId: string,
+  override: number | null
+): Promise<{ error?: string }> {
+  const supabase = createAdminClient();
+  const { error } = await supabase
+    .from("takeoffs")
+    .update({ galv_total_override: override })
+    .eq("id", takeoffId);
+  if (error) return { error: error.message };
+  await recomputeAndSaveTotals(takeoffId, jobId);
+  return {};
 }
 
 export async function getOrCreateTakeoff(
@@ -115,8 +161,6 @@ export async function getOrCreateTakeoff(
     .select("*")
     .single();
   if (error) return { takeoff: null, error: error.message };
-  // Do not call revalidatePath here: getOrCreateTakeoff can run during page render.
-  // Mutations (updateTakeoffHeader, upsert*, delete*, recomputeAndSaveTotals) revalidate.
   return { takeoff: inserted as Takeoff };
 }
 
@@ -128,9 +172,17 @@ export async function updateTakeoffHeader(
   const supabase = createAdminClient();
   const quoteDate = (formData.get("quote_date") as string)?.trim() || null;
   const quotedBy = (formData.get("quoted_by") as string)?.trim() || null;
-  const taxRate = parseFloat((formData.get("tax_rate") as string) ?? "0.07") || 0.07;
-  const marginRate = parseFloat((formData.get("margin_rate") as string) ?? "0.2") || 0.2;
+  const taxRateRaw = parseFloat((formData.get("tax_rate") as string) ?? "7");
+  const marginRateRaw = parseFloat((formData.get("margin_rate") as string) ?? "20");
+  const taxRate = normalizeRate(Number.isFinite(taxRateRaw) ? taxRateRaw : 7, 0.07);
+  const marginRate = normalizeRate(Number.isFinite(marginRateRaw) ? marginRateRaw : 20, 0.2);
   const notes = (formData.get("notes") as string)?.trim() || null;
+  const galvModeRaw = (formData.get("galv_mode") as string)?.trim();
+  const galvMode: GalvMode =
+    galvModeRaw === "baked_in" || galvModeRaw === "optional_addon"
+      ? galvModeRaw
+      : "not_galvanized";
+  const plateDefault = parseFloat((formData.get("plate_default_cost_per_lb") as string) ?? "1.1");
   const shopLaborHours = parseFloat((formData.get("shop_labor_hours") as string) ?? "");
   const shopLaborRate = parseFloat((formData.get("shop_labor_rate") as string) ?? "");
   const shopDaysOrNights = parseFloat((formData.get("shop_days_or_nights") as string) ?? "");
@@ -154,6 +206,8 @@ export async function updateTakeoffHeader(
       tax_rate: taxRate,
       margin_rate: marginRate,
       notes,
+      galv_mode: galvMode,
+      plate_default_cost_per_lb: Number.isFinite(plateDefault) ? plateDefault : 1.1,
       shop_labor_hours: Number.isFinite(shopLaborHours) ? shopLaborHours : null,
       shop_labor_rate: Number.isFinite(shopLaborRate) ? shopLaborRate : null,
       shop_days_or_nights: Number.isFinite(shopDaysOrNights) ? shopDaysOrNights : null,
@@ -170,6 +224,56 @@ export async function updateTakeoffHeader(
   return {};
 }
 
+async function syncGalvanizerMiscLine(
+  takeoffId: string,
+  galvMode: GalvMode,
+  effectiveGalvPounds: number,
+  miscLines: TakeoffMiscLine[]
+): Promise<TakeoffMiscLine[]> {
+  if (galvMode === "not_galvanized") return miscLines;
+
+  const supabase = createAdminClient();
+  const weight = effectiveGalvPounds;
+  const totalPrice = computeMiscLineTotal({
+    label: "Galvanizer",
+    amount: null,
+    weight_of_galv: weight,
+    price_per: null,
+    total_price: 0,
+  });
+
+  let galvLine = miscLines.find((l) => isGalvanizerLine(l.label));
+  if (!galvLine) {
+    const maxSort = miscLines.reduce((m, l) => Math.max(m, l.sort_order), -1);
+    const { data: inserted, error } = await supabase
+      .from("takeoff_misc_lines")
+      .insert({
+        takeoff_id: takeoffId,
+        label: "Galvanizer",
+        amount: null,
+        weight_of_galv: weight,
+        price_per: null,
+        total_price: totalPrice,
+        sort_order: maxSort + 1,
+      })
+      .select("*")
+      .single();
+    if (error || !inserted) return miscLines;
+    return [...miscLines, inserted as TakeoffMiscLine];
+  }
+
+  await supabase
+    .from("takeoff_misc_lines")
+    .update({ weight_of_galv: weight, total_price: totalPrice })
+    .eq("id", galvLine.id);
+
+  return miscLines.map((l) =>
+    l.id === galvLine!.id
+      ? { ...l, weight_of_galv: weight, total_price: totalPrice }
+      : l
+  );
+}
+
 export async function recomputeAndSaveTotals(
   takeoffId: string,
   jobId: string
@@ -181,6 +285,7 @@ export async function recomputeAndSaveTotals(
     .eq("id", takeoffId)
     .single();
   if (!takeoff) return { error: "Takeoff not found" };
+
   const [
     { data: metalRows },
     { data: componentRows },
@@ -192,23 +297,54 @@ export async function recomputeAndSaveTotals(
     supabase.from("takeoff_misc_lines").select("*").eq("takeoff_id", takeoffId).order("sort_order"),
     supabase.from("takeoff_field_misc").select("*").eq("takeoff_id", takeoffId).order("sort_order"),
   ]);
+
   const metalLines = (metalRows ?? []) as TakeoffMetalLine[];
+  let miscLines = (miscRows ?? []) as TakeoffMiscLine[];
   const componentLines = (componentRows ?? []) as TakeoffComponentLine[];
-  const miscLines = (miscRows ?? []) as TakeoffMiscLine[];
   const fieldMisc = (fieldMiscRows ?? []) as TakeoffFieldMisc[];
+
+  const sumGalvPounds = metalLines.reduce((s, l) => s + (Number(l.galv_pounds) || 0), 0);
+  const override = takeoff.galv_total_override;
+  const effectiveGalvPounds =
+    override != null && Number.isFinite(Number(override)) ? Number(override) : sumGalvPounds;
+
+  const galvMode = (takeoff.galv_mode ?? "not_galvanized") as GalvMode;
+  miscLines = await syncGalvanizerMiscLine(takeoffId, galvMode, effectiveGalvPounds, miscLines);
+
   const input: TakeoffTotalsInput & { marginRate: number } = {
-    metalLines: metalLines.map((l) => ({ category: l.category, total_price: l.total_price ?? 0 })),
+    metalLines: metalLines.map((l) => ({
+      category: l.category,
+      total_price: l.total_price ?? 0,
+      other_unit: l.other_unit,
+      total_pounds: l.total_pounds,
+      total_length_ft: l.total_length_ft,
+      cost_per_unit: l.cost_per_unit,
+    })),
     componentLines: componentLines.map((l) => ({ total_price: l.total_price ?? 0 })),
     miscLines: miscLines.map((l) => ({
       label: l.label,
       amount: l.amount,
+      hours: l.hours,
+      days: l.days,
+      rate_per_hour: l.rate_per_hour,
+      rate_per_day: l.rate_per_day,
       weight_of_galv: l.weight_of_galv,
       price_per: l.price_per,
       total_price: l.total_price ?? 0,
     })),
-    fieldMisc: fieldMisc.map((f) => ({ total: f.total ?? 0 })),
-    taxRate: takeoff.tax_rate ?? 0.07,
-    marginRate: takeoff.margin_rate ?? 0.2,
+    fieldMisc: fieldMisc.map((f) => ({
+      label: f.label,
+      amount: f.amount,
+      hours: f.hours,
+      days: f.days,
+      rate_per_hour: f.rate_per_hour,
+      rate_per_day: f.rate_per_day,
+      price_per: f.price_per,
+      total: f.total ?? 0,
+    })),
+    taxRate: normalizeRate(takeoff.tax_rate, 0.07),
+    galvMode,
+    marginRate: normalizeRate(takeoff.margin_rate, 0.2),
     shopLaborHours: takeoff.shop_labor_hours,
     shopLaborRate: takeoff.shop_labor_rate,
     shopDaysOrNights: takeoff.shop_days_or_nights,
@@ -228,16 +364,21 @@ export async function recomputeAndSaveTotals(
       all_material_subtotal: totals.all_material_subtotal,
       tax_total: totals.tax_total,
       material_total_with_tax: totals.material_total_with_tax,
+      drawings_total: totals.drawings_total,
       shop_total: totals.shop_total,
+      install_total: totals.install_total,
+      misc_total: totals.misc_total,
       field_total: totals.field_total,
       project_total: totals.project_total,
       with_pct_total: totals.with_pct_total,
       grand_total: totals.grand_total,
+      galv_addon_amount: totals.galv_addon_amount,
     })
     .eq("id", takeoffId);
   if (error) return { error: error.message };
   revalidatePath(`/admin/jobs/${jobId}/takeoff`);
   revalidatePath(`/admin/jobs/${jobId}`);
+  revalidatePath(`/admin/jobs/${jobId}/proposal`);
   return {};
 }
 
@@ -253,44 +394,97 @@ export async function upsertMetalLine(
   const count = parseFloat((formData.get("count") as string) ?? "1") || 1;
   const totalLengthFt = parseFloat((formData.get("total_length_ft") as string) ?? "");
   const totalPoundsPerPiece = parseFloat((formData.get("total_pounds_per_piece") as string) ?? "");
-  const totalPounds = parseFloat((formData.get("total_pounds") as string) ?? "");
+  const totalPoundsForm = parseFloat((formData.get("total_pounds") as string) ?? "");
   const costPerUnit = parseFloat((formData.get("cost_per_unit") as string) ?? "");
-  const totalPrice = parseFloat((formData.get("total_price") as string) ?? "");
+  const totalPriceForm = parseFloat((formData.get("total_price") as string) ?? "");
   const sortOrder = parseInt((formData.get("sort_order") as string) ?? "0", 10) || 0;
   const materialCatalogId = (formData.get("material_catalog_id") as string)?.trim() || null;
-  let resolvedDisplayName = displayName;
-  let resolvedTotalPounds = totalPounds;
-  let resolvedCostPerUnit = costPerUnit;
-  let resolvedTotalPrice = totalPrice;
+  const isGalvanized = formData.get("is_galvanized") === "on" || formData.get("is_galvanized") === "true";
+  const galvLengthFt = parseFloat((formData.get("galv_length_ft") as string) ?? "");
+  const plateThickness = parseFloat((formData.get("plate_thickness_in") as string) ?? "");
+  const plateWidth = parseFloat((formData.get("plate_width_in") as string) ?? "");
+  const plateHeight = parseFloat((formData.get("plate_height_in") as string) ?? "");
+  const scope = parseScope(formData);
+  const otherUnitRaw = (formData.get("other_unit") as string)?.trim();
+  const otherUnit: "lbs" | "ft" | null =
+    category === "other" ? (otherUnitRaw === "ft" ? "ft" : "lbs") : null;
+
   const countNum = Math.max(1, Math.floor(count));
-  if (materialCatalogId) {
+  let resolvedDisplayName = displayName;
+  let resolvedTotalPounds = totalPoundsForm;
+  let resolvedCostPerUnit = costPerUnit;
+  let resolvedTotalPrice = totalPriceForm;
+  let galvPounds: number | null = null;
+  let materialCatalogIdResolved: string | null = materialCatalogId;
+
+  if (category === "plate") {
+    materialCatalogIdResolved = null;
+    if (
+      Number.isFinite(plateThickness) &&
+      Number.isFinite(plateWidth) &&
+      Number.isFinite(plateHeight)
+    ) {
+      resolvedTotalPounds =
+        plateThickness * plateWidth * plateHeight * countNum * STEEL_DENSITY_LB_PER_IN3;
+      if (!resolvedDisplayName) {
+        resolvedDisplayName = `PL ${plateThickness} × ${plateWidth} × ${plateHeight}`;
+      }
+    }
+    if (Number.isFinite(resolvedTotalPounds) && Number.isFinite(resolvedCostPerUnit)) {
+      resolvedTotalPrice = resolvedTotalPounds * resolvedCostPerUnit;
+    }
+    if (isGalvanized && Number.isFinite(resolvedTotalPounds)) {
+      galvPounds = resolvedTotalPounds;
+    }
+  } else if (category === "other") {
+    materialCatalogIdResolved = null;
+    if (otherUnit === "ft" && Number.isFinite(totalLengthFt) && Number.isFinite(resolvedCostPerUnit)) {
+      resolvedTotalPrice = totalLengthFt * resolvedCostPerUnit;
+    } else if (Number.isFinite(resolvedTotalPounds) && Number.isFinite(resolvedCostPerUnit)) {
+      resolvedTotalPrice = resolvedTotalPounds * resolvedCostPerUnit;
+    }
+  } else if (materialCatalogIdResolved) {
     const { data: catalogRow } = await supabase
       .from("material_catalog")
-      .select("display_name, cost_per_lb, cost_per_foot, weight_per_ft, pricing_unit")
-      .eq("id", materialCatalogId)
+      .select(CATALOG_SELECT)
+      .eq("id", materialCatalogIdResolved)
       .single();
     if (catalogRow) {
-      if (!resolvedDisplayName && catalogRow.display_name) resolvedDisplayName = catalogRow.display_name;
-      if (!Number.isFinite(resolvedCostPerUnit))
+      if (!resolvedDisplayName) {
+        resolvedDisplayName =
+          catalogRow.size_label?.trim() || catalogRow.shorthand_code || catalogRow.item_code;
+      }
+      if (!Number.isFinite(resolvedCostPerUnit)) {
         resolvedCostPerUnit = (catalogRow.cost_per_lb ?? catalogRow.cost_per_foot) ?? 0;
+      }
       const wpf = catalogRow.weight_per_ft;
       if (Number.isFinite(totalLengthFt) && wpf != null && Number.isFinite(wpf)) {
         const effectiveLength = totalLengthFt * countNum;
         resolvedTotalPounds = effectiveLength * wpf;
-        if (catalogRow.pricing_unit === "per_lb" && Number.isFinite(resolvedCostPerUnit))
+        if (catalogRow.pricing_unit === "per_lb" && Number.isFinite(resolvedCostPerUnit)) {
           resolvedTotalPrice = resolvedTotalPounds * resolvedCostPerUnit;
-        else if (catalogRow.pricing_unit === "per_foot" && catalogRow.cost_per_foot != null)
+        } else if (catalogRow.pricing_unit === "per_foot" && catalogRow.cost_per_foot != null) {
           resolvedTotalPrice = effectiveLength * catalogRow.cost_per_foot;
+        }
+      }
+      if (isGalvanized && wpf != null && Number.isFinite(wpf)) {
+        const galvLen = Number.isFinite(galvLengthFt) ? galvLengthFt : totalLengthFt;
+        if (Number.isFinite(galvLen)) {
+          galvPounds = galvLen * countNum * wpf;
+        }
       }
     }
   }
-  // If no catalog or catalog didn't set price, use form total_price (client already applied count)
-  if (!Number.isFinite(resolvedTotalPrice) || resolvedTotalPrice === 0)
-    resolvedTotalPrice = totalPrice;
+
+  if (!Number.isFinite(resolvedTotalPrice) || resolvedTotalPrice === 0) {
+    resolvedTotalPrice = totalPriceForm;
+  }
+
   const payload = {
     takeoff_id: takeoffId,
-    material_catalog_id: materialCatalogId || null,
+    material_catalog_id: materialCatalogIdResolved,
     category,
+    scope,
     display_name: resolvedDisplayName || "—",
     count,
     total_length_ft: Number.isFinite(totalLengthFt) ? totalLengthFt : null,
@@ -298,8 +492,21 @@ export async function upsertMetalLine(
     total_pounds: Number.isFinite(resolvedTotalPounds) ? resolvedTotalPounds : null,
     cost_per_unit: Number.isFinite(resolvedCostPerUnit) ? resolvedCostPerUnit : null,
     total_price: Number.isFinite(resolvedTotalPrice) ? resolvedTotalPrice : 0,
+    is_galvanized: isGalvanized,
+    galv_length_ft:
+      isGalvanized && category !== "plate" && Number.isFinite(galvLengthFt)
+        ? galvLengthFt
+        : isGalvanized && category !== "plate" && Number.isFinite(totalLengthFt)
+          ? totalLengthFt
+          : null,
+    galv_pounds: galvPounds,
+    plate_thickness_in: category === "plate" && Number.isFinite(plateThickness) ? plateThickness : null,
+    plate_width_in: category === "plate" && Number.isFinite(plateWidth) ? plateWidth : null,
+    plate_height_in: category === "plate" && Number.isFinite(plateHeight) ? plateHeight : null,
+    other_unit: otherUnit,
     sort_order: sortOrder,
   };
+
   if (id) {
     const { error } = await supabase.from("takeoff_metal_lines").update(payload).eq("id", id);
     if (error) return { error: error.message };
@@ -325,7 +532,6 @@ export async function deleteMetalLine(
   return {};
 }
 
-/** Form action wrapper for delete metal line (form submits with FormData). */
 export async function deleteMetalLineForm(
   takeoffId: string,
   lineId: string,
@@ -349,8 +555,10 @@ export async function upsertComponentLine(
   const costPerMeasure = parseFloat((formData.get("cost_per_measure") as string) ?? "");
   const totalPrice = parseFloat((formData.get("total_price") as string) ?? "");
   const sortOrder = parseInt((formData.get("sort_order") as string) ?? "0", 10) || 0;
+  const scope = parseScope(formData);
   const payload = {
     takeoff_id: takeoffId,
+    scope,
     display_name: displayName || "—",
     count,
     total_pounds_per_piece: Number.isFinite(totalPoundsPerPiece) ? totalPoundsPerPiece : null,
@@ -402,17 +610,44 @@ export async function upsertMiscLine(
   const id = (formData.get("id") as string)?.trim();
   const label = (formData.get("label") as string)?.trim();
   const amount = parseFloat((formData.get("amount") as string) ?? "");
+  const hours = parseFloat((formData.get("hours") as string) ?? "");
+  const days = parseFloat((formData.get("days") as string) ?? "");
+  const ratePerHour = parseFloat((formData.get("rate_per_hour") as string) ?? "");
+  const ratePerDay = parseFloat((formData.get("rate_per_day") as string) ?? "");
   const weightOfGalv = parseFloat((formData.get("weight_of_galv") as string) ?? "");
   const pricePer = parseFloat((formData.get("price_per") as string) ?? "");
-  const totalPrice = parseFloat((formData.get("total_price") as string) ?? "");
   const sortOrder = parseInt((formData.get("sort_order") as string) ?? "0", 10) || 0;
-  const payload = {
-    takeoff_id: takeoffId,
+  const scope = parseScope(formData);
+
+  if (isGalvanizerLine(label ?? "")) {
+    return { error: "Galvanizer weight is managed automatically from metal lines." };
+  }
+
+  const miscInput = {
     label: label || "Other",
     amount: Number.isFinite(amount) ? amount : null,
+    hours: Number.isFinite(hours) ? hours : null,
+    days: Number.isFinite(days) ? days : null,
+    rate_per_hour: Number.isFinite(ratePerHour) ? ratePerHour : null,
+    rate_per_day: Number.isFinite(ratePerDay) ? ratePerDay : null,
     weight_of_galv: Number.isFinite(weightOfGalv) ? weightOfGalv : null,
     price_per: Number.isFinite(pricePer) ? pricePer : null,
-    total_price: Number.isFinite(totalPrice) ? totalPrice : 0,
+    total_price: 0,
+  };
+  const totalPrice = computeMiscLineTotal(miscInput);
+
+  const payload = {
+    takeoff_id: takeoffId,
+    scope,
+    label: label || "Other",
+    amount: miscInput.amount,
+    hours: miscInput.hours,
+    days: miscInput.days,
+    rate_per_hour: miscInput.rate_per_hour,
+    rate_per_day: miscInput.rate_per_day,
+    weight_of_galv: miscInput.weight_of_galv,
+    price_per: miscInput.price_per,
+    total_price: totalPrice,
     sort_order: sortOrder,
   };
   if (id) {
@@ -458,17 +693,37 @@ export async function upsertFieldMiscLine(
   const id = (formData.get("id") as string)?.trim();
   const label = (formData.get("label") as string)?.trim();
   const amount = parseFloat((formData.get("amount") as string) ?? "");
+  const hours = parseFloat((formData.get("hours") as string) ?? "");
+  const days = parseFloat((formData.get("days") as string) ?? "");
+  const ratePerHour = parseFloat((formData.get("rate_per_hour") as string) ?? "");
+  const ratePerDay = parseFloat((formData.get("rate_per_day") as string) ?? "");
   const pricePer = parseFloat((formData.get("price_per") as string) ?? "");
   const hrsDaysNights = (formData.get("hrs_days_nights") as string)?.trim() || null;
-  const total = parseFloat((formData.get("total") as string) ?? "");
   const sortOrder = parseInt((formData.get("sort_order") as string) ?? "0", 10) || 0;
-  const payload = {
-    takeoff_id: takeoffId,
+  const scope = parseScope(formData);
+  const fieldInput = {
     label: label || "—",
     amount: Number.isFinite(amount) ? amount : null,
+    hours: Number.isFinite(hours) ? hours : null,
+    days: Number.isFinite(days) ? days : null,
+    rate_per_hour: Number.isFinite(ratePerHour) ? ratePerHour : null,
+    rate_per_day: Number.isFinite(ratePerDay) ? ratePerDay : null,
     price_per: Number.isFinite(pricePer) ? pricePer : null,
+    total: 0,
+  };
+  const total = computeFieldMiscTotal(fieldInput);
+  const payload = {
+    takeoff_id: takeoffId,
+    scope,
+    label: label || "—",
+    amount: fieldInput.amount,
+    hours: fieldInput.hours,
+    days: fieldInput.days,
+    rate_per_hour: fieldInput.rate_per_hour,
+    rate_per_day: fieldInput.rate_per_day,
+    price_per: fieldInput.price_per,
     hrs_days_nights: hrsDaysNights,
-    total: Number.isFinite(total) ? total : 0,
+    total,
     sort_order: sortOrder,
   };
   if (id) {
@@ -503,4 +758,68 @@ export async function deleteFieldMiscLineForm(
   _formData?: FormData
 ): Promise<{ error?: string }> {
   return deleteFieldMiscLine(takeoffId, lineId, jobId);
+}
+
+export async function upsertSectionNote(
+  takeoffId: string,
+  jobId: string,
+  section: TakeoffSectionKey,
+  note: string,
+  includeInProposal: boolean
+): Promise<{ error?: string }> {
+  const supabase = createAdminClient();
+  const { error } = await supabase.from("takeoff_section_notes").upsert(
+    {
+      takeoff_id: takeoffId,
+      section,
+      note: note.trim(),
+      include_in_proposal: includeInProposal,
+    },
+    { onConflict: "takeoff_id,section" }
+  );
+  if (error) return { error: error.message };
+  revalidatePath(`/admin/jobs/${jobId}/takeoff`);
+  revalidatePath(`/admin/jobs/${jobId}/proposal`);
+  return {};
+}
+
+export async function getActiveExclusions(): Promise<{
+  exclusions: SettingsExclusion[];
+  error?: string;
+}> {
+  const supabase = createAdminClient();
+  const { data, error } = await supabase
+    .from("settings_exclusions")
+    .select("*")
+    .eq("is_active", true)
+    .order("sort_order");
+  if (error) return { exclusions: [], error: error.message };
+  return { exclusions: (data ?? []) as SettingsExclusion[] };
+}
+
+export async function getTakeoffExclusionIds(takeoffId: string): Promise<string[]> {
+  const supabase = createAdminClient();
+  const { data } = await supabase
+    .from("takeoff_exclusions")
+    .select("exclusion_id")
+    .eq("takeoff_id", takeoffId);
+  return (data ?? []).map((r) => r.exclusion_id as string);
+}
+
+export async function setTakeoffExclusions(
+  takeoffId: string,
+  jobId: string,
+  exclusionIds: string[]
+): Promise<{ error?: string }> {
+  const supabase = createAdminClient();
+  await supabase.from("takeoff_exclusions").delete().eq("takeoff_id", takeoffId);
+  if (exclusionIds.length > 0) {
+    const { error } = await supabase.from("takeoff_exclusions").insert(
+      exclusionIds.map((exclusion_id) => ({ takeoff_id: takeoffId, exclusion_id }))
+    );
+    if (error) return { error: error.message };
+  }
+  revalidatePath(`/admin/jobs/${jobId}/takeoff`);
+  revalidatePath(`/admin/jobs/${jobId}/proposal`);
+  return {};
 }

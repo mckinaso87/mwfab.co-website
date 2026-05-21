@@ -81,29 +81,40 @@ export function TakeoffHeaderForm({ takeoff, jobId, staff }: Props) {
           </div>
           <div>
             <label htmlFor="tax_rate" className={labelClass}>
-              Tax rate (e.g. 0.07)
+              Tax rate (%)
             </label>
             <input
               id="tax_rate"
               name="tax_rate"
               type="number"
-              step="0.01"
+              step="0.1"
               min="0"
-              defaultValue={takeoff.tax_rate ?? 0.07}
+              max="100"
+              defaultValue={
+                (takeoff.tax_rate ?? 0.07) > 1
+                  ? takeoff.tax_rate
+                  : (takeoff.tax_rate ?? 0.07) * 100
+              }
               className="input-admin"
             />
+            <p className="mt-1 text-xs text-foreground-muted">Florida default 7% (matches spreadsheet).</p>
           </div>
           <div>
             <label htmlFor="margin_rate" className={labelClass}>
-              Margin rate (e.g. 0.2 for 20%)
+              Margin rate (%)
             </label>
             <input
               id="margin_rate"
               name="margin_rate"
               type="number"
-              step="0.01"
+              step="1"
               min="0"
-              defaultValue={takeoff.margin_rate ?? 0.2}
+              max="100"
+              defaultValue={
+                (takeoff.margin_rate ?? 0.2) > 1
+                  ? takeoff.margin_rate
+                  : (takeoff.margin_rate ?? 0.2) * 100
+              }
               className="input-admin"
             />
           </div>
@@ -118,6 +129,56 @@ export function TakeoffHeaderForm({ takeoff, jobId, staff }: Props) {
             rows={2}
             defaultValue={takeoff.notes ?? ""}
             className="input-admin resize-y"
+          />
+        </div>
+      </AdminFormSection>
+
+      <AdminFormSection
+        title="Galvanization & plate"
+        description="Galvanization pricing mode and plate default cost. Scope is set per line item."
+      >
+        <fieldset className="space-y-2">
+          <legend className={labelClass}>Galvanization</legend>
+          <label className="flex items-center gap-2 text-sm text-foreground">
+            <input
+              type="radio"
+              name="galv_mode"
+              value="not_galvanized"
+              defaultChecked={(takeoff.galv_mode ?? "not_galvanized") === "not_galvanized"}
+            />
+            None
+          </label>
+          <label className="flex items-center gap-2 text-sm text-foreground">
+            <input
+              type="radio"
+              name="galv_mode"
+              value="baked_in"
+              defaultChecked={takeoff.galv_mode === "baked_in"}
+            />
+            Included in total
+          </label>
+          <label className="flex items-center gap-2 text-sm text-foreground">
+            <input
+              type="radio"
+              name="galv_mode"
+              value="optional_addon"
+              defaultChecked={takeoff.galv_mode === "optional_addon"}
+            />
+            Optional add-on
+          </label>
+        </fieldset>
+        <div>
+          <label htmlFor="plate_default_cost_per_lb" className={labelClass}>
+            Plate default $/lb
+          </label>
+          <input
+            id="plate_default_cost_per_lb"
+            name="plate_default_cost_per_lb"
+            type="number"
+            step="0.01"
+            min="0"
+            defaultValue={takeoff.plate_default_cost_per_lb ?? 1.1}
+            className="input-admin max-w-[8rem]"
           />
         </div>
       </AdminFormSection>

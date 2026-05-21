@@ -26,6 +26,22 @@ export default async function AdminMaterialsPage({ searchParams }: Props) {
       {error && (
         <p className="rounded-lg border border-red-500/50 bg-red-500/10 px-4 py-3 text-sm text-red-200">
           {error}
+          {error.includes("shorthand_code") && (
+            <span className="block mt-2">
+              Run <code className="text-xs">supabase/schema/011_materials_restructure.sql</code> in the
+              Supabase SQL Editor, then <code className="text-xs">npm run seed:materials</code>.
+            </span>
+          )}
+        </p>
+      )}
+
+      {!error && rows.length === 0 && (
+        <p className="rounded-lg border border-amber-500/40 bg-amber-500/10 px-4 py-3 text-sm text-foreground">
+          The material catalog is empty. Apply migration{" "}
+          <code className="text-xs">011_materials_restructure.sql</code>, set{" "}
+          <code className="text-xs">ALLOWED_SEED_HOSTS</code> in <code className="text-xs">.env.local</code>{" "}
+          to your Supabase project URL, then run{" "}
+          <code className="text-xs">npm run seed:materials</code>.
         </p>
       )}
 

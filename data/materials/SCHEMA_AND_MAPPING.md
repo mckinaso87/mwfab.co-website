@@ -1,59 +1,60 @@
 # material_catalog schema and CSV mapping
 
-## Pulling schema from Supabase
+## Migration
 
-Run the SQL in **Supabase Dashboard → SQL Editor**:
+Apply [`supabase/schema/011_materials_restructure.sql`](../../supabase/schema/011_materials_restructure.sql) after `010_proposals.sql`, then seed:
 
 ```bash
-# File to run (copy contents into SQL Editor):
-scripts/get-material-catalog-schema.sql
+npm run seed:materials
 ```
 
-That script returns:
+Requires `ALLOWED_SEED_HOSTS` (comma-separated Supabase project URLs), `NEXT_PUBLIC_SUPABASE_URL`, and `SUPABASE_SERVICE_ROLE_KEY` in `.env.local`.
 
-1. **Columns** – name, type, nullable, default  
-2. **Check constraints** – category enum, pricing_unit  
-3. **Unique constraint** – (category, item_code)  
-4. **Indexes** – category, item_code  
+## Table schema (011)
 
-Compare the results with `supabase/schema/008_material_catalog.sql` and this mapping.
+| Column          | Type      | Notes |
+|-----------------|-----------|-------|
+| id              | uuid      | PK |
+| category        | text      | angle, wide_flange, round_bar, flat_bar, channel, mc_channel, pipe, tube |
+| item_code       | text      | Unique with category |
+| shorthand_code  | text      | e.g. L4x4x1/4, W12x30, HSS4x4x1/4 |
+| size_label      | text      | Pretty display for operators |
+| finish          | text      | HR or CF for round_bar only |
+| dimensions      | jsonb     | Internal section properties |
+| weight_per_ft   | numeric   | |
+| cost_per_lb     | numeric   | When pricing_unit=per_lb |
+| cost_per_foot   | numeric   | When pricing_unit=per_foot |
+| pricing_unit    | text      | per_lb \| per_foot |
+| is_active       | boolean   | Soft-hide from takeoff search |
+| source_file     | text      | Source CSV |
+| created_at      | timestamptz | |
 
----
+## material_field_config
 
-## Table schema (from 008_material_catalog.sql)
+Operator-visible fields per category in takeoff search results. Defaults seeded in migration; editable at `/admin/materials/field-config`.
 
-| Column          | Type      | Nullable | Notes                          |
-|-----------------|-----------|----------|--------------------------------|
-| id              | uuid      | no       | PK, default gen_random_uuid()  |
-| category        | text      | no       | Check: angles, wide_flange, …  |
-| item_code       | text      | no       | Unique with category           |
-| display_name    | text      | yes      |                                |
-| dimensions      | jsonb     | yes      | Category-specific keys         |
-| weight_per_ft   | numeric   | yes      |                                |
-| cost_per_lb     | numeric   | yes      | Used when pricing_unit=per_lb  |
-| cost_per_foot   | numeric   | yes      | Used when pricing_unit=per_foot|
-| pricing_unit    | text      | no       | 'per_lb' \| 'per_foot'         |
-| source_file     | text      | yes      | Which CSV row came from        |
-| created_at      | timestamptz | no     | default now()                  |
+## CSV → category mapping
 
-Unique: `(category, item_code)`.
+| Source CSV | Category | Shorthand pattern |
+|------------|----------|-------------------|
+| mwfab-base-materials.csv | angle | L{A}x{B}x{C} |
+| mwfab-base-materials2.csv | wide_flange | W{depth}x{wpf} |
+| mwfab-base-materials3.csv | round_bar | RB{size} (finish HR/CF) |
+| mwfab-base-materials4.csv | flat_bar | FB{thk} (width optional) |
+| mwfab-base-materials5.csv | flat_bar | FB{thk}x{w} (plate-like rows skipped) |
+| mwfab-base-materials6.csv | channel | C{depth}x{wpf} |
+| mwfab-base-materials7.csv | mc_channel | MC{depth}x{wpf} |
+| mwfab-base-materials8.csv | pipe | PIPE{size}-SCH{sch} |
+| mwfab-base-materials9.csv | tube | HSS{w}x{h}-{gauge} |
 
----
+**Plate** is not a catalog category — takeoff uses line type `plate` with thickness/width/height inputs.
 
-## CSV source and cost column by category
+## Takeoff header (galvanization)
 
-Cost is read from the CSV column below; the seed maps it into `cost_per_lb` or `cost_per_foot` depending on `pricing_unit`.
-
-| Category         | Source CSV(s)              | Pricing unit | CSV cost column (exact header to match) |
-|------------------|---------------------------|--------------|----------------------------------------|
-| angles           | mwfab-base-materials.csv  | per_lb       | Current cost per lbs.                  |
-| wide_flange      | mwfab-base-materials2.csv | per_foot     | Current cost per foot                  |
-| bars_hr_rounds   | mwfab-base-materials3.csv | per_lb       | Current cost per ft. in lbs.           |
-| bars_cf_rounds   | mwfab-base-materials3.csv | per_lb       | Current cost per lbs.                  |
-| bars_flat        | mwfab-base-materials4.csv, 5 | per_lb    | Current Cost per ft. in Lbs.           |
-| channels         | mwfab-base-materials6.csv | per_lb       | Current Cost per Lbs.                  |
-| mc_channels      | mwfab-base-materials7.csv | per_lb       | Current Cost per Lbs.                  |
-| pipe             | mwfab-base-materials8.csv | per_lb       | Current Cost per Lbs.                  |
-| tube             | mwfab-base-materials9.csv | per_lb       | Current Cost per Lbs.                  |
-
-The seed script uses these aliases (with normalizations) so small header spelling differences still match.
+| Column | Values |
+|--------|--------|
+| scope_type | furnish_only, furnish_and_install |
+| galv_mode | not_galvanized, baked_in, optional_addon |
+| galv_total_override | Manual galvanizer lbs override |
+| galv_addon_amount | Stored galvanizer $ when optional_addon |
+| plate_default_cost_per_lb | Default $/lb for plate lines |

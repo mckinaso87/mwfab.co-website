@@ -1,7 +1,12 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { getOrCreateTakeoff } from "./actions";
+import {
+  getOrCreateTakeoff,
+  getSumGalvPounds,
+  getActiveExclusions,
+  getTakeoffExclusionIds,
+} from "./actions";
 import { TakeoffWorkspaceHeader } from "./TakeoffWorkspaceHeader";
 import { TakeoffHeaderForm } from "./TakeoffHeaderForm";
 import { TakeoffMetalSection } from "./TakeoffMetalSection";
@@ -9,8 +14,19 @@ import { TakeoffComponentSection } from "./TakeoffComponentSection";
 import { TakeoffMiscSection } from "./TakeoffMiscSection";
 import { TakeoffFieldMiscSection } from "./TakeoffFieldMiscSection";
 import { TakeoffTotalsSection } from "./TakeoffTotalsSection";
+import { TakeoffExclusionsSection } from "./TakeoffExclusionsSection";
+import { TakeoffSectionNote } from "@/components/admin/takeoff/TakeoffSectionNote";
+import { upsertSectionNote } from "./actions";
 import { CATEGORY_ORDER } from "@/lib/takeoff-catalog-spec";
-import type { Takeoff, TakeoffMetalLine, TakeoffComponentLine, TakeoffMiscLine, TakeoffFieldMisc } from "@/lib/db-types";
+import type {
+  Takeoff,
+  TakeoffMetalLine,
+  TakeoffComponentLine,
+  TakeoffMiscLine,
+  TakeoffFieldMisc,
+  TakeoffSectionNote as NoteRow,
+  TakeoffSectionKey,
+} from "@/lib/db-types";
 
 export const metadata: Metadata = {
   title: "Takeoff | Admin | McKinados Welding & Fabrication",
@@ -42,6 +58,7 @@ export default async function TakeoffPage({
     { data: miscLines },
     { data: fieldMiscLines },
     { data: users },
+    { data: notesRows },
   ] = await Promise.all([
     supabase
       .from("takeoff_metal_lines")
@@ -64,6 +81,7 @@ export default async function TakeoffPage({
       .eq("takeoff_id", takeoff.id)
       .order("sort_order"),
     supabase.from("users").select("id, name").order("name", { ascending: true, nullsFirst: false }),
+    supabase.from("takeoff_section_notes").select("*").eq("takeoff_id", takeoff.id),
   ]);
 
   const metal = (metalLines ?? []) as TakeoffMetalLine[];
@@ -75,6 +93,15 @@ export default async function TakeoffPage({
       CATEGORY_ORDER.indexOf(a.category) - CATEGORY_ORDER.indexOf(b.category) ||
       a.sort_order - b.sort_order
   );
+  const sumGalvPounds = await getSumGalvPounds(takeoff.id);
+
+  const notesBySection = new Map<TakeoffSectionKey, NoteRow>();
+  for (const n of (notesRows ?? []) as NoteRow[]) {
+    notesBySection.set(n.section, n);
+  }
+
+  const { exclusions } = await getActiveExclusions();
+  const selectedExclusionIds = await getTakeoffExclusionIds(takeoff.id);
 
   const jobWithCustomer = job as unknown as {
     id: string;
@@ -95,15 +122,61 @@ export default async function TakeoffPage({
 
       <TakeoffHeaderForm takeoff={takeoff} jobId={jobId} staff={users ?? []} />
 
-      <TakeoffMetalSection takeoffId={takeoff.id} jobId={jobId} lines={metalSorted} />
+      <TakeoffMetalSection
+        takeoffId={takeoff.id}
+        jobId={jobId}
+        takeoff={takeoff}
+        lines={metalSorted}
+      />
+      <TakeoffSectionNote
+        takeoffId={takeoff.id}
+        jobId={jobId}
+        section="metal"
+        note={notesBySection.get("metal")}
+        upsertAction={upsertSectionNote}
+      />
 
       <TakeoffComponentSection takeoffId={takeoff.id} jobId={jobId} lines={components} />
+      <TakeoffSectionNote
+        takeoffId={takeoff.id}
+        jobId={jobId}
+        section="components"
+        note={notesBySection.get("components")}
+        upsertAction={upsertSectionNote}
+      />
 
-      <TakeoffMiscSection takeoffId={takeoff.id} jobId={jobId} lines={misc} />
+      <TakeoffMiscSection
+        takeoffId={takeoff.id}
+        jobId={jobId}
+        takeoff={takeoff}
+        lines={misc}
+        sumGalvPounds={sumGalvPounds}
+      />
+      <TakeoffSectionNote
+        takeoffId={takeoff.id}
+        jobId={jobId}
+        section="materials_misc"
+        note={notesBySection.get("materials_misc")}
+        upsertAction={upsertSectionNote}
+      />
 
       <TakeoffFieldMiscSection takeoffId={takeoff.id} jobId={jobId} lines={fieldMisc} />
+      <TakeoffSectionNote
+        takeoffId={takeoff.id}
+        jobId={jobId}
+        section="field_misc"
+        note={notesBySection.get("field_misc")}
+        upsertAction={upsertSectionNote}
+      />
 
       <TakeoffTotalsSection takeoff={takeoff} jobId={jobId} />
+
+      <TakeoffExclusionsSection
+        takeoffId={takeoff.id}
+        jobId={jobId}
+        exclusions={exclusions}
+        selectedIds={selectedExclusionIds}
+      />
     </div>
   );
 }
