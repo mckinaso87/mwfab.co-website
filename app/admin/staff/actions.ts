@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { clerkClient } from "@clerk/nextjs/server";
 import { isStaffRole, type StaffRole } from "@/lib/auth-constants";
-import { getAppBaseUrl } from "@/lib/app-url";
+import { getInviteAcceptUrl } from "@/lib/app-url";
 import { generateTempPassword, parseClerkError, staffPublicMetadata } from "@/lib/clerk-staff";
 import { requireClerkEnv } from "@/lib/env";
 import { createAdminClient } from "@/lib/supabase/admin";
@@ -50,7 +50,7 @@ function inviteMethodFromForm(formData: FormData): "invite" | "password" {
 async function sendClerkInvite(email: string, role: StaffRole): Promise<StaffActionResult> {
   requireClerkEnv();
   const client = await clerkClient();
-  const redirectUrl = `${getAppBaseUrl()}/after-sign-in`;
+  const redirectUrl = getInviteAcceptUrl();
   try {
     await client.invitations.createInvitation({
       emailAddress: email,

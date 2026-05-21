@@ -8,3 +8,13 @@ export function getAppBaseUrl(): string {
   }
   return "http://localhost:3000";
 }
+
+/** Where Clerk invitation emails send users to accept and set a password. */
+export function getInviteAcceptUrl(): string {
+  return `${getAppBaseUrl()}/sign-up`;
+}
+
+/** Post-auth routing based on Clerk publicMetadata.role. */
+export function getAfterSignInUrl(): string {
+  return `${getAppBaseUrl()}/after-sign-in`;
+}

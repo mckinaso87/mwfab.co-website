@@ -7,5 +7,15 @@ export function ClerkProvider({ children }: { children: React.ReactNode }) {
   if (!publishableKey) {
     return <>{children}</>;
   }
-  return <Clerk publishableKey={publishableKey}>{children}</Clerk>;
+  return (
+    <Clerk
+      publishableKey={publishableKey}
+      signInUrl="/sign-in"
+      signUpUrl="/sign-up"
+      afterSignInUrl="/after-sign-in"
+      afterSignUpUrl="/after-sign-in"
+    >
+      {children}
+    </Clerk>
+  );
 }
