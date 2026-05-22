@@ -1,5 +1,5 @@
-import type { Metadata } from "next";
 import Link from "next/link";
+import { publicPageMetadata } from "@/lib/metadata";
 import { notFound } from "next/navigation";
 import {
   formatLicenseLine,
@@ -20,7 +20,7 @@ export function generateStaticParams() {
   return licensedCountySlugs().map((county) => ({ county }));
 }
 
-export async function generateMetadata({ params }: CountyPageProps): Promise<Metadata> {
+export async function generateMetadata({ params }: CountyPageProps) {
   const { county } = await params;
   const meta = getCountyBySlug(county);
   const license = getLicenseBySlug(county);
@@ -31,20 +31,11 @@ export async function generateMetadata({ params }: CountyPageProps): Promise<Met
   const title = `Steel Contractor ${meta.displayName} County FL | McKinados Welding & Fabrication`;
   const description = `Licensed structural and ornamental steel contractor in ${meta.displayName} County, Florida. License ${license.numbers.join(", ")}. Serving ${meta.majorCities.slice(0, 3).join(", ")} and South Florida.`;
 
-  return {
+  return publicPageMetadata({
     title,
     description,
-    openGraph: {
-      title,
-      description,
-      url: `https://mwfab.co/service-areas/${county}`,
-    },
-    twitter: {
-      card: "summary_large_image",
-      title,
-      description,
-    },
-  };
+    pathname: `/service-areas/${county}`,
+  });
 }
 
 export default async function CountyServiceAreaPage({ params }: CountyPageProps) {

@@ -1,4 +1,3 @@
-import type { Metadata } from "next";
 import Image from "next/image";
 import Link from "next/link";
 import type { ServiceDefinition } from "@/lib/services";
@@ -7,27 +6,19 @@ import { absoluteUrl } from "@/lib/site";
 import { BreadcrumbJsonLd } from "@/components/seo/BreadcrumbJsonLd";
 import { ServiceJsonLd } from "@/components/seo/ServiceJsonLd";
 import { ServiceGallery } from "./ServiceGallery";
+import { publicPageMetadata } from "@/lib/metadata";
 import { ServiceCta } from "./ServiceCta";
 
 interface ServiceDetailPageProps {
   service: ServiceDefinition;
 }
 
-export function serviceMetadata(service: ServiceDefinition): Metadata {
-  return {
+export function serviceMetadata(service: ServiceDefinition) {
+  return publicPageMetadata({
     title: service.metadataTitle,
     description: service.metadataDescription,
-    openGraph: {
-      title: service.metadataTitle,
-      description: service.metadataDescription,
-      url: `https://mwfab.co/services/${service.slug}`,
-    },
-    twitter: {
-      card: "summary_large_image",
-      title: service.metadataTitle,
-      description: service.metadataDescription,
-    },
-  };
+    pathname: `/services/${service.slug}`,
+  });
 }
 
 export function ServiceDetailPage({ service }: ServiceDetailPageProps) {

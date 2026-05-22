@@ -1,23 +1,13 @@
-import type { Metadata } from "next";
 import { FaqJsonLd } from "@/components/seo/FaqJsonLd";
 import { FAQ_ITEMS } from "@/lib/faq";
+import { publicPageMetadata } from "@/lib/metadata";
 
-export const metadata: Metadata = {
+export const metadata = publicPageMetadata({
   title: "FAQ | Licensed Steel Contractor Florida | McKinados Welding & Fabrication",
   description:
     "Frequently asked questions about licensed counties, structural vs ornamental steel, Florida building code, finishes, timelines, and how to request a bid.",
-  openGraph: {
-    title: "FAQ | McKinados Welding & Fabrication",
-    description:
-      "Licensed counties, services, Florida code considerations, and bidding process.",
-    url: "https://mwfab.co/faq",
-  },
-  twitter: {
-    card: "summary_large_image",
-    title: "FAQ | McKinados Welding & Fabrication",
-    description: "Answers about licenses, services, and bidding.",
-  },
-};
+  pathname: "/faq",
+});
 
 export default function FaqPage() {
   return (

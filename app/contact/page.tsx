@@ -1,21 +1,12 @@
-import type { Metadata } from "next";
 import { ContactForm } from "@/components/sections/ContactForm";
+import { publicPageMetadata } from "@/lib/metadata";
 
-export const metadata: Metadata = {
+export const metadata = publicPageMetadata({
   title: "Contact | Request a Bid | McKinados Welding & Fabrication",
   description:
-    "Request a bid for your structural or ornamental steel project. East Coast Florida. Licensed steel contractor.",
-  openGraph: {
-    title: "Contact | Request a Bid | McKinados Welding & Fabrication",
-    description: "Request a bid for your structural or ornamental steel project. East Coast Florida.",
-    url: "https://mwfab.co/contact",
-  },
-  twitter: {
-    card: "summary_large_image",
-    title: "Contact | McKinados Welding & Fabrication",
-    description: "Request a bid for your steel project. East Coast Florida.",
-  },
-};
+    "Request a bid for your structural or ornamental steel project. East Coast Florida and South Florida. Licensed steel contractor.",
+  pathname: "/contact",
+});
 
 export default function ContactPage() {
   return (

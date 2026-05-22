@@ -1,21 +1,12 @@
-import type { Metadata } from "next";
 import { ProjectsGrid } from "./ProjectsGrid";
+import { publicPageMetadata } from "@/lib/metadata";
 
-export const metadata: Metadata = {
+export const metadata = publicPageMetadata({
   title: "Projects | Steel Fabrication Gallery | McKinados Welding & Fabrication",
   description:
-    "Gallery of structural steel and ornamental steel projects. East Coast Florida. Commercial, industrial, and custom fabrication.",
-  openGraph: {
-    title: "Projects | McKinados Welding & Fabrication",
-    description: "Gallery of structural and ornamental steel projects. East Coast Florida.",
-    url: "https://mwfab.co/projects",
-  },
-  twitter: {
-    card: "summary_large_image",
-    title: "Projects | McKinados Welding & Fabrication",
-    description: "Gallery of structural and ornamental steel projects.",
-  },
-};
+    "Gallery of structural steel and ornamental steel projects. East Coast Florida and South Florida. Commercial, industrial, and custom fabrication.",
+  pathname: "/projects",
+});
 
 export default function ProjectsPage() {
   return (

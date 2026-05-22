@@ -1,4 +1,3 @@
-import type { Metadata } from "next";
 import Link from "next/link";
 import { BreadcrumbJsonLd } from "@/components/seo/BreadcrumbJsonLd";
 import {
@@ -7,23 +6,14 @@ import {
   getCountyBySlug,
   toCountySlug,
 } from "@/lib/licenses";
+import { publicPageMetadata } from "@/lib/metadata";
 
-export const metadata: Metadata = {
+export const metadata = publicPageMetadata({
   title: "Service Areas | Licensed Steel Contractor Counties | McKinados Welding & Fabrication",
   description:
     "Licensed structural and ornamental steel contractor in Miami-Dade, Broward, Palm Beach, Martin, Port St. Lucie, St. Lucie, and Indian River counties. East Coast and South Florida.",
-  openGraph: {
-    title: "Service Areas | McKinados Welding & Fabrication",
-    description:
-      "Licensed steel contractor counties on Florida's East Coast and in South Florida.",
-    url: "https://mwfab.co/service-areas",
-  },
-  twitter: {
-    card: "summary_large_image",
-    title: "Service Areas | McKinados Welding & Fabrication",
-    description: "Licensed counties for structural and ornamental steel in South Florida.",
-  },
-};
+  pathname: "/service-areas",
+});
 
 export default function ServiceAreasPage() {
   return (
