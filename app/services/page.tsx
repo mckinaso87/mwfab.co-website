@@ -1,4 +1,3 @@
-import type { Metadata } from "next";
 import Image from "next/image";
 import Link from "next/link";
 import {
@@ -7,6 +6,7 @@ import {
   StructuralFrameIcon,
 } from "@/components/ui/icons";
 import { BreadcrumbJsonLd } from "@/components/seo/BreadcrumbJsonLd";
+import { publicPageMetadata } from "@/lib/metadata";
 import { SERVICE_SLUGS, SERVICES } from "@/lib/services";
 
 const HUB_SECTIONS = SERVICE_SLUGS.map((slug) => {
@@ -26,22 +26,12 @@ const HUB_SECTIONS = SERVICE_SLUGS.map((slug) => {
   };
 });
 
-export const metadata: Metadata = {
+export const metadata = publicPageMetadata({
   title: "Services | Structural & Ornamental Steel | McKinados Welding & Fabrication",
   description:
     "Structural steel, ornamental steel, and finishes. Licensed steel contractor on Florida's East Coast and in South Florida.",
-  openGraph: {
-    title: "Services | McKinados Welding & Fabrication",
-    description:
-      "Structural steel, ornamental steel, and finishes. East Coast and South Florida.",
-    url: "https://mwfab.co/services",
-  },
-  twitter: {
-    card: "summary_large_image",
-    title: "Services | McKinados Welding & Fabrication",
-    description: "Structural steel, ornamental steel, and finishes.",
-  },
-};
+  pathname: "/services",
+});
 
 export default function ServicesPage() {
   return (
