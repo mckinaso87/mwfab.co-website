@@ -2,6 +2,10 @@ import type { Metadata } from "next";
 import Image from "next/image";
 import Link from "next/link";
 import type { ServiceDefinition } from "@/lib/services";
+import { licensedAreaServed } from "@/lib/schema";
+import { absoluteUrl } from "@/lib/site";
+import { BreadcrumbJsonLd } from "@/components/seo/BreadcrumbJsonLd";
+import { ServiceJsonLd } from "@/components/seo/ServiceJsonLd";
 import { ServiceGallery } from "./ServiceGallery";
 import { ServiceCta } from "./ServiceCta";
 
@@ -27,8 +31,22 @@ export function serviceMetadata(service: ServiceDefinition): Metadata {
 }
 
 export function ServiceDetailPage({ service }: ServiceDetailPageProps) {
+  const servicePath = `/services/${service.slug}`;
+
   return (
     <div className="bg-charcoal">
+      <ServiceJsonLd
+        serviceType={service.title}
+        areaServed={licensedAreaServed()}
+        url={absoluteUrl(servicePath)}
+      />
+      <BreadcrumbJsonLd
+        items={[
+          { name: "Home", path: "/" },
+          { name: "Services", path: "/services" },
+          { name: service.title, path: servicePath },
+        ]}
+      />
       <div className="container mx-auto px-4 py-12 md:px-6 md:py-16">
         <p className="text-sm text-foreground-muted">
           <Link href="/services" className="text-steel-blue hover:text-foreground">

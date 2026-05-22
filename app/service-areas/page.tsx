@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { BreadcrumbJsonLd } from "@/components/seo/BreadcrumbJsonLd";
 import {
   PROPOSAL_LICENSES,
   formatLicenseLine,
@@ -27,6 +28,12 @@ export const metadata: Metadata = {
 export default function ServiceAreasPage() {
   return (
     <div className="bg-charcoal">
+      <BreadcrumbJsonLd
+        items={[
+          { name: "Home", path: "/" },
+          { name: "Service areas", path: "/service-areas" },
+        ]}
+      />
       <div className="container mx-auto px-4 py-12 md:px-6 md:py-16">
         <h1 className="text-3xl font-bold tracking-tight text-foreground md:text-4xl">
           Licensed service areas

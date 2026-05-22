@@ -9,6 +9,8 @@ import {
   neighborSlug,
 } from "@/lib/licenses";
 import { SERVICE_SLUGS, SERVICES } from "@/lib/services";
+import { BreadcrumbJsonLd } from "@/components/seo/BreadcrumbJsonLd";
+import { CountyPageJsonLd } from "@/components/seo/CountyPageJsonLd";
 
 interface CountyPageProps {
   params: Promise<{ county: string }>;
@@ -61,6 +63,14 @@ export default async function CountyServiceAreaPage({ params }: CountyPageProps)
 
   return (
     <div className="bg-charcoal">
+      <CountyPageJsonLd meta={meta} license={license} />
+      <BreadcrumbJsonLd
+        items={[
+          { name: "Home", path: "/" },
+          { name: "Service areas", path: "/service-areas" },
+          { name: `${meta.displayName} County`, path: `/service-areas/${county}` },
+        ]}
+      />
       <div className="container mx-auto px-4 py-12 md:px-6 md:py-16">
         <p className="text-sm text-foreground-muted">
           <Link href="/service-areas" className="text-steel-blue hover:text-foreground">

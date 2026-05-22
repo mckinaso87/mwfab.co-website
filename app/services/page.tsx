@@ -6,6 +6,7 @@ import {
   ColumnIcon,
   StructuralFrameIcon,
 } from "@/components/ui/icons";
+import { BreadcrumbJsonLd } from "@/components/seo/BreadcrumbJsonLd";
 import { SERVICE_SLUGS, SERVICES } from "@/lib/services";
 
 const HUB_SECTIONS = SERVICE_SLUGS.map((slug) => {
@@ -45,6 +46,12 @@ export const metadata: Metadata = {
 export default function ServicesPage() {
   return (
     <div className="bg-charcoal">
+      <BreadcrumbJsonLd
+        items={[
+          { name: "Home", path: "/" },
+          { name: "Services", path: "/services" },
+        ]}
+      />
       <div className="container mx-auto px-4 py-12 md:px-6 md:py-16">
         <h1 className="text-3xl font-bold tracking-tight text-foreground md:text-4xl">
           Our Services
