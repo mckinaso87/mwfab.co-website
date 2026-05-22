@@ -6,19 +6,19 @@ import { cn } from "@/lib/utils";
 
 const SERVICES = [
   {
-    href: "/services#structural",
+    href: "/services/structural-steel",
     title: "Structural Steel",
     description: "Building frames, beams, and load-bearing systems.",
     Icon: SteelBeamIcon,
   },
   {
-    href: "/services#ornamental",
+    href: "/services/ornamental-steel",
     title: "Ornamental Steel",
     description: "Railings, gates, and custom architectural metalwork.",
     Icon: ColumnIcon,
   },
   {
-    href: "/services#finishes",
+    href: "/services/finishes",
     title: "Finishes",
     description: "Powder coat, galvanizing, and protective coatings.",
     Icon: StructuralFrameIcon,
@@ -33,7 +33,7 @@ export function ServicesOverview({ className }: { className?: string }) {
           Our Services
         </h2>
         <p className="mt-2 text-foreground-muted">
-          Full-service structural and ornamental steel fabrication across East Coast Florida.
+          Full-service structural and ornamental steel fabrication across East Coast Florida and South Florida.
         </p>
         <div className="mt-10 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
           {SERVICES.map(({ href, title, description, Icon }) => (

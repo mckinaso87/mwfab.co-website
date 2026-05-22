@@ -1,51 +1,38 @@
 import type { Metadata } from "next";
 import Image from "next/image";
+import Link from "next/link";
 import {
   SteelBeamIcon,
   ColumnIcon,
   StructuralFrameIcon,
 } from "@/components/ui/icons";
+import { SERVICE_SLUGS, SERVICES } from "@/lib/services";
 
-const SECTIONS = [
-  {
-    id: "structural",
-    title: "Structural Steel",
-    description:
-      "We provide full-service structural steel construction for commercial and industrial projects across East Coast Florida. From building frames and load-bearing systems to beams and columns, our licensed team delivers precise, code-compliant structural steel fabrication. Whether you need a new build or an expansion, we handle design coordination, fabrication, and erection.",
-    Icon: SteelBeamIcon,
-    imageUrl: "/images/projects/structural/image1.jpeg",
-    imageWidth: 1200,
-    imageHeight: 675,
-  },
-  {
-    id: "ornamental",
-    title: "Ornamental Steel",
-    description:
-      "Custom ornamental steel work including railings, gates, stairs, and architectural metalwork. We fabricate and install ornamental steel that meets both aesthetic and code requirements. Our ornamental steel services cover residential, commercial, and public projects throughout Florida.",
-    Icon: ColumnIcon,
-    imageUrl: "/images/projects/ornamental/image1.jpeg",
-    imageWidth: 1200,
-    imageHeight: 675,
-  },
-  {
-    id: "finishes",
-    title: "Finishes",
-    description:
-      "Powder coating, galvanizing, and other protective finishes to extend the life and appearance of your steel. We coordinate finishes with your project requirements and offer options for both structural and ornamental steel. Finishes are applied in controlled environments for consistent quality.",
-    Icon: StructuralFrameIcon,
-    imageUrl: "/images/projects/finishes/image1.jpeg",
-    imageWidth: 1200,
-    imageHeight: 675,
-  },
-] as const;
+const HUB_SECTIONS = SERVICE_SLUGS.map((slug) => {
+  const service = SERVICES[slug];
+  return {
+    id: service.hubAnchorId,
+    title: service.title,
+    hubBlurb: service.hubBlurb,
+    href: `/services/${slug}`,
+    heroImage: service.heroImage,
+    Icon:
+      slug === "structural-steel"
+        ? SteelBeamIcon
+        : slug === "ornamental-steel"
+          ? ColumnIcon
+          : StructuralFrameIcon,
+  };
+});
 
 export const metadata: Metadata = {
   title: "Services | Structural & Ornamental Steel | McKinados Welding & Fabrication",
   description:
-    "Structural steel, ornamental steel, and finishes. Licensed steel fabrication East Coast Florida. Powder coat, galvanizing.",
+    "Structural steel, ornamental steel, and finishes. Licensed steel contractor on Florida's East Coast and in South Florida.",
   openGraph: {
     title: "Services | McKinados Welding & Fabrication",
-    description: "Structural steel, ornamental steel, and finishes. East Coast Florida.",
+    description:
+      "Structural steel, ornamental steel, and finishes. East Coast and South Florida.",
     url: "https://mwfab.co/services",
   },
   twitter: {
@@ -63,10 +50,11 @@ export default function ServicesPage() {
           Our Services
         </h1>
         <p className="mt-4 text-lg text-foreground-muted">
-          Structural and ornamental steel construction, and finishes. Licensed steel contractor serving East Coast Florida.
+          Structural and ornamental steel construction, and protective finishes. Licensed steel
+          contractor serving East Coast Florida and South Florida.
         </p>
       </div>
-      {SECTIONS.map((section) => (
+      {HUB_SECTIONS.map((section) => (
         <section
           key={section.id}
           id={section.id}
@@ -74,20 +62,28 @@ export default function ServicesPage() {
           aria-labelledby={`${section.id}-heading`}
         >
           <div className="container mx-auto px-4 md:px-6">
-            <div className="grid gap-8 lg:grid-cols-2 lg:gap-12 lg:items-center">
+            <div className="grid gap-8 lg:grid-cols-2 lg:items-center lg:gap-12">
               <div>
                 <section.Icon className="h-12 w-12 text-steel-blue" />
                 <h2 id={`${section.id}-heading`} className="mt-4 text-2xl font-bold text-foreground md:text-3xl">
                   {section.title}
                 </h2>
-                <p className="mt-4 text-foreground-muted">{section.description}</p>
+                <p className="mt-4 text-foreground-muted">{section.hubBlurb}</p>
+                <p className="mt-4">
+                  <Link
+                    href={section.href}
+                    className="font-medium text-steel-blue transition-colors hover:text-foreground"
+                  >
+                    Read full {section.title.toLowerCase()} overview
+                  </Link>
+                </p>
               </div>
               <div className="relative aspect-video w-full overflow-hidden rounded-lg border border-steel/30">
                 <Image
-                  src={section.imageUrl}
+                  src={section.heroImage}
                   alt={`${section.title} — McKinados Welding & Fabrication`}
-                  width={section.imageWidth}
-                  height={section.imageHeight}
+                  width={1200}
+                  height={675}
                   className="object-cover"
                   sizes="(max-width: 1024px) 100vw, 50vw"
                 />
