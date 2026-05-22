@@ -37,16 +37,21 @@ export async function createJob(formData: FormData) {
 export async function updateJob(id: string, formData: FormData) {
   const supabase = createAdminClient();
   const job_name = (formData.get("job_name") as string)?.trim();
+  const customer_id = (formData.get("customer_id") as string)?.trim();
   if (!job_name) return { error: "Job name is required." };
-
-  const newStatus = (formData.get("status") as JobStatus) || "To Bid";
+  if (!customer_id) return { error: "Customer is required." };
 
   const { data: current } = await supabase
     .from("jobs")
-    .select("status")
+    .select("status, customer_id")
     .eq("id", id)
     .single();
+
   const previousStatus: JobStatus | undefined = current?.status as JobStatus | undefined;
+  const previousCustomerId = current?.customer_id as string | undefined;
+
+  const newStatus = (formData.get("status") as JobStatus) || "To Bid";
+
   if (previousStatus !== undefined && previousStatus !== newStatus) {
     await supabase.from("job_status_history").insert({
       job_id: id,
@@ -59,6 +64,7 @@ export async function updateJob(id: string, formData: FormData) {
   const { error } = await supabase
     .from("jobs")
     .update({
+      customer_id,
       job_name,
       description: (formData.get("description") as string)?.trim() || null,
       bid_due_date: (formData.get("bid_due_date") as string)?.trim() || null,
@@ -72,6 +78,10 @@ export async function updateJob(id: string, formData: FormData) {
   revalidatePath("/admin/jobs");
   revalidatePath(`/admin/jobs/${id}`);
   revalidatePath("/admin/dashboard");
+  revalidatePath(`/admin/customers/${customer_id}`);
+  if (previousCustomerId && previousCustomerId !== customer_id) {
+    revalidatePath(`/admin/customers/${previousCustomerId}`);
+  }
   return { success: true };
 }
 

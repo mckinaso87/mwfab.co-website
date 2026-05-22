@@ -1,10 +1,11 @@
 # Contact Form & Anti-Spam
 
-## Current (Phase 1)
+## Current
 
 - **Validation**: Client and server validation via zod in `/app/api/contact/route.ts`.
 - **Honeypot**: A hidden `website` field is included in the form. If it is filled (e.g. by a bot), the submission is rejected with 400.
-- **Resend**: API route is scaffolded. When `RESEND_API_KEY` and `RESEND_FROM_EMAIL` are set, uncomment the Resend send logic in the route to enable email delivery.
+- **Customers**: Each valid submission upserts a row in `public.customers` (match by email when present) so leads appear under `/admin/customers`.
+- **Resend**: When `RESEND_API_KEY` and `RESEND_FROM_EMAIL` are set, sends branded HTML to `CONTACT_TO_EMAIL` (default `sales@mwfab.co`) with reply-to set to the submitter.
 
 ## Future Options
 

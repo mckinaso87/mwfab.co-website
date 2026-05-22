@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { formatPhoneDisplay, isValidPhone } from "@/lib/format-phone";
+import { normalizeEmail } from "@/lib/normalize-email";
 
 function normalizePhoneForDb(value: string | null | undefined): string | null {
   if (!value || !value.trim()) return null;
@@ -28,7 +29,7 @@ export async function createCustomer(formData: FormData) {
     .insert({
       company_name,
       contact_name: (formData.get("contact_name") as string)?.trim() || null,
-      email: (formData.get("email") as string)?.trim() || null,
+      email: normalizeEmail(formData.get("email") as string),
       phone,
       address: (formData.get("address") as string)?.trim() || null,
       notes: (formData.get("notes") as string)?.trim() || null,
@@ -58,7 +59,7 @@ export async function updateCustomer(id: string, formData: FormData) {
     .update({
       company_name,
       contact_name: (formData.get("contact_name") as string)?.trim() || null,
-      email: (formData.get("email") as string)?.trim() || null,
+      email: normalizeEmail(formData.get("email") as string),
       phone,
       address: (formData.get("address") as string)?.trim() || null,
       notes: (formData.get("notes") as string)?.trim() || null,

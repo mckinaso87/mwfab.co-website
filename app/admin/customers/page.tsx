@@ -22,17 +22,27 @@ export const metadata: Metadata = {
 
 export default async function AdminCustomersPage() {
   const supabase = createAdminClient();
-  const { data: customers } = await supabase
+  const { data: customers, error, count } = await supabase
     .from("customers")
-    .select("*")
+    .select("*", { count: "exact" })
     .order("company_name", { ascending: true });
 
   const list = (customers ?? []) as Customer[];
 
   return (
     <div className="space-y-8">
+      {error && (
+        <p className="rounded-lg border border-red-500/40 bg-red-950/30 px-4 py-3 text-sm text-red-300" role="alert">
+          Could not load customers: {error.message}
+        </p>
+      )}
       <AdminPageHeader
         title="Customers"
+        subtitle={
+          count != null
+            ? `${count} ${count === 1 ? "record" : "records"} in Supabase (${process.env.NEXT_PUBLIC_SUPABASE_URL ?? "unknown project"})`
+            : undefined
+        }
         actions={
           <Link
             href="/admin/customers/new"

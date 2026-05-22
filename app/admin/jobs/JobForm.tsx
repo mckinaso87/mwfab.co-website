@@ -1,6 +1,7 @@
 "use client";
 
-import { useActionState } from "react";
+import { useActionState, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import type { Job } from "@/lib/db-types";
 import type { Customer } from "@/lib/db-types";
 import { JOB_STATUSES } from "@/lib/db-types";
@@ -23,14 +24,21 @@ const btnSecondary =
 export function JobForm(props: Props) {
   const j = props.job ?? null;
   const isEdit = !!j;
+  const router = useRouter();
 
   const [state, formAction, isPending] = useActionState(
     async (_: unknown, formData: FormData) => props.action(formData),
     null as { error?: string; success?: boolean } | null
   );
 
+  useEffect(() => {
+    if (state?.success) {
+      router.refresh();
+    }
+  }, [state?.success, router]);
+
   return (
-    <form action={formAction} className="space-y-8">
+    <form key={j?.customer_id ?? "new"} action={formAction} className="space-y-8">
       {j?.id && <input type="hidden" name="job_id" value={j.id} />}
 
       <AdminFormSection title="Job details" description="Name, customer, and description.">

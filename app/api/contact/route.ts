@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
+import { upsertCustomerFromContact } from "@/lib/contact/customer";
 import { sendContactNotification } from "@/lib/email/contact";
 
 /**
@@ -36,21 +37,34 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Invalid submission" }, { status: 400 });
     }
 
-    const { sent, error } = await sendContactNotification(data);
+    const customerResult = await upsertCustomerFromContact(data);
+    if (!customerResult.ok) {
+      console.error("[contact] Customer save failed:", customerResult.error);
+      return NextResponse.json(
+        { error: "We could not save your request. Please email sales@mwfab.co directly." },
+        { status: 500 }
+      );
+    }
+
+    const { sent, error: emailError } = await sendContactNotification(data);
 
     if (!sent) {
-      console.error("[contact] Email delivery failed:", error);
+      console.error("[contact] Email delivery failed:", emailError);
       return NextResponse.json(
         {
           error:
-            error ??
+            emailError ??
             "We could not send your request right now. Please email sales@mwfab.co directly.",
         },
         { status: 503 }
       );
     }
 
-    return NextResponse.json({ success: true });
+    return NextResponse.json({
+      success: true,
+      customerId: customerResult.customerId,
+      customerCreated: customerResult.created,
+    });
   } catch (err) {
     console.error("[contact] Unexpected error:", err);
     return NextResponse.json(
