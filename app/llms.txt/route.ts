@@ -1,4 +1,4 @@
-import { PROPOSAL_LICENSES, formatLicenseLine, licensedCountySlugs, toCountySlug } from "@/lib/licenses";
+import { PROPOSAL_LICENSES, formatLicenseLine, licensedCountySlugs } from "@/lib/licenses";
 import { SERVICE_SLUGS } from "@/lib/services";
 import { SITE_URL, SITE_NAME, PUBLIC_CONTACT_EMAIL } from "@/lib/site";
 
