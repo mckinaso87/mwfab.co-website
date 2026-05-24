@@ -16,7 +16,7 @@ export function AdminPageHeader({ title, subtitle, actions, className }: Props) 
       )}
     >
       <div className="min-w-0">
-        <h1 className="text-2xl font-bold tracking-tight text-foreground">
+        <h1 className="admin-page-title text-2xl font-bold tracking-tight">
           {title}
         </h1>
         {subtitle != null && subtitle !== "" && (

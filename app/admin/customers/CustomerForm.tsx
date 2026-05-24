@@ -13,9 +13,9 @@ type Props = {
 };
 
 const btnPrimary =
-  "rounded-lg bg-steel-blue px-5 py-2.5 text-sm font-medium text-foreground transition-colors hover:bg-steel disabled:opacity-50 focus-visible:outline focus-visible:ring-2 focus-visible:ring-steel-blue focus-visible:ring-offset-2 focus-visible:ring-offset-charcoal";
+  "btn-admin-primary rounded-lg px-5 py-2.5 text-sm font-medium disabled:opacity-50";
 const btnSecondary =
-  "rounded-lg border border-steel/50 px-5 py-2.5 text-sm font-medium text-foreground transition-colors hover:bg-steel/30 focus-visible:outline focus-visible:ring-2 focus-visible:ring-steel-blue focus-visible:ring-offset-2 focus-visible:ring-offset-charcoal";
+  "btn-admin-secondary rounded-lg px-5 py-2.5 text-sm font-medium";
 
 export function CustomerForm(props: Props) {
   const c = props.customer ?? null;

@@ -113,7 +113,7 @@ export function FieldConfigEditor({ groups }: { groups: Group[] }) {
         type="button"
         onClick={handleSave}
         disabled={saving}
-        className="rounded-lg bg-steel-blue px-4 py-2.5 text-sm font-medium text-foreground hover:bg-steel disabled:opacity-50"
+        className="btn-admin-primary rounded-lg px-4 py-2.5 text-sm font-medium disabled:opacity-50"
       >
         {saving ? "Saving…" : "Save field config"}
       </button>

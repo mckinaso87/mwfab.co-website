@@ -132,7 +132,7 @@ export function MaterialsTable({
             setEditingRow({ ...EMPTY_ROW });
             setError(null);
           }}
-          className="rounded-lg bg-steel-blue px-4 py-2 text-sm font-medium text-foreground hover:bg-steel"
+          className="btn-admin-primary rounded-lg px-4 py-2 text-sm font-medium disabled:opacity-50"
         >
           Add material
         </button>
@@ -454,7 +454,7 @@ function MaterialSlideOver({
             <button type="button" onClick={onClose} className="rounded-lg border border-steel/50 px-4 py-2.5 text-sm font-medium text-foreground hover:bg-steel/50">
               Cancel
             </button>
-            <button type="submit" disabled={saving} className="rounded-lg bg-steel-blue px-4 py-2.5 text-sm font-medium text-foreground hover:bg-steel disabled:opacity-50">
+            <button type="submit" disabled={saving} className="btn-admin-primary rounded-lg px-4 py-2.5 text-sm font-medium disabled:opacity-50">
               {saving ? "Saving…" : "Save"}
             </button>
           </div>

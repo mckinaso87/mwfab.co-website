@@ -85,7 +85,7 @@ export default async function AdminJobsPage({
         actions={
           <Link
             href="/admin/jobs/new"
-            className="rounded-lg bg-steel-blue px-4 py-2.5 text-sm font-medium text-foreground transition-colors hover:bg-steel focus-visible:outline focus-visible:ring-2 focus-visible:ring-steel-blue focus-visible:ring-offset-2 focus-visible:ring-offset-charcoal"
+            className="btn-admin-primary rounded-lg px-4 py-2.5 text-sm font-medium disabled:opacity-50"
           >
             New job
           </Link>
@@ -95,10 +95,10 @@ export default async function AdminJobsPage({
       <AdminToolbar>
         <Link
           href="/admin/jobs"
-          className={`rounded-lg px-3 py-2 text-sm font-medium transition-colors focus-visible:outline focus-visible:ring-2 focus-visible:ring-steel-blue focus-visible:ring-offset-2 focus-visible:ring-offset-charcoal ${
+          className={`rounded-lg px-3 py-2 text-sm font-medium transition-colors focus-visible:outline focus-visible:ring-2 focus-visible:ring-admin-teal focus-visible:ring-offset-2 focus-visible:ring-offset-charcoal ${
             !filterStatus
-              ? "bg-steel-blue text-foreground"
-              : "bg-steel/50 text-foreground-muted hover:text-foreground"
+              ? "border border-admin-teal/40 bg-admin-teal/20 text-foreground"
+              : "border border-steel/30 bg-charcoal/40 text-foreground-muted hover:border-admin-teal/25 hover:text-foreground"
           }`}
         >
           All
@@ -107,10 +107,10 @@ export default async function AdminJobsPage({
           <Link
             key={s}
             href={`/admin/jobs?status=${encodeURIComponent(s)}`}
-            className={`rounded-lg px-3 py-2 text-sm font-medium transition-colors focus-visible:outline focus-visible:ring-2 focus-visible:ring-steel-blue focus-visible:ring-offset-2 focus-visible:ring-offset-charcoal ${
+            className={`rounded-lg px-3 py-2 text-sm font-medium transition-colors focus-visible:outline focus-visible:ring-2 focus-visible:ring-admin-teal focus-visible:ring-offset-2 focus-visible:ring-offset-charcoal ${
               filterStatus === s
-                ? "bg-steel-blue text-foreground"
-                : "bg-steel/50 text-foreground-muted hover:text-foreground"
+                ? "border border-admin-teal/40 bg-admin-teal/20 text-foreground"
+                : "border border-steel/30 bg-charcoal/40 text-foreground-muted hover:border-admin-teal/25 hover:text-foreground"
             }`}
           >
             {s}

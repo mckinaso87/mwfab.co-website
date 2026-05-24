@@ -46,7 +46,7 @@ export default async function AdminCustomersPage() {
         actions={
           <Link
             href="/admin/customers/new"
-            className="rounded-lg bg-steel-blue px-4 py-2.5 text-sm font-medium text-foreground transition-colors hover:bg-steel focus-visible:outline focus-visible:ring-2 focus-visible:ring-steel-blue focus-visible:ring-offset-2 focus-visible:ring-offset-charcoal"
+            className="btn-admin-primary rounded-lg px-4 py-2.5 text-sm font-medium"
           >
             New customer
           </Link>

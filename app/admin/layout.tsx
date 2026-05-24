@@ -15,7 +15,7 @@ export default async function AdminLayout({
         </p>
         <Link
           href="/"
-          className="mt-6 inline-block rounded-md bg-steel-blue px-4 py-2 text-sm font-medium text-foreground hover:bg-steel"
+          className="btn-admin-primary mt-6 inline-block rounded-lg px-4 py-2 text-sm font-medium"
         >
           Back to home
         </Link>
@@ -26,7 +26,7 @@ export default async function AdminLayout({
   return (
     <div className="relative flex min-h-[calc(100vh-4rem)]">
       <AdminSidebar />
-      <main className="min-h-[calc(100vh-4rem)] min-w-0 flex-1 overflow-auto lg:ml-64">
+      <main className="admin-shell min-h-[calc(100vh-4rem)] min-w-0 flex-1 overflow-auto lg:ml-64">
         <div className="mx-auto max-w-7xl p-6 lg:p-8">{children}</div>
       </main>
     </div>

@@ -38,7 +38,7 @@ export function TermsEditor({ initialBody, version }: Props) {
         <button
           type="submit"
           disabled={isPending}
-          className="mt-4 rounded-lg bg-steel-blue px-4 py-2.5 text-sm font-medium text-foreground hover:bg-steel disabled:opacity-50"
+          className="btn-admin-primary mt-4 rounded-lg px-4 py-2.5 text-sm font-medium disabled:opacity-50"
         >
           {isPending ? "Saving…" : "Save terms"}
         </button>

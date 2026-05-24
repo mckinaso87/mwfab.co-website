@@ -5,6 +5,7 @@ import {
   AdminPageHeader,
   AdminSectionCard,
   AdminStatCard,
+  AdminBadge,
 } from "@/components/admin";
 
 export const metadata: Metadata = {
@@ -90,15 +91,25 @@ export default async function AdminDashboardPage() {
       <AdminPageHeader title="Dashboard" />
 
       <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
-        <AdminStatCard label="Open bids" value={openBidsCount} />
-        <AdminSectionCard title="Jobs by status">
+        <AdminStatCard label="Open bids" value={openBidsCount} tone="amber" />
+        <AdminStatCard
+          label="Overdue bids"
+          value={overdueList.length}
+          tone="copper"
+          subtext={overdueList.length > 0 ? "Needs attention" : "All on track"}
+        />
+        <AdminSectionCard title="Jobs by status" className="sm:col-span-2">
           {Object.keys(statusBreakdown).length === 0 ? (
             <p className="text-sm text-foreground-muted">No jobs yet</p>
           ) : (
-            <ul className="space-y-1 text-sm text-foreground">
+            <ul className="space-y-2 text-sm text-foreground">
               {Object.entries(statusBreakdown).map(([status, count]) => (
-                <li key={status}>
-                  {status}: {count}
+                <li key={status} className="flex items-center justify-between gap-4 rounded-md bg-charcoal/30 px-3 py-2">
+                  <span className="flex items-center gap-2">
+                    <span className="h-2 w-2 rounded-full bg-admin-teal" aria-hidden />
+                    {status}
+                  </span>
+                  <AdminBadge variant="primary">{count}</AdminBadge>
                 </li>
               ))}
             </ul>
@@ -116,7 +127,7 @@ export default async function AdminDashboardPage() {
                 <li key={j.id}>
                   <Link
                     href={`/admin/jobs/${j.id}`}
-                    className="font-medium text-foreground hover:underline focus-visible:outline focus-visible:ring-2 focus-visible:ring-steel-blue focus-visible:ring-offset-2 focus-visible:ring-offset-charcoal"
+                    className="font-medium text-admin-teal transition-colors hover:text-admin-amber focus-visible:outline focus-visible:ring-2 focus-visible:ring-admin-teal focus-visible:ring-offset-2 focus-visible:ring-offset-charcoal"
                   >
                     {j.job_name}
                   </Link>{" "}
@@ -151,7 +162,7 @@ export default async function AdminDashboardPage() {
               <li key={f.id}>
                 <Link
                   href={`/admin/jobs/${f.job_id}`}
-                  className="font-medium text-foreground hover:underline focus-visible:outline focus-visible:ring-2 focus-visible:ring-steel-blue focus-visible:ring-offset-2 focus-visible:ring-offset-charcoal"
+                  className="font-medium text-admin-teal transition-colors hover:text-admin-amber focus-visible:outline focus-visible:ring-2 focus-visible:ring-admin-teal focus-visible:ring-offset-2 focus-visible:ring-offset-charcoal"
                 >
                   {f.file_name}
                 </Link>{" "}

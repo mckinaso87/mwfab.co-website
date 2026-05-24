@@ -93,7 +93,7 @@ export default async function JobDetailPage({
           <span className="flex flex-wrap items-center gap-3">
             <Link
               href={`/admin/jobs/${id}/takeoff`}
-              className="inline-flex items-center gap-2 rounded-lg bg-steel-blue px-4 py-2.5 text-sm font-medium text-foreground transition-colors hover:bg-steel focus-visible:outline focus-visible:ring-2 focus-visible:ring-steel-blue focus-visible:ring-offset-2 focus-visible:ring-offset-charcoal"
+              className="btn-admin-primary inline-flex items-center gap-2 rounded-lg px-4 py-2.5 text-sm font-medium"
             >
               Takeoff / Proposal →
             </Link>

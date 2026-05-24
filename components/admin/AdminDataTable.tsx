@@ -14,7 +14,7 @@ export function AdminDataTable({
   return (
     <div
       className={cn(
-        "overflow-hidden rounded-xl border border-steel/50",
+        "overflow-hidden rounded-xl border border-admin-sky/20 shadow-sm shadow-black/10",
         className
       )}
     >
@@ -22,7 +22,7 @@ export function AdminDataTable({
         <table
           className={cn(
             "w-full min-w-[400px] border-collapse text-sm",
-            stickyHeader && "[&_thead]:sticky [&_thead]:top-0 [&_thead]:z-10 [&_thead]:bg-gunmetal/95"
+            stickyHeader && "[&_thead]:sticky [&_thead]:top-0 [&_thead]:z-10 [&_thead]:bg-admin-surface/95"
           )}
         >
           {children}
@@ -41,7 +41,7 @@ export function AdminDataTableHead({
 }) {
   return (
     <thead>
-      <tr className={cn("border-b border-steel/50 bg-gunmetal/80", className)}>
+      <tr className={cn("border-b border-admin-teal/20 bg-gradient-to-r from-admin-teal/10 to-admin-sky/5", className)}>
         {children}
       </tr>
     </thead>
@@ -90,7 +90,7 @@ export function AdminDataTableRow({
   return (
     <tr
       className={cn(
-        "border-b border-steel/30 transition-colors last:border-b-0 hover:bg-steel/20",
+        "border-b border-steel/20 transition-colors last:border-b-0 hover:bg-admin-copper/5",
         className
       )}
     >

@@ -304,7 +304,7 @@ export function StaffForm({ action, user }: Props) {
         <button
           type="submit"
           disabled={isPending}
-          className="rounded-lg bg-steel-blue px-5 py-2.5 text-sm font-medium text-foreground transition-colors hover:bg-steel disabled:opacity-50 focus-visible:outline focus-visible:ring-2 focus-visible:ring-steel-blue focus-visible:ring-offset-2 focus-visible:ring-offset-charcoal"
+          className="btn-admin-primary rounded-lg px-5 py-2.5 text-sm font-medium disabled:opacity-50"
         >
           {isPending
             ? isEdit

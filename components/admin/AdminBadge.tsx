@@ -2,7 +2,7 @@ import { cn } from "@/lib/utils";
 
 type Props = {
   children: React.ReactNode;
-  variant?: "default" | "primary" | "muted";
+  variant?: "default" | "primary" | "muted" | "copper" | "teal";
   className?: string;
 };
 
@@ -18,9 +18,13 @@ export function AdminBadge({
         variant === "default" &&
           "border border-steel/50 bg-steel/30 text-foreground",
         variant === "primary" &&
-          "bg-steel-blue/80 text-foreground",
+          "bg-admin-sky/30 text-foreground border border-admin-sky/40",
         variant === "muted" &&
           "bg-steel/20 text-foreground-muted",
+        variant === "copper" &&
+          "border border-admin-copper/40 bg-admin-copper/20 text-amber-100",
+        variant === "teal" &&
+          "border border-admin-teal/40 bg-admin-teal/20 text-teal-100",
         className
       )}
     >

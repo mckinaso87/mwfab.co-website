@@ -17,7 +17,7 @@ export function AdminEmptyState({
   return (
     <div
       className={cn(
-        "flex flex-col items-center justify-center rounded-xl border border-steel/50 bg-card py-12 px-6 text-center",
+        "flex flex-col items-center justify-center rounded-xl border border-admin-teal/20 admin-card py-12 px-6 text-center",
         className
       )}
     >
@@ -25,7 +25,7 @@ export function AdminEmptyState({
       {actionLabel != null && actionHref != null && (
         <Link
           href={actionHref}
-          className="mt-4 inline-flex rounded-lg bg-steel-blue px-4 py-2.5 text-sm font-medium text-foreground transition-colors hover:bg-steel focus-visible:outline focus-visible:ring-2 focus-visible:ring-steel-blue focus-visible:ring-offset-2 focus-visible:ring-offset-charcoal"
+          className="btn-admin-primary mt-4 inline-flex rounded-lg px-4 py-2.5 text-sm font-medium focus-visible:outline-none"
         >
           {actionLabel}
         </Link>
