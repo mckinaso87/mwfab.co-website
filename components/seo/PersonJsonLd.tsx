@@ -2,14 +2,14 @@ import { SITE_URL } from "@/lib/site";
 
 /**
  * Founder Person schema for About page.
- * TODO: Replace name, jobTitle, image, and url with verified founder details.
+ * TODO: Replace image and url when a public profile or headshot is available.
  */
 export function PersonJsonLd() {
   const data = {
     "@context": "https://schema.org",
     "@type": "Person",
-    name: "TODO_FOUNDER_NAME",
-    jobTitle: "TODO_FOUNDER_TITLE",
+    name: "Ali McKinney",
+    jobTitle: "Founder",
     worksFor: {
       "@type": "Organization",
       name: "McKinados Welding & Fabrication",

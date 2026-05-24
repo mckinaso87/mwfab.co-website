@@ -27,13 +27,7 @@ export default function AboutPage() {
           </p>
 
           <h2 className="text-xl font-semibold text-foreground">Leadership</h2>
-          <p>
-            {/* TODO: Replace with founder full name. */}
-            Founder: TODO_FOUNDER_NAME
-            <br />
-            {/* TODO: Replace with year the company was founded (e.g. 2008). */}
-            Founded: TODO_YEAR_FOUNDED
-          </p>
+          <p>Founder: Ali McKinney</p>
 
           <h2 className="text-xl font-semibold text-foreground">Mission</h2>
           <p>
@@ -50,14 +44,6 @@ export default function AboutPage() {
             with developers, general contractors, and owners to meet Florida Building Code requirements and
             project milestones.
           </p>
-
-          <h2 className="text-xl font-semibold text-foreground">Certifications</h2>
-          <ul className="list-disc space-y-2 pl-6">
-            {/* TODO: Replace with actual certification names and numbers when confirmed. */}
-            <li>TODO_CERTIFICATION_1</li>
-            <li>TODO_CERTIFICATION_2</li>
-            <li>TODO_CERTIFICATION_3</li>
-          </ul>
 
           <h2 className="text-xl font-semibold text-foreground">Licensed &amp; insured</h2>
           <p>
