@@ -252,6 +252,27 @@ export async function setLineCustomerNote(
   return {};
 }
 
+async function seedTakeoffExclusionsWithAllActive(
+  supabase: ReturnType<typeof createAdminClient>,
+  takeoffId: string
+): Promise<{ error?: string }> {
+  const { data: activeExclusions, error: listError } = await supabase
+    .from("settings_exclusions")
+    .select("id")
+    .eq("is_active", true);
+  if (listError) return { error: listError.message };
+  if (!activeExclusions?.length) return {};
+
+  const { error } = await supabase.from("takeoff_exclusions").insert(
+    activeExclusions.map((row) => ({
+      takeoff_id: takeoffId,
+      exclusion_id: row.id as string,
+    }))
+  );
+  if (error) return { error: error.message };
+  return {};
+}
+
 export async function getOrCreateTakeoff(
   jobId: string
 ): Promise<{ takeoff: Takeoff | null; error?: string }> {
@@ -268,6 +289,10 @@ export async function getOrCreateTakeoff(
     .select("*")
     .single();
   if (error) return { takeoff: null, error: error.message };
+
+  const seedResult = await seedTakeoffExclusionsWithAllActive(supabase, inserted.id);
+  if (seedResult.error) return { takeoff: null, error: seedResult.error };
+
   return { takeoff: inserted as Takeoff };
 }
 

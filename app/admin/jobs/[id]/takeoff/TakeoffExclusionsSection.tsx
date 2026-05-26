@@ -52,7 +52,8 @@ export function TakeoffExclusionsSection({
     <section className="rounded-xl border border-steel/50 bg-card p-6">
       <h2 className="mb-1 text-lg font-semibold text-foreground">Proposal exclusions</h2>
       <p className="mb-4 text-sm text-foreground-muted">
-        Select items to list on the proposal before the signature block.
+        All active exclusions are selected by default for new jobs. Uncheck any that do not
+        apply, then save.
       </p>
       <ul className="space-y-2 mb-4">
         {exclusions.map((ex) => (
