@@ -1,10 +1,6 @@
-import {
-  groupLinesByScope,
-  subgroupSubtotal,
-  SCOPE_SUBGROUP_TITLE,
-} from "@/lib/proposal-line-groups";
+import { groupLinesByScope, SCOPE_SUBGROUP_TITLE } from "@/lib/proposal-line-groups";
 import { LETTERHEAD } from "@/components/admin/proposal/Letterhead";
-import { isGalvanizerLine, normalizeRate } from "@/lib/takeoff-calculations";
+import { isGalvanizerLine } from "@/lib/takeoff-calculations";
 import type { ProposalData } from "./loadProposalData";
 import { deriveProposalScopeLabel } from "./loadProposalData";
 
@@ -42,7 +38,6 @@ function proposalScopeHeaderLabel(lines: Array<{ scope?: string | null }>): stri
 function subgroupTable(
   title: string,
   rows: string,
-  subtotal: number,
   scope: "furnish" | "furnish_install" = "furnish_install"
 ): string {
   const headerBg = scope === "furnish" ? "#e0f2fe" : "#fef3c7";
@@ -51,40 +46,26 @@ function subgroupTable(
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin:0 0 14px 0; border:2px solid ${borderColor}; border-radius:8px; background:#ffffff; overflow:hidden;">
   <tr>
     <td style="padding:10px 14px; border-bottom:1px solid ${borderColor}; background:${headerBg};">
-      <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
-        <tr>
-          <td style="font-size:11px; font-weight:700; letter-spacing:0.06em; text-transform:uppercase; color:#64748b;">${escapeHtml(title)}</td>
-          <td align="right" style="font-size:13px; font-weight:700; color:#0f172a; font-variant-numeric:tabular-nums;">${formatMoney(subtotal)}</td>
-        </tr>
-      </table>
+      <span style="font-size:11px; font-weight:700; letter-spacing:0.06em; text-transform:uppercase; color:#64748b;">${escapeHtml(title)}</span>
     </td>
   </tr>
   <tr><td style="padding:8px 14px 12px 14px;">${rows}</td></tr>
 </table>`;
 }
 
-function lineRow(description: string, amount: number | null | undefined, galv?: boolean): string {
+function lineRow(description: string, galv?: boolean): string {
   const galvTag = galv ? ' <span style="color:#64748b; font-size:12px;">(galv)</span>' : "";
   return `
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin:0 0 4px 0;">
   <tr>
     <td style="font-size:14px; color:#0f172a; padding:4px 0;">${escapeHtml(description)}${galvTag}</td>
-    <td align="right" width="100" style="font-size:14px; font-weight:600; color:#0f172a; padding:4px 0; font-variant-numeric:tabular-nums; white-space:nowrap;">${formatMoney(amount)}</td>
   </tr>
 </table>`;
 }
 
-function scopeLineBlocksHtml<
-  L extends {
-    scope?: string | null;
-    sort_order: number;
-    total_price?: number | null;
-    total?: number | null;
-  },
->(
+function scopeLineBlocksHtml<L extends { scope?: string | null; sort_order: number }>(
   lines: L[],
-  renderLine: (line: L) => string,
-  amountKey: "total_price" | "total" = "total_price"
+  renderLine: (line: L) => string
 ): string {
   if (lines.length === 0) return "";
   const groups = groupLinesByScope(lines);
@@ -95,12 +76,7 @@ function scopeLineBlocksHtml<
     for (const line of sorted) {
       inner += renderLine(line);
     }
-    blocks += subgroupTable(
-      SCOPE_SUBGROUP_TITLE[scope],
-      inner,
-      subgroupSubtotal(sorted, amountKey),
-      scope
-    );
+    blocks += subgroupTable(SCOPE_SUBGROUP_TITLE[scope], inner, scope);
   }
   return `<tr><td style="padding:10px 0; background:#f8fafc; border:2px solid #cbd5e1; border-radius:8px;">${blocks}</td></tr>`;
 }
@@ -121,50 +97,10 @@ export function proposalEmailHtml(data: ProposalData): string {
     (l) => !(isGalvanizerLine(l.label) && galvMode === "not_galvanized")
   );
 
-  const marginAmount = (takeoff.grand_total ?? 0) - (takeoff.project_total ?? 0);
-  const marginPct = normalizeRate(takeoff.margin_rate, 0.2) * 100;
-  const grandWithGalv =
-    galvMode === "optional_addon"
-      ? (takeoff.grand_total ?? 0) + (takeoff.galv_addon_amount ?? 0)
-      : null;
-
-  const pricingRows: [string, number][] = [
-    ["Materials (w/ tax)", takeoff.material_total_with_tax ?? 0],
-    ["Drawings", takeoff.drawings_total ?? 0],
-    ["Shop / Fabrication", takeoff.shop_total ?? 0],
-    ["Installation", takeoff.install_total ?? 0],
-    ["Miscellaneous", takeoff.misc_total ?? 0],
-    ["Subtotal", takeoff.project_total ?? 0],
-  ];
-  let ledgerRows = "";
-  for (const [label, val] of pricingRows) {
-    if (val > 0) {
-      ledgerRows += `
-<tr>
-  <td style="padding:8px 0; font-size:14px; color:#64748b; border-bottom:1px solid #e5e7eb;">${escapeHtml(label)}</td>
-  <td align="right" style="padding:8px 0; font-size:14px; font-weight:600; color:#0f172a; border-bottom:1px solid #e5e7eb; font-variant-numeric:tabular-nums;">${formatMoney(val)}</td>
-</tr>`;
-    }
-  }
-  if (marginAmount > 0) {
-    const pct =
-      marginPct % 1 === 0 ? marginPct.toFixed(0) : marginPct.toFixed(1);
-    ledgerRows += `
-<tr>
-  <td style="padding:8px 0; font-size:14px; color:#64748b; border-bottom:1px solid #e5e7eb;">Margin (${pct}%)</td>
-  <td align="right" style="padding:8px 0; font-size:14px; font-weight:600; color:#0f172a; border-bottom:1px solid #e5e7eb; font-variant-numeric:tabular-nums;">${formatMoney(marginAmount)}</td>
-</tr>`;
-  }
-
   const galvBand =
     galvMode === "optional_addon" && (takeoff.galv_addon_amount ?? 0) > 0
       ? `
-<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin-top:12px; border:1px solid #f59e0b; border-radius:6px; background:#fffbeb;">
-  <tr><td style="padding:12px 14px; font-size:13px; color:#0f172a;">
-    Optional galvanization add-on: <strong>${formatMoney(takeoff.galv_addon_amount)}</strong><br/>
-    Total if galvanized: <strong>${formatMoney(grandWithGalv ?? takeoff.grand_total)}</strong>
-  </td></tr>
-</table>`
+<p style="margin:12px 0 0 0; font-size:13px; color:#64748b;">Optional galvanizing is available; contact us for add-on pricing.</p>`
       : "";
 
   return `<!DOCTYPE html>
@@ -205,23 +141,19 @@ export function proposalEmailHtml(data: ProposalData): string {
   </table>
 
   <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin-top:16px;">
-    ${scopeLineBlocksHtml(metalLines, (l) => lineRow(l.display_name, l.total_price, l.is_galvanized))}
-    ${scopeLineBlocksHtml(componentLines, (l) => lineRow(l.display_name ?? "", l.total_price))}
-    ${scopeLineBlocksHtml(miscDisplay, (l) => lineRow(l.label ?? "", l.total_price))}
-    ${scopeLineBlocksHtml(fieldMiscLines, (l) => lineRow(l.label ?? "", l.total), "total")}
+    ${scopeLineBlocksHtml(metalLines, (l) => lineRow(l.display_name, l.is_galvanized))}
+    ${scopeLineBlocksHtml(componentLines, (l) => lineRow(l.display_name ?? ""))}
+    ${scopeLineBlocksHtml(miscDisplay, (l) => lineRow(l.label ?? ""))}
+    ${scopeLineBlocksHtml(fieldMiscLines, (l) => lineRow(l.label ?? ""))}
   </table>
 
-  <p style="margin:24px 0 8px 0; font-size:11px; font-weight:700; letter-spacing:0.06em; text-transform:uppercase; color:#64748b;">Pricing summary</p>
-  <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
-    ${ledgerRows}
-  </table>
-
-  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin-top:16px; border:2px solid #2f4a6b; border-radius:6px; background:#f6f7f9;">
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin-top:24px; border:2px solid #2f4a6b; border-radius:6px; background:#f6f7f9;">
     <tr>
-      <td style="padding:14px 16px; font-size:15px; font-weight:700; color:#0f172a;">Grand total</td>
+      <td style="padding:14px 16px; font-size:15px; font-weight:700; color:#0f172a;">Total</td>
       <td align="right" style="padding:14px 16px; font-size:24px; font-weight:700; color:#0f172a; font-variant-numeric:tabular-nums;">${formatMoney(takeoff.grand_total)}</td>
     </tr>
   </table>
+  <p style="margin:8px 0 0 0; font-size:12px; color:#64748b;">Lump-sum price includes all scope and line items above.</p>
   ${galvBand}
 
   <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin-top:28px; border-top:1px solid #e5e7eb; padding-top:20px;">

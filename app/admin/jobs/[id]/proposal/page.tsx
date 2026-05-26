@@ -3,7 +3,6 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getProposalData, deriveProposalScopeLabel } from "./loadProposalData";
 import { formatMoney } from "../takeoff/formatMoney";
-import { normalizeRate } from "@/lib/takeoff-calculations";
 import type { ProposalData } from "./loadProposalData";
 import { SendProposalForm } from "./SendProposalForm";
 import { PushEstimateToQboForm } from "./PushEstimateToQboForm";
@@ -38,18 +37,6 @@ function proposalScopeHeaderLabel(lines: Array<{ scope?: string | null }>): stri
   return deriveProposalScopeLabel(lines);
 }
 
-function PricingRow({ label, value }: { label: string; value: number }) {
-  if (!value || value === 0) return null;
-  return (
-    <div className="flex justify-between border-b border-steel/40 py-2.5 text-sm print:border-gray-300">
-      <span className="text-foreground-muted print:text-gray-600">{label}</span>
-      <span className="tabular-nums font-medium text-foreground print:text-black">
-        {formatMoney(value)}
-      </span>
-    </div>
-  );
-}
-
 function ProposalDocument({ data, jobId }: { data: ProposalData; jobId: string }) {
   const {
     job,
@@ -74,14 +61,6 @@ function ProposalDocument({ data, jobId }: { data: ProposalData; jobId: string }
   const scopeLabel = proposalScopeHeaderLabel(allScopedLines);
   const galvMode = takeoff.galv_mode ?? "not_galvanized";
   const jobNumber = `JOB-${jobId.slice(0, 6).toUpperCase()}`;
-
-  const marginAmount = (takeoff.grand_total ?? 0) - (takeoff.project_total ?? 0);
-  const marginPct = normalizeRate(takeoff.margin_rate, 0.2) * 100;
-
-  const grandWithGalv =
-    galvMode === "optional_addon"
-      ? (takeoff.grand_total ?? 0) + (takeoff.galv_addon_amount ?? 0)
-      : null;
 
   return (
     <>
@@ -154,51 +133,24 @@ function ProposalDocument({ data, jobId }: { data: ProposalData; jobId: string }
         </div>
 
         <section className="mt-10 rounded-xl border-2 border-steel-blue/50 bg-steel-blue/15 p-6 shadow-md ring-1 ring-steel/40 print:border-gray-400 print:bg-gray-100 print:shadow-none">
-          <h2 className={sectionTitleClass}>Pricing summary</h2>
-          <div className="w-full">
-            <PricingRow
-              label="Materials (w/ tax)"
-              value={takeoff.material_total_with_tax ?? 0}
-            />
-            <PricingRow label="Drawings" value={takeoff.drawings_total ?? 0} />
-            <PricingRow label="Shop / Fabrication" value={takeoff.shop_total ?? 0} />
-            <PricingRow label="Installation" value={takeoff.install_total ?? 0} />
-            <PricingRow label="Miscellaneous" value={takeoff.misc_total ?? 0} />
-            <PricingRow label="Subtotal" value={takeoff.project_total ?? 0} />
-            {marginAmount > 0 && (
-              <div className="flex justify-between border-b border-steel/40 py-2.5 text-sm print:border-gray-300">
-                <span className="text-foreground-muted print:text-gray-600">
-                  Margin (
-                  {marginPct % 1 === 0 ? marginPct.toFixed(0) : marginPct.toFixed(1)}%)
-                </span>
-                <span className="tabular-nums font-medium text-foreground print:text-black">
-                  {formatMoney(marginAmount)}
-                </span>
-              </div>
-            )}
-          </div>
-
-          <div className="mt-6 w-full rounded-lg border-2 border-steel-blue/70 bg-steel-blue/15 px-5 py-4 print:border-gray-400 print:bg-gray-100">
+          <div className="w-full rounded-lg border-2 border-steel-blue/70 bg-steel-blue/15 px-5 py-4 print:border-gray-400 print:bg-gray-100">
             <div className="flex items-center justify-between gap-4">
               <span className="text-base font-semibold text-foreground print:text-black">
-                Grand total
+                Total
               </span>
               <span className="text-[28px] font-bold tabular-nums text-foreground print:text-black">
                 {formatMoney(takeoff.grand_total)}
               </span>
             </div>
           </div>
-
+          <p className="mt-3 text-xs text-foreground-muted print:text-gray-600">
+            Lump-sum price includes all scope and line items above (materials, shop, field, and
+            margin as applicable).
+          </p>
           {galvMode === "optional_addon" && (takeoff.galv_addon_amount ?? 0) > 0 && (
-            <div className="mt-4 w-full rounded-lg border border-amber-500/40 bg-amber-500/10 px-5 py-4 print:border-gray-400 print:bg-gray-50">
-              <p className="text-sm text-foreground print:text-black">
-                Optional galvanization add-on:{" "}
-                <strong>{formatMoney(takeoff.galv_addon_amount)}</strong>
-                <br />
-                Total if galvanized:{" "}
-                <strong>{formatMoney(grandWithGalv ?? takeoff.grand_total)}</strong>
-              </p>
-            </div>
+            <p className="mt-3 text-sm text-foreground-muted print:text-gray-600">
+              Optional galvanizing is available; contact us for add-on pricing.
+            </p>
           )}
         </section>
 

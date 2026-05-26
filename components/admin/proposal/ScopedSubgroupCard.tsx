@@ -7,6 +7,8 @@ type Props = {
   subtotal: number;
   children: ReactNode;
   scope?: LineScope;
+  /** When false, hide subgroup subtotal (customer lump-sum proposals). */
+  showAmounts?: boolean;
 };
 
 const scopeStyles: Record<LineScope, string> = {
@@ -22,7 +24,13 @@ const headerStyles: Record<LineScope, string> = {
     "border-b border-amber-500/30 bg-amber-950/35 print:border-amber-200 print:bg-amber-100",
 };
 
-export function ScopedSubgroupCard({ title, subtotal, children, scope }: Props) {
+export function ScopedSubgroupCard({
+  title,
+  subtotal,
+  children,
+  scope,
+  showAmounts = true,
+}: Props) {
   const variant = scope ?? "furnish_install";
   return (
     <div
@@ -34,9 +42,11 @@ export function ScopedSubgroupCard({ title, subtotal, children, scope }: Props) 
         <span className="text-xs font-bold uppercase tracking-wider text-foreground print:text-gray-800">
           {title}
         </span>
-        <span className="text-sm font-bold tabular-nums text-foreground print:text-black">
-          {formatMoney(subtotal)}
-        </span>
+        {showAmounts && (
+          <span className="text-sm font-bold tabular-nums text-foreground print:text-black">
+            {formatMoney(subtotal)}
+          </span>
+        )}
       </div>
       <div className="space-y-0 bg-charcoal/40 px-4 py-3 print:bg-white">{children}</div>
     </div>

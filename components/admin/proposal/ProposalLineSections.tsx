@@ -29,13 +29,21 @@ function LineRow({
   description,
   amount,
   galv,
+  showAmounts,
 }: {
   description: string;
   amount: number | null | undefined;
   galv?: boolean;
+  showAmounts: boolean;
 }) {
   return (
-    <div className="flex justify-between gap-4 border-b border-steel/30 py-2.5 last:border-0 print:border-gray-200">
+    <div
+      className={
+        showAmounts
+          ? "flex justify-between gap-4 border-b border-steel/30 py-2.5 last:border-0 print:border-gray-200"
+          : "border-b border-steel/30 py-2.5 last:border-0 print:border-gray-200"
+      }
+    >
       <span className="text-foreground print:text-black">
         {description}
         {galv && (
@@ -44,14 +52,22 @@ function LineRow({
           </span>
         )}
       </span>
-      <span className="shrink-0 tabular-nums font-medium text-foreground print:text-black">
-        {formatMoney(amount)}
-      </span>
+      {showAmounts && (
+        <span className="shrink-0 tabular-nums font-medium text-foreground print:text-black">
+          {formatMoney(amount)}
+        </span>
+      )}
     </div>
   );
 }
 
-function ScopeLineCards({ lines }: { lines: CustomerLine[] }) {
+function ScopeLineCards({
+  lines,
+  showAmounts,
+}: {
+  lines: CustomerLine[];
+  showAmounts: boolean;
+}) {
   if (lines.length === 0) return null;
   const groups = groupLinesByScope(lines);
   return (
@@ -69,6 +85,7 @@ function ScopeLineCards({ lines }: { lines: CustomerLine[] }) {
                 total: l.amount,
               }))
             )}
+            showAmounts={showAmounts}
           >
             {sorted.map((line) => (
               <LineRow
@@ -76,6 +93,7 @@ function ScopeLineCards({ lines }: { lines: CustomerLine[] }) {
                 description={line.description}
                 amount={line.amount}
                 galv={line.galv}
+                showAmounts={showAmounts}
               />
             ))}
           </ScopedSubgroupCard>
@@ -95,6 +113,8 @@ type Props = {
   fieldMiscLines: TakeoffFieldMisc[];
   sectionNotes: Partial<Record<TakeoffSectionKey, TakeoffSectionNote>>;
   galvMode: string;
+  /** When false, list scope/line descriptions only; amounts still roll into takeoff.grand_total. */
+  showAmounts?: boolean;
 };
 
 export function ProposalLineSections({
@@ -104,6 +124,7 @@ export function ProposalLineSections({
   fieldMiscLines,
   sectionNotes,
   galvMode,
+  showAmounts = false,
 }: Props) {
   const miscDisplay = miscLines.filter(
     (l) => !(isGalvanizerLine(l.label) && galvMode === "not_galvanized")
@@ -159,7 +180,7 @@ export function ProposalLineSections({
           key={block.key}
           className={`${sectionBlockClass} ${index > 0 ? "mt-2" : ""}`}
         >
-          <ScopeLineCards lines={block.lines} />
+          <ScopeLineCards lines={block.lines} showAmounts={showAmounts} />
           <ProposalSectionNote note={block.note} />
         </div>
       ))}

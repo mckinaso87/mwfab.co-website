@@ -1,11 +1,7 @@
 import { PDFDocument, StandardFonts, rgb } from "pdf-lib";
-import {
-  groupLinesByScope,
-  subgroupSubtotal,
-  SCOPE_SUBGROUP_TITLE,
-} from "@/lib/proposal-line-groups";
+import { groupLinesByScope, SCOPE_SUBGROUP_TITLE } from "@/lib/proposal-line-groups";
 import { LETTERHEAD, proposalLicenseLines } from "@/components/admin/proposal/Letterhead";
-import { isGalvanizerLine, normalizeRate } from "@/lib/takeoff-calculations";
+import { isGalvanizerLine } from "@/lib/takeoff-calculations";
 import type { ProposalData } from "./loadProposalData";
 import { deriveProposalScopeLabel } from "./loadProposalData";
 
@@ -76,22 +72,21 @@ export async function generateProposalPdf(data: ProposalData): Promise<Uint8Arra
     if (advanceY) y -= LINE_HEIGHT;
   }
 
-  function drawLineRow(description: string, amount: number | null | undefined, galv?: boolean) {
+  function drawLineRow(description: string, galv?: boolean) {
     ensureSpace();
     const label = galv ? `${description} (galv)` : description;
     const truncated =
-      font.widthOfTextAtSize(label, 9) > RIGHT_EDGE - MARGIN - 90
-        ? label.slice(0, 55) + "…"
+      font.widthOfTextAtSize(label, 9) > RIGHT_EDGE - MARGIN - 16
+        ? label.slice(0, 85) + "…"
         : label;
     page.drawText(truncated, { x: MARGIN + 8, y, size: 9, font, color: rgb(0.2, 0.2, 0.2) });
-    drawRightAligned(formatMoney(amount), 9);
+    y -= LINE_HEIGHT;
   }
 
-  function drawSubgroupHeader(title: string, subtotal: number) {
+  function drawSubgroupHeader(title: string) {
     ensureSpace(2);
     page.drawText(title, { x: MARGIN, y, size: 9, font: fontBold, color: rgb(0.11, 0.11, 0.12) });
-    drawRightAligned(formatMoney(subtotal), 9);
-    y -= 4;
+    y -= LINE_HEIGHT + 4;
   }
 
   const { job, takeoff, metalLines, componentLines, miscLines, fieldMiscLines, terms } =
@@ -152,94 +147,41 @@ export async function generateProposalPdf(data: ProposalData): Promise<Uint8Arra
     L extends {
       scope?: string | null;
       sort_order: number;
-      total_price?: number | null;
-      total?: number | null;
     },
   >(
     lines: L[],
     getLabel: (line: L) => string,
-    getAmount: (line: L) => number | null | undefined,
-    galv?: (line: L) => boolean,
-    amountKey: "total_price" | "total" = "total_price"
+    galv?: (line: L) => boolean
   ) {
     if (lines.length === 0) return;
     for (const { scope, lines: scoped } of groupLinesByScope(lines)) {
       const sorted = [...scoped].sort((a, b) => a.sort_order - b.sort_order);
-      drawSubgroupHeader(SCOPE_SUBGROUP_TITLE[scope], subgroupSubtotal(sorted, amountKey));
+      drawSubgroupHeader(SCOPE_SUBGROUP_TITLE[scope]);
       for (const line of sorted) {
-        drawLineRow(getLabel(line), getAmount(line), galv?.(line));
+        drawLineRow(getLabel(line), galv?.(line));
       }
       y -= 6;
     }
     y -= SECTION_GAP;
   }
 
-  drawScopeLineBlocks(
-    metalLines,
-    (l) => l.display_name,
-    (l) => l.total_price,
-    (l) => l.is_galvanized
-  );
-  drawScopeLineBlocks(
-    componentLines,
-    (l) => l.display_name ?? "",
-    (l) => l.total_price
-  );
-  drawScopeLineBlocks(
-    miscDisplay,
-    (l) => l.label ?? "",
-    (l) => l.total_price
-  );
-  drawScopeLineBlocks(
-    fieldMiscLines,
-    (l) => l.label ?? "",
-    (l) => l.total,
-    undefined,
-    "total"
-  );
+  drawScopeLineBlocks(metalLines, (l) => l.display_name, (l) => l.is_galvanized);
+  drawScopeLineBlocks(componentLines, (l) => l.display_name ?? "");
+  drawScopeLineBlocks(miscDisplay, (l) => l.label ?? "");
+  drawScopeLineBlocks(fieldMiscLines, (l) => l.label ?? "");
 
-  drawText("Pricing summary", MARGIN, 10, true);
-  y -= 4;
-  const pricingRows: [string, number][] = [
-    ["Materials (w/ tax)", takeoff.material_total_with_tax ?? 0],
-    ["Drawings", takeoff.drawings_total ?? 0],
-    ["Shop / Fabrication", takeoff.shop_total ?? 0],
-    ["Installation", takeoff.install_total ?? 0],
-    ["Miscellaneous", takeoff.misc_total ?? 0],
-    ["Subtotal", takeoff.project_total ?? 0],
-  ];
-  for (const [label, val] of pricingRows) {
-    if (val > 0) {
-      ensureSpace();
-      page.drawText(label, { x: MARGIN, y, size: 9, font, color: rgb(0.2, 0.2, 0.2) });
-      drawRightAligned(formatMoney(val), 9);
-    }
-  }
-  const marginAmt = (takeoff.grand_total ?? 0) - (takeoff.project_total ?? 0);
-  if (marginAmt > 0) {
-    const pct = normalizeRate(takeoff.margin_rate, 0.2) * 100;
-    ensureSpace();
-    page.drawText(`Margin (${pct.toFixed(0)}%)`, {
-      x: MARGIN,
-      y,
-      size: 9,
-      font,
-      color: rgb(0.2, 0.2, 0.2),
-    });
-    drawRightAligned(formatMoney(marginAmt), 9);
-  }
   y -= 6;
-  drawText(`Grand total: ${formatMoney(takeoff.grand_total)}`, MARGIN, 14, true);
+  drawText(`Total: ${formatMoney(takeoff.grand_total)}`, MARGIN, 14, true);
+  y -= 4;
+  drawText(
+    "Lump-sum price includes all scope and line items above.",
+    MARGIN,
+    8
+  );
 
   if (galvMode === "optional_addon" && (takeoff.galv_addon_amount ?? 0) > 0) {
     y -= 4;
-    const grandWithGalv =
-      (takeoff.grand_total ?? 0) + (takeoff.galv_addon_amount ?? 0);
-    drawText(
-      `Optional galvanization: ${formatMoney(takeoff.galv_addon_amount)} (total ${formatMoney(grandWithGalv)})`,
-      MARGIN,
-      9
-    );
+    drawText("Optional galvanizing available; contact us for add-on pricing.", MARGIN, 9);
   }
 
   y -= SECTION_GAP;
