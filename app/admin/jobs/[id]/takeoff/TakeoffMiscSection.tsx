@@ -1,18 +1,28 @@
 "use client";
 
-import { useActionState, useState, useTransition } from "react";
+import { useActionState, useEffect, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import {
   upsertMiscLine,
   deleteMiscLineForm,
   setGalvTotalOverride,
+  setGalvanizerIncludeInProposal,
+  setLineCustomerNote,
   setLineScope,
 } from "./actions";
 import { formatMoney } from "./formatMoney";
 import { isGalvanizerLine, computeMiscLineTotal } from "@/lib/takeoff-calculations";
 import type { Takeoff, TakeoffMiscLine, LineScope } from "@/lib/db-types";
-import { TakeoffSlideOver } from "@/components/admin/takeoff/TakeoffSlideOver";
+import { TAKEOFF_INNER_BOX } from "@/components/admin/takeoff/takeoff-form-variants";
+import { TakeoffFormSection } from "@/components/admin/takeoff/TakeoffFormSection";
+import {
+  IncludeInProposalField,
+  ProposalHiddenBadge,
+} from "@/components/admin/takeoff/IncludeInProposalField";
+import { LineCustomerNoteFields } from "@/components/admin/takeoff/LineCustomerNoteFields";
+import { TAKEOFF_ADD_LINE_SHELL } from "@/components/admin/takeoff/takeoff-form-variants";
 import { ScopeQuickToggle } from "@/components/admin/takeoff/ScopeQuickToggle";
+import { TakeoffSlideOver } from "@/components/admin/takeoff/TakeoffSlideOver";
 import { TakeoffMiscLineEditor } from "./TakeoffMiscLineEditor";
 
 const GALV_PCT = 0.15;
@@ -61,6 +71,22 @@ export function TakeoffMiscSection({
     takeoff.galv_total_override != null ? String(takeoff.galv_total_override) : ""
   );
   const [overrideSaving, setOverrideSaving] = useState(false);
+  const [proposalSaving, setProposalSaving] = useState(false);
+
+  const galvanizerLine = lines.find((l) => isGalvanizerLine(l.label));
+  const galvanizerOnProposal = galvanizerLine?.include_in_proposal !== false;
+  const [galvNote, setGalvNote] = useState("");
+  const [galvNoteInProposal, setGalvNoteInProposal] = useState(false);
+  const [galvNoteSaving, setGalvNoteSaving] = useState(false);
+
+  useEffect(() => {
+    setGalvNote(galvanizerLine?.customer_note ?? "");
+    setGalvNoteInProposal(galvanizerLine?.customer_note_in_proposal ?? false);
+  }, [
+    galvanizerLine?.id,
+    galvanizerLine?.customer_note,
+    galvanizerLine?.customer_note_in_proposal,
+  ]);
 
   const galvanizerTotal = Math.min(effectivePounds * GALV_PCT * GALV_RATE, GALV_CAP);
 
@@ -81,6 +107,26 @@ export function TakeoffMiscSection({
     );
     setOverrideSaving(false);
     router.refresh();
+  }
+
+  async function applyGalvanizerProposalVisibility(checked: boolean) {
+    setProposalSaving(true);
+    const result = await setGalvanizerIncludeInProposal(takeoffId, jobId, checked);
+    setProposalSaving(false);
+    if (!result.error) router.refresh();
+  }
+
+  async function saveGalvanizerCustomerNote() {
+    if (!galvanizerLine) return;
+    setGalvNoteSaving(true);
+    const result = await setLineCustomerNote(
+      galvanizerLine.id,
+      jobId,
+      galvNote,
+      galvNoteInProposal
+    );
+    setGalvNoteSaving(false);
+    if (!result.error) router.refresh();
   }
 
   async function handleSubmit(formData: FormData) {
@@ -107,8 +153,13 @@ export function TakeoffMiscSection({
       </p>
 
       {showGalvPanel && (
-        <div className="mb-6 rounded-lg border border-steel/50 bg-steel/10 p-4 space-y-3">
-          <h3 className="text-sm font-semibold text-foreground">Galvanizer</h3>
+        <TakeoffFormSection
+          title="Galvanizer (auto-calculated)"
+          subtitle="LBs × 15% × $0.50, cap $750. Weight sums from galvanized metal lines."
+          variant="galvanizer"
+          className="!col-span-1 mb-6"
+        >
+          <div className="space-y-3">
           <p className="text-sm text-foreground">
             Auto-summed weight: <strong>{effectiveAuto.toFixed(1)} lb</strong>
           </p>
@@ -158,7 +209,46 @@ export function TakeoffMiscSection({
               </button>
             </div>
           )}
-        </div>
+          <div className={TAKEOFF_INNER_BOX.galvanizerLine}>
+            <p className="mb-3 text-xs font-semibold uppercase tracking-wide text-teal-200/90">
+              Galvanizer line on proposal
+            </p>
+            <IncludeInProposalField
+              checked={galvanizerOnProposal}
+              onChange={(checked) => {
+                void applyGalvanizerProposalVisibility(checked);
+              }}
+              title="Show galvanizer line on the proposal"
+              description="Controls whether the auto-calculated Galvanizer row appears on the customer proposal."
+              className={proposalSaving ? "opacity-60 pointer-events-none" : undefined}
+            />
+          </div>
+          {galvanizerLine && (
+            <div className={TAKEOFF_INNER_BOX.galvanizerNote}>
+              <p className="mb-1 text-xs font-semibold uppercase tracking-wide text-teal-200/80">
+                Note under galvanizer line
+              </p>
+              <p className="mb-3 text-xs text-foreground-muted">
+                Optional text indented below the galvanizer row on the proposal.
+              </p>
+              <LineCustomerNoteFields
+                note={galvNote}
+                includeInProposal={galvNoteInProposal}
+                onNoteChange={setGalvNote}
+                onIncludeChange={setGalvNoteInProposal}
+              />
+              <button
+                type="button"
+                disabled={galvNoteSaving}
+                onClick={() => void saveGalvanizerCustomerNote()}
+                className="mt-2 rounded-md bg-steel/50 px-3 py-1.5 text-xs font-medium text-foreground hover:bg-steel disabled:opacity-50"
+              >
+                {galvNoteSaving ? "Saving…" : "Save galvanizer note"}
+              </button>
+            </div>
+          )}
+          </div>
+        </TakeoffFormSection>
       )}
 
       {displayLines.length > 0 ? (
@@ -183,6 +273,7 @@ export function TakeoffMiscSection({
                           ({line.weight_of_galv.toFixed(1)} lb)
                         </span>
                       )}
+                      {line.include_in_proposal === false && <ProposalHiddenBadge />}
                     </td>
                     <td className="px-4 py-2.5 text-right tabular-nums font-medium text-foreground">
                       {formatMoney(
@@ -191,7 +282,10 @@ export function TakeoffMiscSection({
                     </td>
                     <td className="px-4 py-2.5 text-right">
                       {isGalv ? (
-                        <span className="text-xs text-foreground-muted">Auto</span>
+                        <span className="text-xs text-foreground-muted">
+                          Auto
+                          {line.include_in_proposal === false ? " · hidden on proposal" : ""}
+                        </span>
                       ) : (
                         <div className="flex items-center justify-end gap-2 flex-wrap">
                           <ScopeQuickToggle
@@ -234,7 +328,8 @@ export function TakeoffMiscSection({
         <p className="mb-6 text-sm text-foreground-muted">No misc lines yet. Add one below.</p>
       )}
 
-      <h3 className="mb-3 text-sm font-semibold text-foreground">Add misc line</h3>
+      <h3 className="mb-3 text-base font-semibold text-foreground">Add misc line</h3>
+      <div className={TAKEOFF_ADD_LINE_SHELL.misc}>
       <TakeoffMiscLineEditor
         sortOrder={lines.length}
         onSubmit={handleSubmit}
@@ -242,6 +337,7 @@ export function TakeoffMiscSection({
         submitLabel={isPending ? "Adding…" : "Add misc line"}
         pending={isPending}
       />
+      </div>
 
       {editingLine && (
         <TakeoffSlideOver title="Edit misc line" onClose={() => setEditingLine(null)}>

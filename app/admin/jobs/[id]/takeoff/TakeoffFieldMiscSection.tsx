@@ -6,6 +6,8 @@ import { upsertFieldMiscLine, deleteFieldMiscLineForm, setLineScope } from "./ac
 import { formatMoney } from "./formatMoney";
 import type { TakeoffFieldMisc, LineScope } from "@/lib/db-types";
 import { TakeoffSlideOver } from "@/components/admin/takeoff/TakeoffSlideOver";
+import { ProposalHiddenBadge } from "@/components/admin/takeoff/IncludeInProposalField";
+import { TAKEOFF_ADD_LINE_SHELL } from "@/components/admin/takeoff/takeoff-form-variants";
 import { ScopeQuickToggle } from "@/components/admin/takeoff/ScopeQuickToggle";
 import { TakeoffFieldMiscLineEditor } from "./TakeoffFieldMiscLineEditor";
 
@@ -64,7 +66,10 @@ export function TakeoffFieldMiscSection({ takeoffId, jobId, lines }: Props) {
             <tbody>
               {lines.map((line) => (
                 <tr key={line.id} className="border-b border-steel/30 hover:bg-steel/10">
-                  <td className="px-4 py-2.5 font-medium text-foreground">{line.label}</td>
+                  <td className="px-4 py-2.5 font-medium text-foreground">
+                    {line.label}
+                    {line.include_in_proposal === false && <ProposalHiddenBadge />}
+                  </td>
                   <td className="px-4 py-2.5 text-right tabular-nums font-medium text-foreground">
                     {formatMoney(line.total)}
                   </td>
@@ -108,7 +113,8 @@ export function TakeoffFieldMiscSection({ takeoffId, jobId, lines }: Props) {
         <p className="mb-6 text-sm text-foreground-muted">No field misc lines yet. Add one below.</p>
       )}
 
-      <h3 className="mb-3 text-sm font-semibold text-foreground">Add field misc line</h3>
+      <h3 className="mb-3 text-base font-semibold text-foreground">Add field misc line</h3>
+      <div className={`mb-6 ${TAKEOFF_ADD_LINE_SHELL.field}`}>
       <TakeoffFieldMiscLineEditor
         sortOrder={lines.length}
         onSubmit={handleSubmit}
@@ -116,6 +122,7 @@ export function TakeoffFieldMiscSection({ takeoffId, jobId, lines }: Props) {
         submitLabel={isPending ? "Adding…" : "Add field misc"}
         pending={isPending}
       />
+      </div>
 
       {editingLine && (
         <TakeoffSlideOver title="Edit field misc line" onClose={() => setEditingLine(null)}>

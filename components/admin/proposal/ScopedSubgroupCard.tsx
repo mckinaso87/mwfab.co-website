@@ -39,8 +39,13 @@ export function ScopedSubgroupCard({
       <div
         className={`flex items-center justify-between px-4 py-3 ${headerStyles[variant]}`}
       >
-        <span className="text-xs font-bold uppercase tracking-wider text-foreground print:text-gray-800">
-          {title}
+        <span className="flex flex-col gap-0.5">
+          <span className="text-[10px] font-medium uppercase tracking-widest text-foreground-muted print:text-gray-600">
+            Scope
+          </span>
+          <span className="text-xs font-bold uppercase tracking-wider text-foreground print:text-gray-800">
+            {title}
+          </span>
         </span>
         {showAmounts && (
           <span className="text-sm font-bold tabular-nums text-foreground print:text-black">

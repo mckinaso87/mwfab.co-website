@@ -1,7 +1,8 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { ScopeToggle } from "@/components/admin/takeoff/ScopeToggle";
+import { TakeoffLineProposalPanel } from "@/components/admin/takeoff/TakeoffLineProposalPanel";
+import { TakeoffFormSection } from "@/components/admin/takeoff/TakeoffFormSection";
 import type { TakeoffComponentLine, LineScope } from "@/lib/db-types";
 
 type Props = {
@@ -22,6 +23,13 @@ export function TakeoffComponentLineEditor({
   pending,
 }: Props) {
   const [scope, setScope] = useState<LineScope>(initial?.scope ?? "furnish_install");
+  const [includeInProposal, setIncludeInProposal] = useState(
+    initial?.include_in_proposal ?? true
+  );
+  const [customerNote, setCustomerNote] = useState(initial?.customer_note ?? "");
+  const [customerNoteInProposal, setCustomerNoteInProposal] = useState(
+    initial?.customer_note_in_proposal ?? false
+  );
   const [displayName, setDisplayName] = useState(initial?.display_name ?? "");
   const [count, setCount] = useState(initial?.count ?? 1);
   const [totalPoundsPerPiece, setTotalPoundsPerPiece] = useState(
@@ -60,10 +68,18 @@ export function TakeoffComponentLineEditor({
   return (
     <form
       action={onSubmit}
-      className="grid grid-cols-1 gap-3 sm:grid-cols-2"
+      className="grid grid-cols-1 gap-4 sm:grid-cols-2"
     >
       {initial?.id && <input type="hidden" name="id" value={initial.id} />}
       <input type="hidden" name="sort_order" value={initial?.sort_order ?? sortOrder} />
+
+      <TakeoffFormSection
+        title="Line details"
+        subtitle="Name, count, weight, and pricing for this component."
+        variant="details"
+        className="sm:col-span-2"
+      >
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
       <div className="sm:col-span-2">
         <label htmlFor="comp_display_name" className={labelClass}>
           Name
@@ -153,12 +169,20 @@ export function TakeoffComponentLineEditor({
           value={totalPrice}
         />
       </div>
-      <div className="sm:col-span-2">
-        <span className={labelClass}>Scope</span>
-        <div className="mt-1">
-          <ScopeToggle value={scope} onChange={setScope} />
         </div>
-      </div>
+      </TakeoffFormSection>
+
+      <TakeoffLineProposalPanel
+        scope={scope}
+        onScopeChange={setScope}
+        includeLineOnProposal={includeInProposal}
+        onIncludeLineChange={setIncludeInProposal}
+        customerNote={customerNote}
+        customerNoteInProposal={customerNoteInProposal}
+        onNoteChange={setCustomerNote}
+        onNoteIncludeChange={setCustomerNoteInProposal}
+      />
+
       {error && <p className="sm:col-span-2 text-sm text-red-500">{error}</p>}
       <div className="sm:col-span-2">
         <button

@@ -189,6 +189,9 @@ export interface TakeoffMetalLine {
   plate_height_in: number | null;
   other_unit: "lbs" | "ft" | null;
   sort_order: number;
+  include_in_proposal: boolean;
+  customer_note: string | null;
+  customer_note_in_proposal: boolean;
 }
 
 export interface TakeoffComponentLine {
@@ -202,6 +205,9 @@ export interface TakeoffComponentLine {
   cost_per_measure: number | null;
   total_price: number;
   sort_order: number;
+  include_in_proposal: boolean;
+  customer_note: string | null;
+  customer_note_in_proposal: boolean;
 }
 
 export interface TakeoffMiscLine {
@@ -218,6 +224,9 @@ export interface TakeoffMiscLine {
   price_per: number | null;
   total_price: number;
   sort_order: number;
+  include_in_proposal: boolean;
+  customer_note: string | null;
+  customer_note_in_proposal: boolean;
 }
 
 export interface TakeoffFieldMisc {
@@ -234,6 +243,9 @@ export interface TakeoffFieldMisc {
   hrs_days_nights: string | null;
   total: number;
   sort_order: number;
+  include_in_proposal: boolean;
+  customer_note: string | null;
+  customer_note_in_proposal: boolean;
 }
 
 export type TakeoffSectionKey =

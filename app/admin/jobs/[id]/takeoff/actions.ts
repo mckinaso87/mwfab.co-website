@@ -32,6 +32,26 @@ function parseScope(formData: FormData): LineScope {
   return s === "furnish" ? "furnish" : "furnish_install";
 }
 
+function parseFormCheckbox(formData: FormData, name: string): boolean {
+  const v = (formData.get(name) as string)?.trim().toLowerCase();
+  return v !== "false" && v !== "0" && v !== "off";
+}
+
+function parseIncludeInProposal(formData: FormData): boolean {
+  return parseFormCheckbox(formData, "include_in_proposal");
+}
+
+function parseCustomerNoteFields(formData: FormData): {
+  customer_note: string | null;
+  customer_note_in_proposal: boolean;
+} {
+  const raw = (formData.get("customer_note") as string)?.trim() ?? "";
+  return {
+    customer_note: raw.length > 0 ? raw : null,
+    customer_note_in_proposal: parseFormCheckbox(formData, "customer_note_in_proposal"),
+  };
+}
+
 const CATALOG_SELECT =
   "id, category, item_code, shorthand_code, size_label, finish, dimensions, weight_per_ft, cost_per_lb, cost_per_foot, pricing_unit, is_active, source_file, created_at";
 
@@ -142,6 +162,71 @@ export async function setGalvTotalOverride(
     .eq("id", takeoffId);
   if (error) return { error: error.message };
   await recomputeAndSaveTotals(takeoffId, jobId);
+  return {};
+}
+
+export async function setGalvanizerIncludeInProposal(
+  takeoffId: string,
+  jobId: string,
+  includeInProposal: boolean
+): Promise<{ error?: string }> {
+  const supabase = createAdminClient();
+  const { data: miscRows } = await supabase
+    .from("takeoff_misc_lines")
+    .select("id, label")
+    .eq("takeoff_id", takeoffId);
+
+  let galvLine = (miscRows ?? []).find((l) => isGalvanizerLine(l.label));
+  if (!galvLine) {
+    const recompute = await recomputeAndSaveTotals(takeoffId, jobId);
+    if (recompute.error) return recompute;
+
+    const { data: afterRows } = await supabase
+      .from("takeoff_misc_lines")
+      .select("id, label")
+      .eq("takeoff_id", takeoffId);
+    galvLine = (afterRows ?? []).find((l) => isGalvanizerLine(l.label));
+  }
+
+  if (!galvLine) {
+    return {
+      error:
+        "Galvanizer line not found. Set galvanizing mode above baked-in or optional, then save the takeoff.",
+    };
+  }
+
+  const { error } = await supabase
+    .from("takeoff_misc_lines")
+    .update({ include_in_proposal: includeInProposal })
+    .eq("id", galvLine.id);
+
+  if (error) return { error: error.message };
+
+  revalidatePath(`/admin/jobs/${jobId}/takeoff`);
+  revalidatePath(`/admin/jobs/${jobId}/proposal`);
+  return {};
+}
+
+export async function setLineCustomerNote(
+  lineId: string,
+  jobId: string,
+  note: string,
+  includeInProposal: boolean
+): Promise<{ error?: string }> {
+  const supabase = createAdminClient();
+  const trimmed = note.trim();
+  const { error } = await supabase
+    .from("takeoff_misc_lines")
+    .update({
+      customer_note: trimmed.length > 0 ? trimmed : null,
+      customer_note_in_proposal: includeInProposal,
+    })
+    .eq("id", lineId);
+
+  if (error) return { error: error.message };
+
+  revalidatePath(`/admin/jobs/${jobId}/takeoff`);
+  revalidatePath(`/admin/jobs/${jobId}/proposal`);
   return {};
 }
 
@@ -505,6 +590,8 @@ export async function upsertMetalLine(
     plate_height_in: category === "plate" && Number.isFinite(plateHeight) ? plateHeight : null,
     other_unit: otherUnit,
     sort_order: sortOrder,
+    include_in_proposal: parseIncludeInProposal(formData),
+    ...parseCustomerNoteFields(formData),
   };
 
   if (id) {
@@ -515,6 +602,7 @@ export async function upsertMetalLine(
     if (error) return { error: error.message };
   }
   revalidatePath(`/admin/jobs/${jobId}/takeoff`);
+  revalidatePath(`/admin/jobs/${jobId}/proposal`);
   await recomputeAndSaveTotals(takeoffId, jobId);
   return {};
 }
@@ -566,6 +654,8 @@ export async function upsertComponentLine(
     cost_per_measure: Number.isFinite(costPerMeasure) ? costPerMeasure : null,
     total_price: Number.isFinite(totalPrice) ? totalPrice : 0,
     sort_order: sortOrder,
+    include_in_proposal: parseIncludeInProposal(formData),
+    ...parseCustomerNoteFields(formData),
   };
   if (id) {
     const { error } = await supabase.from("takeoff_component_lines").update(payload).eq("id", id);
@@ -575,6 +665,7 @@ export async function upsertComponentLine(
     if (error) return { error: error.message };
   }
   revalidatePath(`/admin/jobs/${jobId}/takeoff`);
+  revalidatePath(`/admin/jobs/${jobId}/proposal`);
   await recomputeAndSaveTotals(takeoffId, jobId);
   return {};
 }
@@ -649,6 +740,8 @@ export async function upsertMiscLine(
     price_per: miscInput.price_per,
     total_price: totalPrice,
     sort_order: sortOrder,
+    include_in_proposal: parseIncludeInProposal(formData),
+    ...parseCustomerNoteFields(formData),
   };
   if (id) {
     const { error } = await supabase.from("takeoff_misc_lines").update(payload).eq("id", id);
@@ -658,6 +751,7 @@ export async function upsertMiscLine(
     if (error) return { error: error.message };
   }
   revalidatePath(`/admin/jobs/${jobId}/takeoff`);
+  revalidatePath(`/admin/jobs/${jobId}/proposal`);
   await recomputeAndSaveTotals(takeoffId, jobId);
   return {};
 }
@@ -725,6 +819,8 @@ export async function upsertFieldMiscLine(
     hrs_days_nights: hrsDaysNights,
     total,
     sort_order: sortOrder,
+    include_in_proposal: parseIncludeInProposal(formData),
+    ...parseCustomerNoteFields(formData),
   };
   if (id) {
     const { error } = await supabase.from("takeoff_field_misc").update(payload).eq("id", id);
@@ -734,6 +830,7 @@ export async function upsertFieldMiscLine(
     if (error) return { error: error.message };
   }
   revalidatePath(`/admin/jobs/${jobId}/takeoff`);
+  revalidatePath(`/admin/jobs/${jobId}/proposal`);
   await recomputeAndSaveTotals(takeoffId, jobId);
   return {};
 }

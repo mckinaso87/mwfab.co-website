@@ -8,7 +8,9 @@
     "start": "next start",
     "lint": "eslint",
     "seed:materials": "tsx scripts/seed-material-catalog.ts",
-    "qbo:list-config": "tsx scripts/qbo-list-config.ts"
+    "qbo:list-config": "tsx scripts/qbo-list-config.ts",
+    "staff:sync": "tsx scripts/sync-clerk-staff.ts",
+    "staff:grant": "tsx scripts/grant-staff.ts"
   },
   "dependencies": {
     "@clerk/nextjs": "^6.37.3",

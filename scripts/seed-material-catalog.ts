@@ -105,7 +105,10 @@ function pickCol(row: Record<string, string>, ...aliases: string[]): string | nu
   for (const k of Object.keys(row)) keyMap[normalizeKey(k)] = k;
   for (const a of aliases) {
     const n = normalizeKey(a);
-    if (keyMap[n] !== undefined) return row[keyMap[n]]?.trim() || null;
+    if (keyMap[n] !== undefined) {
+      const val = row[keyMap[n]]?.trim();
+      if (val) return val;
+    }
   }
   return null;
 }
@@ -139,15 +142,43 @@ function buildAngleCodes(d: Record<string, unknown>): { shorthand: string; label
   return { shorthand, label };
 }
 
+/** W nominal from depth when Section Number is blank (AISC depth bands). */
+function inferWideFlangeSectionFromDepth(depthIn: number | null): string | null {
+  if (depthIn == null || !Number.isFinite(depthIn)) return null;
+  const d = depthIn;
+  if (d < 4.6) return "W4";
+  if (d < 5.6) return "W5";
+  if (d < 6.6) return "W6";
+  if (d < 7.6) return "W7";
+  if (d < 9.0) return "W8";
+  if (d < 11.0) return "W10";
+  if (d < 13.0) return "W12";
+  if (d < 15.0) return "W14";
+  if (d < 17.0) return "W16";
+  if (d < 19.0) return "W18";
+  if (d < 22.0) return "W21";
+  if (d < 25.0) return "W24";
+  return `W${Math.round(d)}`;
+}
+
+/** W designation from Section Number (e.g. W12 → 12), not physical depth of section. */
+function wideFlangeWNumber(d: Record<string, unknown>): string {
+  const sn = String(d.section_number ?? d.size_c ?? "").trim();
+  const m = /^W(\d+(?:\.\d+)?)/i.exec(sn);
+  if (m) return m[1];
+  return compactToken(sn.replace(/^W/i, ""));
+}
+
 function buildWideFlangeCodes(
   d: Record<string, unknown>,
   weightPerFt: number | null
 ): { shorthand: string; label: string } {
-  const depth = compactToken(String(d.section_depth_a ?? ""));
+  const wNum = wideFlangeWNumber(d);
   const wpf = weightPerFt != null ? String(weightPerFt) : compactToken(String(d.weight_per_ft ?? ""));
+  const wLabel = prettyToken(String(d.section_number ?? d.size_c ?? "")).replace(/^W/i, "W");
   return {
-    shorthand: `W${depth}x${wpf}`,
-    label: `W${prettyToken(String(d.section_depth_a ?? ""))}×${wpf}`,
+    shorthand: wNum ? `W${wNum}x${wpf}` : `Wx${wpf}`,
+    label: wNum ? `${wLabel || `W${wNum}`}×${wpf}` : `×${wpf}`,
   };
 }
 
@@ -235,7 +266,8 @@ function rowToCatalog(
   category: string,
   sourceFile: string,
   pricingUnit: "per_lb" | "per_foot",
-  finish: "HR" | "CF" | null = null
+  finish: "HR" | "CF" | null = null,
+  wideFlangeCtx?: { lastSection: string | null }
 ): CatalogRow | null {
   if (sourceFile === "mwfab-base-materials5.csv" && isPlateSizedFlatBarRow(row)) {
     return null;
@@ -279,19 +311,44 @@ function rowToCatalog(
   const dimensions: Record<string, unknown> = {};
   const sizeA = pickCol(row, "Size A", "Size", "Thickness", "Pipe Size", "Width");
   const sizeB = pickCol(row, "Size B", "Width", "Height");
-  const sizeC = pickCol(row, "Size C", "Section Number", "Schedule", "Gauge");
+  const sizeC = pickCol(row, "Size C", "Schedule", "Gauge");
   const sizeD = pickCol(row, "Section Depth A", "Depth of Section", "Outer Diameter", "Average Wall Thickness");
   const flangeB = pickCol(row, "Flange Width B", "Flange Width");
   const flangeC = pickCol(row, "Flange Thickness C", "Flange Thickness");
   const webD = pickCol(row, "Web Thickness D", "Web Thickness", "Wall Thickness");
 
-  if (sizeA) dimensions.size_a = sizeA;
-  if (sizeB) dimensions.size_b = sizeB;
-  if (sizeC && category !== "pipe") dimensions.size_c = sizeC;
-  if (sizeD) dimensions.section_depth_a = sizeD;
-  if (flangeB) dimensions.flange_width_b = flangeB;
-  if (flangeC) dimensions.flange_thickness_c = flangeC;
-  if (webD) dimensions.web_thickness_d = webD;
+  if (isWideFlange) {
+    const sectionNumber = pickCol(row, "Section Number", "Section number");
+    const depthOfSection = pickCol(row, "Depth of Section");
+    const depthNum = depthOfSection ? parseNum(depthOfSection) : null;
+    if (sectionNumber && /^W/i.test(sectionNumber.trim())) {
+      const sn = sectionNumber.trim();
+      dimensions.section_number = sn;
+      if (wideFlangeCtx) wideFlangeCtx.lastSection = sn;
+    } else if (wideFlangeCtx?.lastSection) {
+      dimensions.section_number = wideFlangeCtx.lastSection;
+    } else {
+      const inferred = inferWideFlangeSectionFromDepth(depthNum);
+      if (inferred) {
+        dimensions.section_number = inferred;
+        if (wideFlangeCtx) wideFlangeCtx.lastSection = inferred;
+      }
+    }
+    if (depthOfSection) dimensions.section_depth_a = depthOfSection;
+    if (flangeB) dimensions.flange_width_b = flangeB;
+    if (flangeC) dimensions.flange_thickness_c = flangeC;
+    if (webD) dimensions.web_thickness_d = webD;
+  } else {
+    const sectionNumber = pickCol(row, "Section Number", "Section number");
+    if (sizeA) dimensions.size_a = sizeA;
+    if (sizeB) dimensions.size_b = sizeB;
+    if (sizeC && category !== "pipe") dimensions.size_c = sizeC;
+    else if (sectionNumber && category !== "pipe") dimensions.size_c = sectionNumber;
+    if (sizeD) dimensions.section_depth_a = sizeD;
+    if (flangeB) dimensions.flange_width_b = flangeB;
+    if (flangeC) dimensions.flange_thickness_c = flangeC;
+    if (webD) dimensions.web_thickness_d = webD;
+  }
 
   if (sourceFile === "mwfab-base-materials8.csv") {
     const pipeSize = pickCol(row, "Pipe Size");
@@ -322,8 +379,14 @@ function rowToCatalog(
 
   let finalItemCode =
     isWideFlange && weightPerFt != null
-      ? ((itemCode && String(itemCode).trim()) ? String(itemCode).trim() + "-" : "WF-") +
-        String(weightPerFt)
+      ? (() => {
+          const rowNum = pickCol(row, "#");
+          const sectionNum = pickCol(row, "Section Number", "Section number");
+          if (rowNum) return `${rowNum}-${weightPerFt}`;
+          if (sectionNum && /^W/i.test(sectionNum)) return `${sectionNum}-${weightPerFt}`;
+          const sn = dimensions.section_number ? String(dimensions.section_number) : "WF";
+          return `${sn}-${weightPerFt}`;
+        })()
       : String(itemCode ?? pickCol(row, "Size") ?? "").trim().slice(0, 255);
 
   if (isThicknessOnlyFlat) {
@@ -386,8 +449,16 @@ function seedFile(
   const category = CATEGORY_BY_FILE[fileName] ?? "angle";
   const rows = parseCsvFile(filePath);
   const out: CatalogRow[] = [];
+  const wideFlangeCtx = { lastSection: null as string | null };
   for (const row of rows) {
-    const r = rowToCatalog(row, category, fileName, pricingUnit);
+    const r = rowToCatalog(
+      row,
+      category,
+      fileName,
+      pricingUnit,
+      null,
+      fileName === "mwfab-base-materials2.csv" ? wideFlangeCtx : undefined
+    );
     if (r) out.push(r);
   }
   return out;

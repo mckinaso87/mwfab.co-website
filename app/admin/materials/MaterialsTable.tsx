@@ -226,8 +226,11 @@ function suggestShorthand(
   switch (category) {
     case "angle":
       return `L${c("size_a")}x${c("size_b")}x${c("size_c")}`;
-    case "wide_flange":
-      return `W${c("section_depth_a")}x${weightPerFt ?? ""}`;
+    case "wide_flange": {
+      const sn = c("section_number") || c("size_c");
+      const w = sn.replace(/^W/i, "");
+      return `W${w}x${weightPerFt ?? ""}`;
+    }
     case "round_bar":
       return `RB${c("size_a")}`;
     case "flat_bar": {

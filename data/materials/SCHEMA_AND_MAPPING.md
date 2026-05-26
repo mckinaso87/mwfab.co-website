@@ -38,7 +38,7 @@ Operator-visible fields per category in takeoff search results. Defaults seeded 
 | Source CSV | Category | Shorthand pattern |
 |------------|----------|-------------------|
 | mwfab-base-materials.csv | angle | L{A}x{B}x{C} |
-| mwfab-base-materials2.csv | wide_flange | W{depth}x{wpf} |
+| mwfab-base-materials2.csv | wide_flange | W{section#}x{wpf} (e.g. W12×30 from Section Number + Weight Per/Foot) |
 | mwfab-base-materials3.csv | round_bar | RB{size} (finish HR/CF) |
 | mwfab-base-materials4.csv | flat_bar | FB{thk} (width optional) |
 | mwfab-base-materials5.csv | flat_bar | FB{thk}x{w} (plate-like rows skipped) |

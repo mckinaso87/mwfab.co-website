@@ -7,6 +7,8 @@ import { formatMoney } from "./formatMoney";
 import { CATEGORY_LABEL } from "@/lib/takeoff-catalog-spec";
 import type { Takeoff, TakeoffMetalLine, LineScope } from "@/lib/db-types";
 import { TakeoffSlideOver } from "@/components/admin/takeoff/TakeoffSlideOver";
+import { ProposalHiddenBadge } from "@/components/admin/takeoff/IncludeInProposalField";
+import { TAKEOFF_ADD_LINE_SHELL } from "@/components/admin/takeoff/takeoff-form-variants";
 import { ScopeQuickToggle } from "@/components/admin/takeoff/ScopeQuickToggle";
 import { TakeoffMetalLineEditor } from "./TakeoffMetalLineEditor";
 
@@ -84,7 +86,10 @@ export function TakeoffMetalSection({ takeoffId, jobId, takeoff, lines }: Props)
             <tbody>
               {lines.map((line) => (
                 <tr key={line.id} className="border-b border-steel/30 hover:bg-steel/10">
-                  <td className="px-4 py-2.5 font-medium text-foreground">{line.display_name}</td>
+                  <td className="px-4 py-2.5 font-medium text-foreground">
+                    {line.display_name}
+                    {line.include_in_proposal === false && <ProposalHiddenBadge />}
+                  </td>
                   <td className="px-4 py-2.5 text-foreground-muted">
                     {CATEGORY_LABEL[line.category] ?? line.category}
                   </td>
@@ -148,7 +153,8 @@ export function TakeoffMetalSection({ takeoffId, jobId, takeoff, lines }: Props)
         <p className="mb-6 text-sm text-foreground-muted">No metal lines yet. Add one below.</p>
       )}
 
-      <h3 className="mb-3 text-sm font-semibold text-foreground">Add metal line</h3>
+      <h3 className="mb-3 text-base font-semibold text-foreground">Add metal line</h3>
+      <div className={`mb-6 ${TAKEOFF_ADD_LINE_SHELL.metal}`}>
       <TakeoffMetalLineEditor
         takeoff={takeoff}
         sortOrder={lines.length}
@@ -157,6 +163,7 @@ export function TakeoffMetalSection({ takeoffId, jobId, takeoff, lines }: Props)
         submitLabel={isPending ? "Adding…" : "Add metal line"}
         pending={isPending}
       />
+      </div>
 
       {editingLine && (
         <TakeoffSlideOver title="Edit metal line" onClose={() => setEditingLine(null)}>

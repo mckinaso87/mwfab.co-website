@@ -5,6 +5,8 @@ import { useRouter } from "next/navigation";
 import { upsertComponentLine, deleteComponentLineForm, setLineScope } from "./actions";
 import { formatMoney } from "./formatMoney";
 import { TakeoffSlideOver } from "@/components/admin/takeoff/TakeoffSlideOver";
+import { ProposalHiddenBadge } from "@/components/admin/takeoff/IncludeInProposalField";
+import { TAKEOFF_ADD_LINE_SHELL } from "@/components/admin/takeoff/takeoff-form-variants";
 import { ScopeQuickToggle } from "@/components/admin/takeoff/ScopeQuickToggle";
 import { TakeoffComponentLineEditor } from "./TakeoffComponentLineEditor";
 import type { TakeoffComponentLine, LineScope } from "@/lib/db-types";
@@ -63,7 +65,10 @@ export function TakeoffComponentSection({ takeoffId, jobId, lines }: Props) {
             <tbody>
               {lines.map((line) => (
                 <tr key={line.id} className="border-b border-steel/30 hover:bg-steel/10">
-                  <td className="px-4 py-2.5 font-medium text-foreground">{line.display_name}</td>
+                  <td className="px-4 py-2.5 font-medium text-foreground">
+                    {line.display_name}
+                    {line.include_in_proposal === false && <ProposalHiddenBadge />}
+                  </td>
                   <td className="px-4 py-2.5 text-right tabular-nums text-foreground">{line.count}</td>
                   <td className="px-4 py-2.5 text-right tabular-nums font-medium text-foreground">
                     {formatMoney(line.total_price)}
@@ -108,7 +113,8 @@ export function TakeoffComponentSection({ takeoffId, jobId, lines }: Props) {
         <p className="mb-6 text-sm text-foreground-muted">No component lines yet. Add one below.</p>
       )}
 
-      <h3 className="mb-3 text-sm font-semibold text-foreground">Add component line</h3>
+      <h3 className="mb-3 text-base font-semibold text-foreground">Add component line</h3>
+      <div className={`mb-6 ${TAKEOFF_ADD_LINE_SHELL.component}`}>
       <TakeoffComponentLineEditor
         sortOrder={lines.length}
         onSubmit={handleSubmit}
@@ -116,6 +122,7 @@ export function TakeoffComponentSection({ takeoffId, jobId, lines }: Props) {
         submitLabel={isPending ? "Adding…" : "Add component"}
         pending={isPending}
       />
+      </div>
 
       {editingLine && (
         <TakeoffSlideOver title="Edit component line" onClose={() => setEditingLine(null)}>

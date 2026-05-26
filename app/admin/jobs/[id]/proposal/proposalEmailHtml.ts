@@ -1,6 +1,7 @@
 import { groupLinesByScope, SCOPE_SUBGROUP_TITLE } from "@/lib/proposal-line-groups";
 import { LETTERHEAD } from "@/components/admin/proposal/Letterhead";
 import { isGalvanizerLine } from "@/lib/takeoff-calculations";
+import { proposalLineCustomerNote, type LineCustomerNoteFields } from "@/lib/proposal-line-note";
 import type { ProposalData } from "./loadProposalData";
 import { deriveProposalScopeLabel } from "./loadProposalData";
 
@@ -53,17 +54,23 @@ function subgroupTable(
 </table>`;
 }
 
-function lineRow(description: string, galv?: boolean): string {
+function lineRow(description: string, galv?: boolean, customerNote?: string | null): string {
   const galvTag = galv ? ' <span style="color:#64748b; font-size:12px;">(galv)</span>' : "";
+  const noteRow = customerNote
+    ? `<tr>
+    <td style="font-size:13px; color:#64748b; font-style:italic; padding:0 0 8px 20px; border-left:2px solid #cbd5e1;">${escapeHtml(customerNote)}</td>
+  </tr>`
+    : "";
   return `
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin:0 0 4px 0;">
   <tr>
     <td style="font-size:14px; color:#0f172a; padding:4px 0;">${escapeHtml(description)}${galvTag}</td>
   </tr>
+  ${noteRow}
 </table>`;
 }
 
-function scopeLineBlocksHtml<L extends { scope?: string | null; sort_order: number }>(
+function scopeLineBlocksHtml<L extends { scope?: string | null; sort_order: number } & LineCustomerNoteFields>(
   lines: L[],
   renderLine: (line: L) => string
 ): string {
@@ -141,10 +148,18 @@ export function proposalEmailHtml(data: ProposalData): string {
   </table>
 
   <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin-top:16px;">
-    ${scopeLineBlocksHtml(metalLines, (l) => lineRow(l.display_name, l.is_galvanized))}
-    ${scopeLineBlocksHtml(componentLines, (l) => lineRow(l.display_name ?? ""))}
-    ${scopeLineBlocksHtml(miscDisplay, (l) => lineRow(l.label ?? ""))}
-    ${scopeLineBlocksHtml(fieldMiscLines, (l) => lineRow(l.label ?? ""))}
+    ${scopeLineBlocksHtml(metalLines, (l) =>
+      lineRow(l.display_name, l.is_galvanized, proposalLineCustomerNote(l))
+    )}
+    ${scopeLineBlocksHtml(componentLines, (l) =>
+      lineRow(l.display_name ?? "", false, proposalLineCustomerNote(l))
+    )}
+    ${scopeLineBlocksHtml(miscDisplay, (l) =>
+      lineRow(l.label ?? "", false, proposalLineCustomerNote(l))
+    )}
+    ${scopeLineBlocksHtml(fieldMiscLines, (l) =>
+      lineRow(l.label ?? "", false, proposalLineCustomerNote(l))
+    )}
   </table>
 
   <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin-top:24px; border:2px solid #2f4a6b; border-radius:6px; background:#f6f7f9;">

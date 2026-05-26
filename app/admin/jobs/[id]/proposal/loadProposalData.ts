@@ -31,7 +31,11 @@ export type ProposalData = {
   terms: SettingsTerms | null;
 };
 
-/** Load job, takeoff, and all line items for proposal preview/send. Returns null if no takeoff. */
+function linesForProposal<T extends { include_in_proposal?: boolean }>(lines: T[]): T[] {
+  return lines.filter((line) => line.include_in_proposal !== false);
+}
+
+/** Load job, takeoff, and line items for proposal preview/send. Returns null if no takeoff. */
 export async function getProposalData(jobId: string): Promise<ProposalData | null> {
   const supabase = createAdminClient();
 
@@ -117,10 +121,10 @@ export async function getProposalData(jobId: string): Promise<ProposalData | nul
   return {
     job: job as unknown as ProposalDataJob,
     takeoff: takeoff as Takeoff,
-    metalLines: metalSorted,
-    componentLines: (componentLines ?? []) as TakeoffComponentLine[],
-    miscLines: (miscLines ?? []) as TakeoffMiscLine[],
-    fieldMiscLines: (fieldMiscLines ?? []) as TakeoffFieldMisc[],
+    metalLines: linesForProposal(metalSorted),
+    componentLines: linesForProposal((componentLines ?? []) as TakeoffComponentLine[]),
+    miscLines: linesForProposal((miscLines ?? []) as TakeoffMiscLine[]),
+    fieldMiscLines: linesForProposal((fieldMiscLines ?? []) as TakeoffFieldMisc[]),
     sectionNotes,
     exclusions,
     terms: (termsRow as SettingsTerms | null) ?? null,

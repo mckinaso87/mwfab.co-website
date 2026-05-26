@@ -2,6 +2,7 @@ import { PDFDocument, StandardFonts, rgb } from "pdf-lib";
 import { groupLinesByScope, SCOPE_SUBGROUP_TITLE } from "@/lib/proposal-line-groups";
 import { LETTERHEAD, proposalLicenseLines } from "@/components/admin/proposal/Letterhead";
 import { isGalvanizerLine } from "@/lib/takeoff-calculations";
+import { proposalLineCustomerNote, type LineCustomerNoteFields } from "@/lib/proposal-line-note";
 import type { ProposalData } from "./loadProposalData";
 import { deriveProposalScopeLabel } from "./loadProposalData";
 
@@ -72,7 +73,7 @@ export async function generateProposalPdf(data: ProposalData): Promise<Uint8Arra
     if (advanceY) y -= LINE_HEIGHT;
   }
 
-  function drawLineRow(description: string, galv?: boolean) {
+  function drawLineRow(description: string, galv?: boolean, customerNote?: string | null) {
     ensureSpace();
     const label = galv ? `${description} (galv)` : description;
     const truncated =
@@ -81,6 +82,22 @@ export async function generateProposalPdf(data: ProposalData): Promise<Uint8Arra
         : label;
     page.drawText(truncated, { x: MARGIN + 8, y, size: 9, font, color: rgb(0.2, 0.2, 0.2) });
     y -= LINE_HEIGHT;
+
+    if (customerNote) {
+      ensureSpace();
+      const noteText =
+        font.widthOfTextAtSize(customerNote, 8) > RIGHT_EDGE - MARGIN - 24
+          ? customerNote.slice(0, 100) + "…"
+          : customerNote;
+      page.drawText(noteText, {
+        x: MARGIN + 20,
+        y,
+        size: 8,
+        font,
+        color: rgb(0.4, 0.4, 0.42),
+      });
+      y -= LINE_HEIGHT;
+    }
   }
 
   function drawSubgroupHeader(title: string) {
@@ -147,7 +164,7 @@ export async function generateProposalPdf(data: ProposalData): Promise<Uint8Arra
     L extends {
       scope?: string | null;
       sort_order: number;
-    },
+    } & LineCustomerNoteFields,
   >(
     lines: L[],
     getLabel: (line: L) => string,
@@ -158,7 +175,7 @@ export async function generateProposalPdf(data: ProposalData): Promise<Uint8Arra
       const sorted = [...scoped].sort((a, b) => a.sort_order - b.sort_order);
       drawSubgroupHeader(SCOPE_SUBGROUP_TITLE[scope]);
       for (const line of sorted) {
-        drawLineRow(getLabel(line), galv?.(line));
+        drawLineRow(getLabel(line), galv?.(line), proposalLineCustomerNote(line));
       }
       y -= 6;
     }

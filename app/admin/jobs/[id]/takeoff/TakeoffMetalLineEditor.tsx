@@ -6,12 +6,16 @@ import {
   getMaterialFieldConfig,
   getCatalogRowById,
 } from "./actions";
-import { getCatalogFieldValue } from "@/lib/catalog-field-value";
-import type { Takeoff, TakeoffMetalLine } from "@/lib/db-types";
+import type { Takeoff, TakeoffMetalLine, LineScope } from "@/lib/db-types";
+import { TakeoffLineProposalPanel } from "@/components/admin/takeoff/TakeoffLineProposalPanel";
+import { ShorthandCatalogSearch } from "@/components/admin/takeoff/ShorthandCatalogSearch";
 import type { MaterialCatalogRow, MaterialFieldConfig } from "@/lib/db-types";
-import { CATEGORY_SHORT, STEEL_DENSITY_LB_PER_IN3 } from "@/lib/takeoff-catalog-spec";
-import { ScopeToggle } from "@/components/admin/takeoff/ScopeToggle";
-import type { LineScope } from "@/lib/db-types";
+import { STEEL_DENSITY_LB_PER_IN3 } from "@/lib/takeoff-catalog-spec";
+import { TakeoffFormSection } from "@/components/admin/takeoff/TakeoffFormSection";
+import {
+  MODE_BUTTON_ACTIVE,
+  MODE_BUTTON_IDLE,
+} from "@/components/admin/takeoff/takeoff-form-variants";
 
 type EntryMode = "shorthand" | "plate" | "other";
 
@@ -81,6 +85,13 @@ export function TakeoffMetalLineEditor({
   const [plateWidth, setPlateWidth] = useState("");
   const [plateHeight, setPlateHeight] = useState("");
   const [scope, setScope] = useState<LineScope>(initial?.scope ?? "furnish_install");
+  const [includeInProposal, setIncludeInProposal] = useState(
+    initial?.include_in_proposal ?? true
+  );
+  const [customerNote, setCustomerNote] = useState(initial?.customer_note ?? "");
+  const [customerNoteInProposal, setCustomerNoteInProposal] = useState(
+    initial?.customer_note_in_proposal ?? false
+  );
   const [otherUnit, setOtherUnit] = useState<"lbs" | "ft">(
     (initial?.other_unit as "lbs" | "ft" | null) ?? "lbs"
   );
@@ -96,6 +107,9 @@ export function TakeoffMetalLineEditor({
   useEffect(() => {
     if (!initial) return;
     setScope(initial.scope ?? "furnish_install");
+    setIncludeInProposal(initial.include_in_proposal ?? true);
+    setCustomerNote(initial.customer_note ?? "");
+    setCustomerNoteInProposal(initial.customer_note_in_proposal ?? false);
     setCount(initial.count);
     setDisplayName(initial.display_name);
     setTotalLengthFt(
@@ -279,34 +293,39 @@ export function TakeoffMetalLineEditor({
   return (
     <>
       {!lockMode && (
-      <div className="mb-4 flex flex-wrap gap-2">
-        {(
-          [
-            ["shorthand", "Shorthand search"],
-            ["plate", "Plate"],
-            ["other", "Other / Custom"],
-          ] as const
-        ).map(([m, label]) => (
-          <button
-            key={m}
-            type="button"
-            onClick={() => {
-              setMode(m);
-              resetForm();
-              if (m === "plate") {
-                setCostPerUnit(String(plateDefaultCost));
-              }
-            }}
-            className={`rounded-lg px-3 py-1.5 text-sm font-medium ${
-              mode === m
-                ? "bg-steel-blue text-foreground"
-                : "border border-steel/50 text-foreground-muted hover:bg-steel/30"
-            }`}
-          >
-            {label}
-          </button>
-        ))}
-      </div>
+        <TakeoffFormSection
+          title="How are you adding this line?"
+          subtitle="Shorthand search uses the material catalog. Plate and Other are manual entry."
+          variant="mode"
+          className="mb-4 !p-3 sm:!p-4"
+        >
+          <div className="flex flex-wrap gap-2">
+            {(
+              [
+                ["shorthand", "Shorthand search"],
+                ["plate", "Plate"],
+                ["other", "Other / Custom"],
+              ] as const
+            ).map(([m, label]) => (
+              <button
+                key={m}
+                type="button"
+                onClick={() => {
+                  setMode(m);
+                  resetForm();
+                  if (m === "plate") {
+                    setCostPerUnit(String(plateDefaultCost));
+                  }
+                }}
+                className={`rounded-lg px-4 py-2 text-sm font-medium transition-colors ${
+                  mode === m ? MODE_BUTTON_ACTIVE[m] : MODE_BUTTON_IDLE
+                }`}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
+        </TakeoffFormSection>
       )}
 
       <form
@@ -345,324 +364,223 @@ export function TakeoffMetalLineEditor({
         )}
 
         {mode === "shorthand" && (
-          <div className="col-span-full space-y-3">
-            <div className="relative">
-              <label htmlFor="shorthand_search" className={labelClass}>
-                Search (e.g. L 4x4, W12x30, HSS4x4)
-              </label>
-              <input
-                id="shorthand_search"
-                type="text"
-                className={`input-admin ${
-                  !catalogRow && (searchLoading || searchResults.length > 0)
-                    ? "rounded-b-none border-b-0 focus:border-steel-blue"
-                    : ""
-                }`}
-                value={searchQuery}
-                onChange={(e) => {
-                  setSearchQuery(e.target.value);
-                  setCatalogRow(null);
-                }}
-                placeholder="Type at least 2 characters…"
-                autoComplete="off"
-                role="combobox"
-                aria-expanded={!catalogRow && searchResults.length > 0}
-                aria-controls="shorthand-search-listbox"
-              />
-              {!catalogRow && searchQuery.trim().length >= 2 && !searchLoading && searchResults.length > 0 && (
-                <p className="mt-1.5 text-xs text-foreground-muted">
-                  {searchResults.length} match{searchResults.length === 1 ? "" : "es"} — click a row to select
-                </p>
-              )}
-            </div>
-
-            {searchError && (
-              <p className="rounded-lg border border-red-500/40 bg-red-500/10 px-3 py-2 text-sm text-red-300">
-                {searchError}
-              </p>
-            )}
-
-            {!catalogRow && searchQuery.trim().length >= 2 && searchLoading && (
-              <div
-                className="-mt-3 rounded-b-lg border border-t-0 border-steel-blue/40 bg-card px-4 py-6 text-center shadow-lg shadow-black/20"
-                aria-live="polite"
-              >
-                <p className="text-sm text-foreground-muted">Searching catalog…</p>
-              </div>
-            )}
-
-            {!catalogRow &&
-              !searchLoading &&
-              !searchError &&
-              searchQuery.trim().length >= 2 &&
-              searchResults.length === 0 && (
-                <div className="-mt-3 rounded-b-lg border border-t-0 border-steel/50 bg-steel/10 px-4 py-4 text-sm text-foreground-muted">
-                  No matches for &ldquo;{searchQuery.trim()}&rdquo;. Try a different shorthand or check that{" "}
-                  <code className="text-xs">npm run seed:materials</code> has been run.
-                </div>
-              )}
-
-            {!catalogRow && !searchLoading && searchResults.length > 0 && (
-              <div
-                id="shorthand-search-listbox"
-                role="listbox"
-                aria-label="Catalog matches"
-                className="-mt-3 overflow-hidden rounded-b-xl border border-t-0 border-steel-blue/50 bg-card shadow-lg shadow-black/25 ring-1 ring-steel-blue/20"
-              >
-                <div className="flex items-center justify-between gap-2 border-b border-steel-blue/30 bg-steel-blue/15 px-4 py-2.5">
-                  <span className="text-xs font-semibold uppercase tracking-wider text-foreground">
-                    Select a material
-                  </span>
-                  <span className="rounded-full bg-steel-blue/30 px-2.5 py-0.5 text-xs font-medium tabular-nums text-foreground">
-                    {searchResults.length}
-                  </span>
-                </div>
-                <ul className="max-h-72 overflow-y-auto divide-y divide-steel/25">
-                  {searchResults.map((row) => {
-                    const fields = fieldConfigByCategory[row.category] ?? [];
-                    const detail = fields
-                      .map((f) => {
-                        const v = getCatalogFieldValue(row, f.field_key);
-                        return v ? `${f.label}: ${v}` : null;
-                      })
-                      .filter(Boolean)
-                      .join(" · ");
-                    const cost =
-                      row.pricing_unit === "per_lb" ? row.cost_per_lb : row.cost_per_foot;
-                    return (
-                      <li key={row.id} role="option">
-                        <button
-                          type="button"
-                          onClick={() => selectCatalogRow(row)}
-                          className="group flex w-full items-start gap-3 px-4 py-3 text-left transition-colors hover:bg-steel-blue/20 focus-visible:bg-steel-blue/25 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-steel-blue"
-                        >
-                          <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-steel/40 text-xs font-bold text-foreground group-hover:bg-steel-blue/40">
-                            {CATEGORY_SHORT[row.category] ?? "?"}
-                          </span>
-                          <span className="min-w-0 flex-1">
-                            <span className="flex flex-wrap items-baseline gap-x-2 gap-y-0.5">
-                              <span className="font-semibold text-foreground group-hover:text-white">
-                                {row.shorthand_code}
-                              </span>
-                              {row.size_label && row.size_label !== row.shorthand_code && (
-                                <span className="text-sm text-foreground-muted group-hover:text-foreground/80">
-                                  {row.size_label}
-                                </span>
-                              )}
-                            </span>
-                            {detail && (
-                              <span className="mt-1 block text-xs leading-relaxed text-foreground-muted group-hover:text-foreground/70">
-                                {detail}
-                              </span>
-                            )}
-                            {(cost != null || row.weight_per_ft != null) && (
-                              <span className="mt-1.5 flex flex-wrap gap-2">
-                                {row.weight_per_ft != null && (
-                                  <span className="inline-flex rounded bg-steel/30 px-1.5 py-0.5 text-xs tabular-nums text-foreground-muted">
-                                    {Number(row.weight_per_ft)} lb/ft
-                                  </span>
-                                )}
-                                {cost != null && Number.isFinite(Number(cost)) && (
-                                  <span className="inline-flex rounded bg-steel-blue/25 px-1.5 py-0.5 text-xs tabular-nums text-foreground">
-                                    $
-                                    {Number(cost).toFixed(2)}
-                                    {row.pricing_unit === "per_foot" ? "/ft" : "/lb"}
-                                  </span>
-                                )}
-                              </span>
-                            )}
-                          </span>
-                          <span
-                            className="shrink-0 self-center text-xs font-medium text-steel-blue opacity-0 transition-opacity group-hover:opacity-100"
-                            aria-hidden
-                          >
-                            Select →
-                          </span>
-                        </button>
-                      </li>
-                    );
-                  })}
-                </ul>
-              </div>
-            )}
-
-            {catalogRow && (
-              <div className="flex items-start justify-between gap-3 rounded-lg border-2 border-emerald-500/50 bg-emerald-500/10 px-4 py-3 text-sm">
-                <div>
-                  <p className="text-xs font-semibold uppercase tracking-wider text-emerald-400/90">
-                    Selected
-                  </p>
-                  <p className="mt-1 font-medium text-foreground">{displayCatalogRow(catalogRow)}</p>
-                </div>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setCatalogRow(null);
-                    setSearchQuery("");
-                  }}
-                  className="shrink-0 rounded-md border border-steel/50 px-2.5 py-1 text-xs font-medium text-foreground-muted hover:bg-steel/30 hover:text-foreground"
-                >
-                  Change
-                </button>
-              </div>
-            )}
-          </div>
+          <TakeoffFormSection
+            step={1}
+            title="Find material in catalog"
+            subtitle="Search by shorthand code or size label. Select a row to unlock quantity fields."
+            variant="catalog"
+          >
+            <ShorthandCatalogSearch
+              searchQuery={searchQuery}
+              onSearchQueryChange={(value) => {
+                setSearchQuery(value);
+                setCatalogRow(null);
+              }}
+              searchResults={searchResults}
+              searchLoading={searchLoading}
+              searchError={searchError}
+              catalogRow={catalogRow}
+              onSelectRow={selectCatalogRow}
+              onClearSelection={() => {
+                setCatalogRow(null);
+                setSearchQuery("");
+              }}
+              fieldConfigByCategory={fieldConfigByCategory}
+              displaySelectedRow={displayCatalogRow}
+            />
+          </TakeoffFormSection>
         )}
 
         {mode === "plate" && (
-          <>
-            <div>
-              <label htmlFor="plate_thickness" className={labelClass}>
-                Thickness (in)
-              </label>
-              <input
-                id="plate_thickness"
-                name="plate_thickness_in"
-                type="number"
-                step="0.001"
-                min="0"
-                className="input-admin"
-                value={plateThickness}
-                onChange={(e) => setPlateThickness(e.target.value)}
-              />
+          <TakeoffFormSection
+            step={1}
+            title="Plate dimensions"
+            subtitle="Enter thickness and size; count and pricing are in the next section."
+            variant="plate"
+          >
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
+              <div>
+                <label htmlFor="plate_thickness" className={labelClass}>
+                  Thickness (in)
+                </label>
+                <input
+                  id="plate_thickness"
+                  name="plate_thickness_in"
+                  type="number"
+                  step="0.001"
+                  min="0"
+                  className="input-admin"
+                  value={plateThickness}
+                  onChange={(e) => setPlateThickness(e.target.value)}
+                />
+              </div>
+              <div>
+                <label htmlFor="plate_width" className={labelClass}>
+                  Width (in)
+                </label>
+                <input
+                  id="plate_width"
+                  name="plate_width_in"
+                  type="number"
+                  step="0.01"
+                  min="0"
+                  className="input-admin"
+                  value={plateWidth}
+                  onChange={(e) => setPlateWidth(e.target.value)}
+                />
+              </div>
+              <div>
+                <label htmlFor="plate_height" className={labelClass}>
+                  Height (in)
+                </label>
+                <input
+                  id="plate_height"
+                  name="plate_height_in"
+                  type="number"
+                  step="0.01"
+                  min="0"
+                  className="input-admin"
+                  value={plateHeight}
+                  onChange={(e) => setPlateHeight(e.target.value)}
+                />
+              </div>
+              <div>
+                <label htmlFor="plate_cost" className={labelClass}>
+                  $/lb
+                </label>
+                <input
+                  id="plate_cost"
+                  name="cost_per_unit"
+                  type="number"
+                  step="0.01"
+                  min="0"
+                  className="input-admin"
+                  value={costPerUnit || String(plateDefaultCost)}
+                  onChange={(e) => setCostPerUnit(e.target.value)}
+                />
+              </div>
             </div>
-            <div>
-              <label htmlFor="plate_width" className={labelClass}>
-                Width (in)
-              </label>
-              <input
-                id="plate_width"
-                name="plate_width_in"
-                type="number"
-                step="0.01"
-                min="0"
-                className="input-admin"
-                value={plateWidth}
-                onChange={(e) => setPlateWidth(e.target.value)}
-              />
-            </div>
-            <div>
-              <label htmlFor="plate_height" className={labelClass}>
-                Height (in)
-              </label>
-              <input
-                id="plate_height"
-                name="plate_height_in"
-                type="number"
-                step="0.01"
-                min="0"
-                className="input-admin"
-                value={plateHeight}
-                onChange={(e) => setPlateHeight(e.target.value)}
-              />
-            </div>
-            <div>
-              <label htmlFor="plate_cost" className={labelClass}>
-                $/lb
-              </label>
-              <input
-                id="plate_cost"
-                name="cost_per_unit"
-                type="number"
-                step="0.01"
-                min="0"
-                className="input-admin"
-                value={costPerUnit || String(plateDefaultCost)}
-                onChange={(e) => setCostPerUnit(e.target.value)}
-              />
-            </div>
-          </>
+          </TakeoffFormSection>
         )}
 
         {mode === "other" && (
-          <>
-            <div className="col-span-full">
-              <label className={labelClass}>Unit</label>
-              <input type="hidden" name="other_unit" value={otherUnit} />
-              <div className="mt-1 inline-flex rounded-md border border-steel/50 p-0.5 text-xs">
-                <button
-                  type="button"
-                  onClick={() => setOtherUnit("lbs")}
-                  className={`rounded px-2 py-1 ${otherUnit === "lbs" ? "bg-steel-blue text-foreground" : "text-foreground-muted"}`}
-                >
-                  Total lbs
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setOtherUnit("ft")}
-                  className={`rounded px-2 py-1 ${otherUnit === "ft" ? "bg-steel-blue text-foreground" : "text-foreground-muted"}`}
-                >
-                  Linear ft
-                </button>
-              </div>
-            </div>
-            {showAddDisplayName && (
+          <TakeoffFormSection
+            step={1}
+            title="Custom line"
+            subtitle="Description, unit type, quantities, and pricing."
+            variant="details"
+          >
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
               <div className="col-span-full">
-                <label htmlFor="other_display_name" className={labelClass}>
-                  Display name
+                <label className={labelClass}>Unit</label>
+                <input type="hidden" name="other_unit" value={otherUnit} />
+                <div className="mt-1 inline-flex rounded-md border border-steel/50 p-0.5 text-xs">
+                  <button
+                    type="button"
+                    onClick={() => setOtherUnit("lbs")}
+                    className={`rounded px-2 py-1 ${otherUnit === "lbs" ? "bg-steel-blue text-foreground" : "text-foreground-muted"}`}
+                  >
+                    Total lbs
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setOtherUnit("ft")}
+                    className={`rounded px-2 py-1 ${otherUnit === "ft" ? "bg-steel-blue text-foreground" : "text-foreground-muted"}`}
+                  >
+                    Linear ft
+                  </button>
+                </div>
+              </div>
+              {showAddDisplayName && (
+                <div className="col-span-full">
+                  <label htmlFor="other_display_name" className={labelClass}>
+                    Display name
+                  </label>
+                  <input
+                    id="other_display_name"
+                    name="display_name"
+                    type="text"
+                    className="input-admin"
+                    value={displayName}
+                    onChange={(e) => setDisplayName(e.target.value)}
+                    placeholder="Custom description"
+                  />
+                </div>
+              )}
+              {otherUnit === "lbs" ? (
+                <div>
+                  <label htmlFor="other_pounds" className={labelClass}>
+                    Total pounds
+                  </label>
+                  <input
+                    id="other_pounds"
+                    name="total_pounds"
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    className="input-admin"
+                    value={totalPounds}
+                    onChange={(e) => setTotalPounds(e.target.value)}
+                  />
+                </div>
+              ) : (
+                <div>
+                  <label htmlFor="other_length_ft" className={labelClass}>
+                    Linear ft
+                  </label>
+                  <input
+                    id="other_length_ft"
+                    name="total_length_ft"
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    className="input-admin"
+                    value={totalLengthFt}
+                    onChange={(e) => setTotalLengthFt(e.target.value)}
+                  />
+                </div>
+              )}
+              <div>
+                <label htmlFor="other_cost" className={labelClass}>
+                  {otherUnit === "ft" ? "$/ft" : "$/lb"}
                 </label>
                 <input
-                  id="other_display_name"
-                  name="display_name"
+                  id="other_cost"
+                  name="cost_per_unit"
+                  type="number"
+                  step="0.01"
+                  min="0"
+                  className="input-admin"
+                  value={costPerUnit}
+                  onChange={(e) => setCostPerUnit(e.target.value)}
+                />
+              </div>
+              <div>
+                <label htmlFor="metal_total_price_other" className={labelClass}>
+                  Total price (auto)
+                </label>
+                <input type="hidden" name="total_price" value={computedTotalPrice ?? ""} />
+                <input
+                  id="metal_total_price_other"
                   type="text"
-                  className="input-admin"
-                  value={displayName}
-                  onChange={(e) => setDisplayName(e.target.value)}
-                  placeholder="Custom description"
+                  readOnly
+                  className="input-admin bg-steel/30"
+                  value={computedTotalPrice ? `$${computedTotalPrice}` : ""}
+                  placeholder="—"
                 />
               </div>
-            )}
-            {otherUnit === "lbs" ? (
-              <div>
-                <label htmlFor="other_pounds" className={labelClass}>
-                  Total pounds
-                </label>
-                <input
-                  id="other_pounds"
-                  name="total_pounds"
-                  type="number"
-                  step="0.01"
-                  min="0"
-                  className="input-admin"
-                  value={totalPounds}
-                  onChange={(e) => setTotalPounds(e.target.value)}
-                />
-              </div>
-            ) : (
-              <div>
-                <label htmlFor="other_length_ft" className={labelClass}>
-                  Linear ft
-                </label>
-                <input
-                  id="other_length_ft"
-                  name="total_length_ft"
-                  type="number"
-                  step="0.01"
-                  min="0"
-                  className="input-admin"
-                  value={totalLengthFt}
-                  onChange={(e) => setTotalLengthFt(e.target.value)}
-                />
-              </div>
-            )}
-            <div>
-              <label htmlFor="other_cost" className={labelClass}>
-                {otherUnit === "ft" ? "$/ft" : "$/lb"}
-              </label>
-              <input
-                id="other_cost"
-                name="cost_per_unit"
-                type="number"
-                step="0.01"
-                min="0"
-                className="input-admin"
-                value={costPerUnit}
-                onChange={(e) => setCostPerUnit(e.target.value)}
-              />
             </div>
-          </>
+          </TakeoffFormSection>
         )}
 
+        {(mode === "plate" || (mode === "shorthand" && catalogRow)) && (
+          <TakeoffFormSection
+            step={mode === "shorthand" ? 2 : 2}
+            title="Quantities & pricing"
+            subtitle="Takeoff totals update when you save this line."
+            variant="quantities"
+          >
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
         {mode === "plate" && (
           <>
             <div>
@@ -812,13 +730,13 @@ export function TakeoffMetalLineEditor({
         </div>
 
         {mode === "shorthand" && catalogRow && (
-          <div className="col-span-full">
+          <div className="col-span-full lg:col-span-4">
             <button
               type="button"
               onClick={() => setShowDetails((v) => !v)}
               className="text-sm text-foreground-muted underline"
             >
-              {showDetails ? "Hide" : "Edit"} details
+              {showDetails ? "Hide" : "Show"} catalog details
             </button>
             {showDetails && (
               <dl className="mt-2 grid grid-cols-2 gap-2 text-sm sm:grid-cols-4">
@@ -841,18 +759,24 @@ export function TakeoffMetalLineEditor({
             )}
           </div>
         )}
+            </div>
+          </TakeoffFormSection>
+        )}
 
         {error && (
           <p className="col-span-full text-sm text-red-500">{error}</p>
         )}
-        <div className="col-span-full flex flex-wrap items-center gap-4">
-          <div>
-            <span className={labelClass}>Scope</span>
-            <div className="mt-1">
-              <ScopeToggle value={scope} onChange={setScope} />
-            </div>
-          </div>
-        </div>
+
+        <TakeoffLineProposalPanel
+          scope={scope}
+          onScopeChange={setScope}
+          includeLineOnProposal={includeInProposal}
+          onIncludeLineChange={setIncludeInProposal}
+          customerNote={customerNote}
+          customerNoteInProposal={customerNoteInProposal}
+          onNoteChange={setCustomerNote}
+          onNoteIncludeChange={setCustomerNoteInProposal}
+        />
 
         <div className="col-span-full">
           <button
