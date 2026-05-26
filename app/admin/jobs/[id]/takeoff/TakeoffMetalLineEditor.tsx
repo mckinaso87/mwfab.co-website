@@ -665,6 +665,9 @@ export function TakeoffMetalLineEditor({
                 value={costPerUnit}
                 onChange={(e) => setCostPerUnit(e.target.value)}
               />
+              <p className="mt-1 text-xs text-foreground-muted">
+                Saving updates the materials catalog for this item on future takeoffs.
+              </p>
             </div>
             <div className="col-span-full flex items-center gap-4">
               <label className="flex items-center gap-2 text-sm text-foreground">

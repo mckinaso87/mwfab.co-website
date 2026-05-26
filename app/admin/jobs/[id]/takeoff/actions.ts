@@ -55,6 +55,28 @@ function parseCustomerNoteFields(formData: FormData): {
 const CATALOG_SELECT =
   "id, category, item_code, shorthand_code, size_label, finish, dimensions, weight_per_ft, cost_per_lb, cost_per_foot, pricing_unit, is_active, source_file, created_at";
 
+/** Persist takeoff unit cost back to the linked catalog row (materials admin). */
+async function syncMaterialCatalogCostFromTakeoff(
+  supabase: ReturnType<typeof createAdminClient>,
+  catalogId: string,
+  catalogRow: Pick<MaterialCatalogRow, "pricing_unit" | "cost_per_lb" | "cost_per_foot">,
+  costPerUnit: number
+): Promise<{ error?: string }> {
+  const update: { cost_per_lb?: number; cost_per_foot?: number } = {};
+  if (catalogRow.pricing_unit === "per_lb") {
+    if (catalogRow.cost_per_lb === costPerUnit) return {};
+    update.cost_per_lb = costPerUnit;
+  } else if (catalogRow.pricing_unit === "per_foot") {
+    if (catalogRow.cost_per_foot === costPerUnit) return {};
+    update.cost_per_foot = costPerUnit;
+  } else {
+    return {};
+  }
+  const { error } = await supabase.from("material_catalog").update(update).eq("id", catalogId);
+  if (error) return { error: error.message };
+  return {};
+}
+
 export async function getCatalogRowById(
   id: string
 ): Promise<{ row: MaterialCatalogRow | null; error?: string }> {
@@ -501,6 +523,7 @@ export async function upsertMetalLine(
   let resolvedTotalPrice = totalPriceForm;
   let galvPounds: number | null = null;
   let materialCatalogIdResolved: string | null = materialCatalogId;
+  let catalogRowForSync: MaterialCatalogRow | null = null;
 
   if (category === "plate") {
     materialCatalogIdResolved = null;
@@ -535,6 +558,7 @@ export async function upsertMetalLine(
       .eq("id", materialCatalogIdResolved)
       .single();
     if (catalogRow) {
+      catalogRowForSync = catalogRow as MaterialCatalogRow;
       if (!resolvedDisplayName) {
         resolvedDisplayName =
           catalogRow.size_label?.trim() || catalogRow.shorthand_code || catalogRow.item_code;
@@ -548,6 +572,8 @@ export async function upsertMetalLine(
         resolvedTotalPounds = effectiveLength * wpf;
         if (catalogRow.pricing_unit === "per_lb" && Number.isFinite(resolvedCostPerUnit)) {
           resolvedTotalPrice = resolvedTotalPounds * resolvedCostPerUnit;
+        } else if (catalogRow.pricing_unit === "per_foot" && Number.isFinite(resolvedCostPerUnit)) {
+          resolvedTotalPrice = effectiveLength * resolvedCostPerUnit;
         } else if (catalogRow.pricing_unit === "per_foot" && catalogRow.cost_per_foot != null) {
           resolvedTotalPrice = effectiveLength * catalogRow.cost_per_foot;
         }
@@ -601,6 +627,22 @@ export async function upsertMetalLine(
     const { error } = await supabase.from("takeoff_metal_lines").insert(payload);
     if (error) return { error: error.message };
   }
+
+  if (
+    materialCatalogIdResolved &&
+    catalogRowForSync &&
+    Number.isFinite(resolvedCostPerUnit)
+  ) {
+    const syncResult = await syncMaterialCatalogCostFromTakeoff(
+      supabase,
+      materialCatalogIdResolved,
+      catalogRowForSync,
+      resolvedCostPerUnit
+    );
+    if (syncResult.error) return { error: syncResult.error };
+    revalidatePath("/admin/materials");
+  }
+
   revalidatePath(`/admin/jobs/${jobId}/takeoff`);
   revalidatePath(`/admin/jobs/${jobId}/proposal`);
   await recomputeAndSaveTotals(takeoffId, jobId);
