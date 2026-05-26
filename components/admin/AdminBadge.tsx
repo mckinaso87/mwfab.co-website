@@ -22,9 +22,9 @@ export function AdminBadge({
         variant === "muted" &&
           "bg-steel/20 text-foreground-muted",
         variant === "copper" &&
-          "border border-admin-copper/40 bg-admin-copper/20 text-amber-100",
+          "border border-admin-copper/40 bg-admin-copper/20 text-[var(--badge-copper-text)]",
         variant === "teal" &&
-          "border border-admin-teal/40 bg-admin-teal/20 text-teal-100",
+          "border border-admin-teal/40 bg-admin-teal/20 text-[var(--badge-teal-text)]",
         className
       )}
     >

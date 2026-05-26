@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 import { UserButton } from "@clerk/nextjs";
 import { useState } from "react";
 import { cn } from "@/lib/utils";
+import { ThemeToggle } from "@/components/ui/ThemeToggle";
 
 const ADMIN_NAV = [
   { href: "/admin/dashboard", label: "Dashboard", accent: "admin-sky" },
@@ -67,7 +68,7 @@ export function AdminSidebar() {
     <>
       <button
         type="button"
-        className="fixed left-4 top-20 z-50 flex h-10 w-10 items-center justify-center rounded-md border border-admin-copper/30 bg-gunmetal text-foreground shadow-lg shadow-black/20 focus-visible:outline focus-visible:ring-2 focus-visible:ring-admin-teal focus-visible:ring-offset-2 focus-visible:ring-offset-charcoal lg:hidden"
+        className="fixed left-4 top-20 z-50 flex h-10 w-10 items-center justify-center rounded-md border border-admin-copper/30 bg-gunmetal text-foreground shadow-lg shadow-foreground/10 focus-visible:outline focus-visible:ring-2 focus-visible:ring-admin-teal focus-visible:ring-offset-2 focus-visible:ring-offset-charcoal lg:hidden"
         aria-label="Toggle admin menu"
         onClick={() => setMobileOpen((o) => !o)}
       >
@@ -112,7 +113,7 @@ export function AdminSidebar() {
                   )}
                 >
                   <span
-                    className={cn("h-2 w-2 shrink-0 rounded-full", styles.dot, active && "ring-2 ring-white/20")}
+                    className={cn("h-2 w-2 shrink-0 rounded-full", styles.dot, active && "ring-2 ring-foreground/15")}
                     aria-hidden
                   />
                   {label}
@@ -121,6 +122,9 @@ export function AdminSidebar() {
             })}
           </nav>
           <div className="mt-auto border-t border-admin-copper/20 pt-4">
+            <div className="mb-3 flex justify-center">
+              <ThemeToggle />
+            </div>
             <Link
               href="/"
               className="mb-3 block rounded-md px-3 py-2 text-sm text-foreground-muted transition-colors hover:bg-admin-teal/10 hover:text-foreground focus-visible:outline focus-visible:ring-2 focus-visible:ring-admin-teal focus-visible:ring-offset-2 focus-visible:ring-offset-charcoal focus-visible:text-foreground"
@@ -128,7 +132,7 @@ export function AdminSidebar() {
             >
               ← Back to site
             </Link>
-            <div className="flex items-center gap-2 rounded-lg bg-charcoal/40 px-3 py-2">
+            <div className="flex items-center gap-2 rounded-lg bg-surface px-3 py-2">
               <UserButton
                 afterSignOutUrl="/"
                 appearance={{
@@ -149,7 +153,7 @@ export function AdminSidebar() {
 function AdminSidebarOverlay({ onClose }: { onClose: () => void }) {
   return (
     <div
-      className="fixed inset-0 z-40 bg-charcoal/80 backdrop-blur-sm lg:hidden"
+      className="fixed inset-0 z-40 bg-overlay-bg backdrop-blur-sm lg:hidden"
       aria-hidden
       onClick={onClose}
     />

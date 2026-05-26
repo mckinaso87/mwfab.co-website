@@ -350,7 +350,7 @@ function MaterialSlideOver({
 
   return (
     <>
-      <div className="fixed inset-0 z-40 bg-charcoal/80 backdrop-blur-sm" aria-hidden onClick={onClose} />
+      <div className="fixed inset-0 z-40 bg-overlay-bg backdrop-blur-sm" aria-hidden onClick={onClose} />
       <div className="fixed right-0 top-0 z-50 flex h-full w-full max-w-lg flex-col border-l border-steel/50 bg-gunmetal shadow-xl">
         <div className="flex items-center justify-between border-b border-steel/50 px-4 py-3">
           <h2 className="text-lg font-semibold text-foreground">

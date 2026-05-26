@@ -40,7 +40,7 @@ export default async function SignUpPage({ searchParams }: Props) {
         appearance={{
           elements: {
             rootBox: "mx-auto",
-            card: "bg-charcoal border border-steel/50 shadow-xl",
+            card: "bg-card border border-steel/50 shadow-xl",
           },
         }}
         routing="path"

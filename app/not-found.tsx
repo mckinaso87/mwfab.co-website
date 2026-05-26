@@ -9,7 +9,7 @@ export default function NotFound() {
       </p>
       <Link
         href="/"
-        className="mt-6 rounded-md bg-steel-blue px-4 py-2 text-sm font-medium text-foreground hover:bg-steel"
+        className="btn-cta mt-6"
       >
         Go home
       </Link>

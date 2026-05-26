@@ -14,7 +14,7 @@ export function AdminDataTable({
   return (
     <div
       className={cn(
-        "overflow-hidden rounded-xl border border-admin-sky/20 shadow-sm shadow-black/10",
+        "admin-data-table overflow-hidden rounded-xl border border-admin-sky/20 shadow-sm shadow-black/10",
         className
       )}
     >
@@ -41,7 +41,12 @@ export function AdminDataTableHead({
 }) {
   return (
     <thead>
-      <tr className={cn("border-b border-admin-teal/20 bg-gradient-to-r from-admin-teal/10 to-admin-sky/5", className)}>
+      <tr
+        className={cn(
+          "admin-table-head border-b border-admin-teal/20 bg-gradient-to-r from-admin-teal/10 to-admin-sky/5",
+          className
+        )}
+      >
         {children}
       </tr>
     </thead>

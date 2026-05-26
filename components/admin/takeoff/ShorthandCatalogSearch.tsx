@@ -164,12 +164,12 @@ export function ShorthandCatalogSearch({
                     onClick={() => onSelectRow(row)}
                           className="group flex w-full items-start gap-3 px-4 py-3 text-left transition-colors hover:bg-sky-500/15 focus-visible:bg-sky-500/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-sky-400"
                   >
-                    <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-sky-500/20 text-xs font-bold text-sky-100 group-hover:bg-sky-500/30">
+                    <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-sky-500/20 text-xs font-bold text-[var(--takeoff-step-catalog)] group-hover:bg-sky-500/30">
                       {CATEGORY_SHORT[row.category] ?? "?"}
                     </span>
                     <span className="min-w-0 flex-1">
                       <span className="flex flex-wrap items-baseline gap-x-2 gap-y-0.5">
-                        <span className="font-semibold text-foreground group-hover:text-white">
+                        <span className="font-semibold text-foreground group-hover:text-[var(--takeoff-step-catalog)]">
                           {row.shorthand_code}
                         </span>
                         {row.size_label && row.size_label !== row.shorthand_code && (
@@ -189,7 +189,7 @@ export function ShorthandCatalogSearch({
                             </span>
                           )}
                           {cost != null && Number.isFinite(Number(cost)) && (
-                            <span className="inline-flex rounded bg-sky-500/20 px-1.5 py-0.5 text-xs tabular-nums text-sky-100">
+                            <span className="inline-flex rounded bg-sky-500/20 px-1.5 py-0.5 text-xs tabular-nums text-[var(--takeoff-step-catalog)]">
                               ${Number(cost).toFixed(2)}
                               {row.pricing_unit === "per_foot" ? "/ft" : "/lb"}
                             </span>

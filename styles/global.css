@@ -1,7 +1,8 @@
 @import "tailwindcss";
 
 /* Industrial theme: dark duotone gradients, metallic-compatible */
-:root {
+:root,
+[data-theme="dark"] {
   --charcoal: #1a1d21;
   --steel: #2d3748;
   --gunmetal: #1e2530;
@@ -13,11 +14,11 @@
   --dark-slate: #1e293b;
   --foreground: #e2e8f0;
   --foreground-muted: #94a3b8;
-  /* Admin: consistent border and card surface */
   --border: rgba(45, 55, 72, 0.5);
   --card: #232a34;
   --surface: #1e2530;
-  /* Admin accents — warm copper + cool teal complement steel palette */
+  --input-bg: rgba(26, 29, 33, 0.8);
+  --overlay-bg: rgba(26, 29, 33, 0.8);
   --admin-copper: #c9885a;
   --admin-amber: #e4a853;
   --admin-teal: #45b5a8;
@@ -25,6 +26,116 @@
   --admin-indigo: #7b8fd4;
   --admin-card: #252d38;
   --admin-surface: #222a35;
+  --admin-primary-text: var(--foreground);
+  --page-title-gradient-end: #cbd5e1;
+  --gradient-hero-end: var(--steel-blue);
+  --gradient-section-end: var(--midnight-navy);
+  --gradient-footer-end: var(--dark-slate);
+  --admin-shell-gradient-end: #141820;
+  --admin-sidebar-start: #1f2834;
+  --admin-sidebar-mid: #181e28;
+  --admin-sidebar-end: #141820;
+  --admin-sidebar-border: rgba(201, 136, 90, 0.2);
+  --admin-shell-copper-glow: rgba(201, 136, 90, 0.09);
+  --admin-shell-teal-glow: rgba(69, 181, 168, 0.07);
+  --admin-card-start: rgba(37, 45, 56, 0.98);
+  --admin-card-end: rgba(28, 35, 46, 0.95);
+  --admin-card-border: rgba(106, 159, 212, 0.18);
+  --admin-card-inset: rgba(255, 255, 255, 0.04);
+  --admin-card-shadow: rgba(0, 0, 0, 0.18);
+  --btn-admin-secondary-bg: rgba(45, 55, 72, 0.35);
+  --btn-admin-secondary-border: rgba(106, 159, 212, 0.35);
+  --btn-admin-secondary-hover-bg: rgba(69, 181, 168, 0.12);
+  --btn-admin-secondary-hover-border: rgba(69, 181, 168, 0.35);
+  --takeoff-shell-sky: rgba(2, 6, 23, 0.2);
+  --takeoff-shell-slate: rgba(15, 23, 42, 0.2);
+  --takeoff-shell-rose: rgba(76, 5, 25, 0.15);
+  --takeoff-shell-emerald: rgba(2, 44, 34, 0.15);
+  --takeoff-step-mode: #a1a1aa;
+  --takeoff-step-catalog: #38bdf8;
+  --takeoff-step-quantities: #fbbf24;
+  --takeoff-step-details: #cbd5e1;
+  --takeoff-step-proposal: #c4b5fd;
+  --takeoff-step-galvanizer: #5eead4;
+  --takeoff-step-plate: #fdba74;
+  --takeoff-step-misc: #fda4af;
+  --takeoff-step-field: #6ee7b7;
+  --takeoff-catalog-shadow: rgba(2, 6, 23, 0.2);
+  --accent-link: #7eb0e8;
+  --cta-bg: var(--steel-blue);
+  --cta-text: var(--foreground);
+  --cta-hover: var(--steel);
+  --cta-focus: var(--admin-teal);
+  --badge-copper-text: #fde68a;
+  --badge-teal-text: #ccfbf1;
+}
+
+[data-theme="light"] {
+  --charcoal: #f7f8fa;
+  --steel: #cbd5e1;
+  --gunmetal: #f1f5f9;
+  --slate: #64748b;
+  --navy: #0f172a;
+  --graphite: #f1f5f9;
+  --steel-blue: #4a5f73;
+  --midnight-navy: #f8fafc;
+  --dark-slate: #e2e8f0;
+  --foreground: #0f172a;
+  --foreground-muted: #475569;
+  --border: rgba(15, 23, 42, 0.12);
+  --card: #ffffff;
+  --surface: #f1f5f9;
+  --input-bg: #ffffff;
+  --overlay-bg: rgba(15, 23, 42, 0.45);
+  --admin-copper: #a86f45;
+  --admin-amber: #c4892e;
+  --admin-teal: #2d9d8f;
+  --admin-sky: #3b7fc4;
+  --admin-indigo: #5a6fc4;
+  --admin-card: #ffffff;
+  --admin-surface: #f8fafc;
+  --admin-primary-text: #ffffff;
+  --page-title-gradient-end: #64748b;
+  --gradient-hero-end: #e2e8f0;
+  --gradient-section-end: #f1f5f9;
+  --gradient-footer-end: #e2e8f0;
+  --admin-shell-gradient-end: #eef2f7;
+  --admin-sidebar-start: #ffffff;
+  --admin-sidebar-mid: #f1f5f9;
+  --admin-sidebar-end: #e2e8f0;
+  --admin-sidebar-border: rgba(168, 111, 69, 0.25);
+  --admin-shell-copper-glow: rgba(168, 111, 69, 0.08);
+  --admin-shell-teal-glow: rgba(45, 157, 143, 0.06);
+  --admin-card-start: rgba(255, 255, 255, 0.98);
+  --admin-card-end: rgba(248, 250, 252, 0.98);
+  --admin-card-border: rgba(15, 23, 42, 0.1);
+  --admin-card-inset: rgba(255, 255, 255, 0.8);
+  --admin-card-shadow: rgba(15, 23, 42, 0.08);
+  --btn-admin-secondary-bg: var(--surface);
+  --btn-admin-secondary-border: var(--border);
+  --btn-admin-secondary-hover-bg: rgba(45, 157, 143, 0.1);
+  --btn-admin-secondary-hover-border: rgba(45, 157, 143, 0.35);
+  --takeoff-shell-sky: rgba(14, 165, 233, 0.08);
+  --takeoff-shell-slate: rgba(100, 116, 139, 0.1);
+  --takeoff-shell-rose: rgba(244, 63, 94, 0.08);
+  --takeoff-shell-emerald: rgba(16, 185, 129, 0.08);
+  --takeoff-step-mode: #52525b;
+  --takeoff-step-catalog: #0369a1;
+  --takeoff-step-quantities: #b45309;
+  --takeoff-step-details: #475569;
+  --takeoff-step-proposal: #6d28d9;
+  --takeoff-step-galvanizer: #0f766e;
+  --takeoff-step-plate: #c2410c;
+  --takeoff-step-misc: #be123c;
+  --takeoff-step-field: #047857;
+  --takeoff-catalog-shadow: rgba(14, 165, 233, 0.12);
+  --accent-link: #8f5c38;
+  --cta-bg: linear-gradient(135deg, var(--admin-copper) 0%, #8f5c38 100%);
+  --cta-text: #ffffff;
+  --cta-hover: #7a4f30;
+  --cta-focus: var(--admin-copper);
+  --badge-copper-text: #78350f;
+  --badge-teal-text: #115e59;
 }
 
 @theme inline {
@@ -42,6 +153,8 @@
   --color-border: var(--border);
   --color-card: var(--card);
   --color-surface: var(--surface);
+  --color-input-bg: var(--input-bg);
+  --color-overlay-bg: var(--overlay-bg);
   --color-admin-copper: var(--admin-copper);
   --color-admin-amber: var(--admin-amber);
   --color-admin-teal: var(--admin-teal);
@@ -49,20 +162,25 @@
   --color-admin-indigo: var(--admin-indigo);
   --color-admin-card: var(--admin-card);
   --color-admin-surface: var(--admin-surface);
+  --color-accent-link: var(--accent-link);
   --font-sans: var(--font-geist-sans);
+}
+
+.text-accent-link {
+  color: var(--accent-link);
 }
 
 /* Gradient utilities: industrial duotone */
 .gradient-hero {
-  background: linear-gradient(135deg, var(--charcoal) 0%, var(--steel-blue) 100%);
+  background: linear-gradient(135deg, var(--charcoal) 0%, var(--gradient-hero-end) 100%);
 }
 
 .gradient-section {
-  background: linear-gradient(180deg, var(--gunmetal) 0%, var(--midnight-navy) 100%);
+  background: linear-gradient(180deg, var(--gunmetal) 0%, var(--gradient-section-end) 100%);
 }
 
 .gradient-footer {
-  background: linear-gradient(180deg, var(--graphite) 0%, var(--dark-slate) 100%);
+  background: linear-gradient(180deg, var(--graphite) 0%, var(--gradient-footer-end) 100%);
 }
 
 /* Admin shell: elevated surfaces + subtle warm/cool ambient light */
@@ -72,22 +190,31 @@
   --border: rgba(106, 159, 212, 0.16);
   background-color: var(--charcoal);
   background-image:
-    radial-gradient(ellipse 70% 45% at 100% 0%, rgba(201, 136, 90, 0.09), transparent 55%),
-    radial-gradient(ellipse 55% 40% at 0% 100%, rgba(69, 181, 168, 0.07), transparent 50%),
-    linear-gradient(180deg, #1a1d21 0%, #141820 100%);
+    radial-gradient(ellipse 70% 45% at 100% 0%, var(--admin-shell-copper-glow), transparent 55%),
+    radial-gradient(ellipse 55% 40% at 0% 100%, var(--admin-shell-teal-glow), transparent 50%),
+    linear-gradient(180deg, var(--charcoal) 0%, var(--admin-shell-gradient-end) 100%);
+}
+
+[data-theme="light"] .admin-shell {
+  --border: rgba(15, 23, 42, 0.1);
 }
 
 .gradient-admin-sidebar {
-  background: linear-gradient(180deg, #1f2834 0%, #181e28 50%, #141820 100%);
-  border-right-color: rgba(201, 136, 90, 0.2);
+  background: linear-gradient(
+    180deg,
+    var(--admin-sidebar-start) 0%,
+    var(--admin-sidebar-mid) 50%,
+    var(--admin-sidebar-end) 100%
+  );
+  border-right-color: var(--admin-sidebar-border);
 }
 
 .admin-card {
-  background: linear-gradient(155deg, rgba(37, 45, 56, 0.98) 0%, rgba(28, 35, 46, 0.95) 100%);
-  border-color: rgba(106, 159, 212, 0.18);
+  background: linear-gradient(155deg, var(--admin-card-start) 0%, var(--admin-card-end) 100%);
+  border-color: var(--admin-card-border);
   box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.04),
-    0 4px 24px rgba(0, 0, 0, 0.18);
+    inset 0 1px 0 var(--admin-card-inset),
+    0 4px 24px var(--admin-card-shadow);
 }
 
 .admin-card-accent-top {
@@ -107,7 +234,7 @@
 }
 
 .admin-page-title {
-  background: linear-gradient(90deg, var(--foreground) 0%, #cbd5e1 100%);
+  background: linear-gradient(90deg, var(--foreground) 0%, var(--page-title-gradient-end) 100%);
   -webkit-background-clip: text;
   background-clip: text;
   color: transparent;
@@ -115,7 +242,7 @@
 
 .btn-admin-primary {
   background: linear-gradient(135deg, var(--admin-copper) 0%, #a86f45 100%);
-  color: var(--foreground);
+  color: var(--admin-primary-text);
   transition: filter 0.15s ease, transform 0.15s ease;
 }
 
@@ -134,20 +261,173 @@
 }
 
 .btn-admin-secondary {
-  border: 1px solid rgba(106, 159, 212, 0.35);
-  background: rgba(45, 55, 72, 0.35);
+  border: 1px solid var(--btn-admin-secondary-border);
+  background: var(--btn-admin-secondary-bg);
   color: var(--foreground);
   transition: background-color 0.15s ease, border-color 0.15s ease;
 }
 
 .btn-admin-secondary:hover {
-  background: rgba(69, 181, 168, 0.12);
-  border-color: rgba(69, 181, 168, 0.35);
+  background: var(--btn-admin-secondary-hover-bg);
+  border-color: var(--btn-admin-secondary-hover-border);
 }
 
 .btn-admin-secondary:focus-visible {
   outline: none;
   box-shadow: 0 0 0 2px var(--charcoal), 0 0 0 4px var(--admin-teal);
+}
+
+/* Public / shared primary CTA — copper in light, steel in dark */
+.btn-cta {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 0.375rem;
+  padding: 0.5rem 1rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+  background: var(--cta-bg);
+  color: var(--cta-text);
+  transition: filter 0.15s ease, background-color 0.15s ease;
+}
+
+.btn-cta:hover {
+  filter: brightness(1.06);
+}
+
+[data-theme="dark"] .btn-cta:hover,
+:root:not([data-theme="light"]) .btn-cta:hover {
+  background-color: var(--cta-hover);
+}
+
+[data-theme="light"] .btn-cta:hover {
+  filter: brightness(0.94);
+}
+
+.btn-cta:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 2px var(--charcoal), 0 0 0 4px var(--cta-focus);
+}
+
+.btn-cta:disabled {
+  opacity: 0.5;
+  pointer-events: none;
+}
+
+/* Job status badges — theme-aware text contrast */
+.status-badge {
+  display: inline-flex;
+  align-items: center;
+  border-radius: 0.375rem;
+  border-width: 1px;
+  padding: 0.125rem 0.625rem;
+  font-size: 0.75rem;
+  font-weight: 500;
+}
+
+:root .status-badge--to-bid,
+[data-theme="dark"] .status-badge--to-bid {
+  border-color: rgb(100 116 139 / 0.55);
+  background-color: rgb(100 116 139 / 0.22);
+  color: #e2e8f0;
+}
+
+[data-theme="light"] .status-badge--to-bid {
+  border-color: rgb(100 116 139 / 0.4);
+  background-color: rgb(241 245 249);
+  color: #334155;
+}
+
+:root .status-badge--in-takeoff,
+[data-theme="dark"] .status-badge--in-takeoff {
+  border-color: rgb(245 158 11 / 0.55);
+  background-color: rgb(245 158 11 / 0.2);
+  color: #fde68a;
+}
+
+[data-theme="light"] .status-badge--in-takeoff {
+  border-color: rgb(180 83 9 / 0.35);
+  background-color: rgb(255 251 235);
+  color: #92400e;
+}
+
+:root .status-badge--under-review,
+[data-theme="dark"] .status-badge--under-review {
+  border-color: rgb(59 130 246 / 0.55);
+  background-color: rgb(59 130 246 / 0.2);
+  color: #bfdbfe;
+}
+
+[data-theme="light"] .status-badge--under-review {
+  border-color: rgb(74 95 115 / 0.35);
+  background-color: rgb(241 245 249);
+  color: #334155;
+}
+
+:root .status-badge--proposal-ready,
+[data-theme="dark"] .status-badge--proposal-ready {
+  border-color: rgb(16 185 129 / 0.55);
+  background-color: rgb(16 185 129 / 0.2);
+  color: #a7f3d0;
+}
+
+[data-theme="light"] .status-badge--proposal-ready {
+  border-color: rgb(4 120 87 / 0.35);
+  background-color: rgb(236 253 245);
+  color: #047857;
+}
+
+:root .status-badge--sent,
+[data-theme="dark"] .status-badge--sent {
+  border-color: rgb(6 182 212 / 0.55);
+  background-color: rgb(6 182 212 / 0.2);
+  color: #a5f3fc;
+}
+
+[data-theme="light"] .status-badge--sent {
+  border-color: rgb(14 116 144 / 0.35);
+  background-color: rgb(236 254 255);
+  color: #0e7490;
+}
+
+:root .status-badge--awarded,
+[data-theme="dark"] .status-badge--awarded {
+  border-color: rgb(34 197 94 / 0.55);
+  background-color: rgb(34 197 94 / 0.2);
+  color: #bbf7d0;
+}
+
+[data-theme="light"] .status-badge--awarded {
+  border-color: rgb(21 128 61 / 0.35);
+  background-color: rgb(240 253 244);
+  color: #15803d;
+}
+
+:root .status-badge--lost,
+[data-theme="dark"] .status-badge--lost {
+  border-color: rgb(239 68 68 / 0.5);
+  background-color: rgb(239 68 68 / 0.15);
+  color: #fca5a5;
+}
+
+[data-theme="light"] .status-badge--lost {
+  border-color: rgb(185 28 28 / 0.35);
+  background-color: rgb(254 242 242);
+  color: #b91c1c;
+}
+
+[data-theme="light"] .admin-table-head > tr {
+  background: linear-gradient(
+    to right,
+    rgba(168, 111, 69, 0.06),
+    rgba(45, 157, 143, 0.04)
+  );
+  border-bottom-color: var(--border);
+}
+
+[data-theme="light"] .admin-data-table {
+  border-color: var(--border);
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.06);
 }
 
 body {
@@ -158,7 +438,7 @@ body {
 
 /* Admin form inputs: consistent, accessible */
 .input-admin {
-  @apply mt-1 w-full rounded-lg border border-steel/50 bg-charcoal/80 px-3 py-2.5 text-foreground transition-colors placeholder:text-foreground-muted/70 focus:border-admin-teal focus:outline-none focus:ring-1 focus:ring-admin-teal focus-visible:ring-2 focus-visible:ring-admin-teal focus-visible:ring-offset-2 focus-visible:ring-offset-charcoal;
+  @apply mt-1 w-full rounded-lg border border-steel/50 bg-input-bg px-3 py-2.5 text-foreground transition-colors placeholder:text-foreground-muted/70 focus:border-admin-teal focus:outline-none focus:ring-1 focus:ring-admin-teal focus-visible:ring-2 focus-visible:ring-admin-teal focus-visible:ring-offset-2 focus-visible:ring-offset-charcoal;
 }
 
 @media (prefers-reduced-motion: reduce) {

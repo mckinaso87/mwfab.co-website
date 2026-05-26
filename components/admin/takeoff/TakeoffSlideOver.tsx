@@ -11,7 +11,7 @@ export function TakeoffSlideOver({ title, onClose, children, footer }: Props) {
   return (
     <>
       <div
-        className="fixed inset-0 z-40 bg-charcoal/80 backdrop-blur-sm"
+        className="fixed inset-0 z-40 bg-overlay-bg backdrop-blur-sm"
         aria-hidden
         onClick={onClose}
       />

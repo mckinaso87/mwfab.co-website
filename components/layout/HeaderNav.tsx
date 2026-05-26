@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useUser } from "@clerk/nextjs";
 import { isAdminRole } from "@/lib/auth-constants";
 import { HeaderAuth } from "./HeaderAuth";
+import { ThemeToggle } from "@/components/ui/ThemeToggle";
 
 const NAV_LINKS = [
   { href: "/", label: "Home" },
@@ -31,7 +32,7 @@ export function HeaderNav() {
       ))}
       <Link
         href="/contact"
-        className="rounded-md bg-steel-blue px-4 py-2 text-sm font-medium text-foreground transition-colors hover:bg-steel"
+        className="btn-cta"
       >
         Request a Bid
       </Link>
@@ -43,6 +44,7 @@ export function HeaderNav() {
           Admin
         </Link>
       )}
+      <ThemeToggle />
       <HeaderAuth />
     </>
   );

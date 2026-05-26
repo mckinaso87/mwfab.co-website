@@ -2,7 +2,6 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { createAdminClient } from "@/lib/supabase/admin";
 import {
-  AdminBadge,
   AdminDataTable,
   AdminDataTableBody,
   AdminDataTableCell,
@@ -18,18 +17,18 @@ import type { Job, JobStatus } from "@/lib/db-types";
 import type { Customer } from "@/lib/db-types";
 import { JOB_STATUSES } from "@/lib/db-types";
 
-/** Tailwind classes for status badge (border + bg + text) on dark theme. */
+/** Theme-aware status badge classes (see styles/global.css .status-badge--*). */
 function getStatusBadgeClass(status: JobStatus): string {
   const map: Record<JobStatus, string> = {
-    "To Bid": "border-slate-500/60 bg-slate-500/20 text-slate-200",
-    "In Takeoff": "border-amber-500/60 bg-amber-500/20 text-amber-200",
-    "Under Review": "border-blue-500/60 bg-blue-500/20 text-blue-200",
-    "Proposal Ready": "border-emerald-500/60 bg-emerald-500/20 text-emerald-200",
-    Sent: "border-cyan-500/60 bg-cyan-500/20 text-cyan-200",
-    Awarded: "border-green-500/60 bg-green-500/20 text-green-200",
-    Lost: "border-red-500/50 bg-red-500/15 text-red-300",
+    "To Bid": "status-badge status-badge--to-bid",
+    "In Takeoff": "status-badge status-badge--in-takeoff",
+    "Under Review": "status-badge status-badge--under-review",
+    "Proposal Ready": "status-badge status-badge--proposal-ready",
+    Sent: "status-badge status-badge--sent",
+    Awarded: "status-badge status-badge--awarded",
+    Lost: "status-badge status-badge--lost",
   };
-  return map[status] ?? "border-steel/50 bg-steel/20 text-foreground-muted";
+  return map[status] ?? "status-badge border border-steel/50 bg-steel/20 text-foreground-muted";
 }
 
 export const metadata: Metadata = {
@@ -161,9 +160,9 @@ export default async function AdminJobsPage({
                   {j.date_of_plan ?? "—"}
                 </AdminDataTableCell>
                 <AdminDataTableCell>
-                  <AdminBadge className={getStatusBadgeClass(j.status as JobStatus)}>
+                  <span className={getStatusBadgeClass(j.status as JobStatus)}>
                     {j.status}
-                  </AdminBadge>
+                  </span>
                 </AdminDataTableCell>
                 <AdminDataTableCell className="text-foreground-muted">
                   {j.assigned_to

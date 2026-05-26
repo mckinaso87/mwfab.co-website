@@ -45,7 +45,14 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en">
+    <html lang="en" suppressHydrationWarning>
+      <head>
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `(function(){var t=localStorage.getItem("mwf-theme");document.documentElement.dataset.theme=t==="light"||t==="dark"?t:"dark"})();`,
+          }}
+        />
+      </head>
       <body className={`${geistSans.variable} font-sans antialiased`}>
         <JsonLd />
         <ClerkProvider>

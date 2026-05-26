@@ -167,7 +167,7 @@ export function ContactForm() {
         type="submit"
         disabled={status === "submitting"}
         className={cn(
-          "rounded-md bg-steel-blue px-4 py-2 text-sm font-medium text-foreground transition-colors hover:bg-steel disabled:opacity-50"
+          "btn-cta disabled:opacity-50"
         )}
       >
         {status === "submitting" ? "Sending…" : "Submit"}

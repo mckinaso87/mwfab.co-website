@@ -8,6 +8,7 @@ import { cn } from "@/lib/utils";
 import { isAdminRole } from "@/lib/auth-constants";
 import { HeaderNav } from "./HeaderNav";
 import { HeaderAuth } from "./HeaderAuth";
+import { ThemeToggle } from "@/components/ui/ThemeToggle";
 
 const NAV_LINKS = [
   { href: "/", label: "Home" },
@@ -106,7 +107,7 @@ export function Header() {
           ))}
           <Link
             href="/contact"
-            className="mt-2 rounded-md bg-steel-blue px-3 py-2 text-center font-medium text-foreground"
+            className="btn-cta mt-2 w-full text-center"
             onClick={() => setMobileOpen(false)}
           >
             Request a Bid
@@ -120,7 +121,8 @@ export function Header() {
               Admin
             </Link>
           )}
-          <div className="mt-3 flex justify-center">
+          <div className="mt-3 flex items-center justify-center gap-3">
+            <ThemeToggle />
             <HeaderAuth />
           </div>
         </div>

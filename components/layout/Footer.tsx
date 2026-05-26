@@ -39,7 +39,7 @@ export function Footer() {
               <li>
                 <Link
                   href="/contact"
-                  className="text-sm font-medium text-steel-blue transition-colors hover:text-foreground"
+                  className="text-sm font-medium text-accent-link transition-colors hover:text-foreground"
                 >
                   Request a Bid
                 </Link>

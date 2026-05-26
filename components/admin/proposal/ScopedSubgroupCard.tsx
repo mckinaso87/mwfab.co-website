@@ -53,7 +53,7 @@ export function ScopedSubgroupCard({
           </span>
         )}
       </div>
-      <div className="space-y-0 bg-charcoal/40 px-4 py-3 print:bg-white">{children}</div>
+      <div className="space-y-0 bg-surface px-4 py-3 print:bg-white">{children}</div>
     </div>
   );
 }
