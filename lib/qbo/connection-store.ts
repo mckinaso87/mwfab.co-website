@@ -12,7 +12,7 @@ export type StoredQboConnection = {
   refreshTokenExpiresAt: Date | null;
 };
 
-export async function getStoredConnection(): Promise<StoredQboConnection | null> {
+async function fetchLatestConnectionRow(): Promise<QboConnection | null> {
   const supabase = createAdminClient();
   const { data, error } = await supabase
     .from("qbo_connections")
@@ -21,8 +21,14 @@ export async function getStoredConnection(): Promise<StoredQboConnection | null>
     .limit(1)
     .maybeSingle();
 
-  if (error || !data) return null;
-  const row = data as QboConnection;
+  if (error) {
+    console.error("[qbo] Failed to load connection row:", error.message);
+    return null;
+  }
+  return data ? (data as QboConnection) : null;
+}
+
+function rowToStoredConnection(row: QboConnection): StoredQboConnection {
   return {
     id: row.id,
     realmId: row.realm_id,
@@ -34,6 +40,20 @@ export async function getStoredConnection(): Promise<StoredQboConnection | null>
       ? new Date(row.refresh_token_expires_at)
       : null,
   };
+}
+
+export async function getStoredConnection(): Promise<StoredQboConnection | null> {
+  const row = await fetchLatestConnectionRow();
+  if (!row) return null;
+  try {
+    return rowToStoredConnection(row);
+  } catch (err) {
+    console.error(
+      "[qbo] Could not decrypt stored tokens (check QBO_TOKEN_ENCRYPTION_KEY):",
+      err
+    );
+    return null;
+  }
 }
 
 export async function saveConnection(params: {
@@ -121,13 +141,27 @@ export async function getConnectionStatus(): Promise<{
   realmId?: string;
   companyName?: string | null;
   accessTokenExpiresAt?: string;
+  /** Row exists but tokens cannot be decrypted (wrong or rotated encryption key). */
+  tokenError?: string;
 }> {
-  const conn = await getStoredConnection();
-  if (!conn) return { connected: false };
-  return {
-    connected: true,
-    realmId: conn.realmId,
-    companyName: conn.companyName,
-    accessTokenExpiresAt: conn.accessTokenExpiresAt.toISOString(),
-  };
+  const row = await fetchLatestConnectionRow();
+  if (!row) return { connected: false };
+
+  try {
+    const conn = rowToStoredConnection(row);
+    return {
+      connected: true,
+      realmId: conn.realmId,
+      companyName: conn.companyName,
+      accessTokenExpiresAt: conn.accessTokenExpiresAt.toISOString(),
+    };
+  } catch {
+    return {
+      connected: false,
+      realmId: row.realm_id,
+      companyName: row.company_name,
+      tokenError:
+        "Stored QuickBooks tokens could not be read. This usually means QBO_TOKEN_ENCRYPTION_KEY on the server does not match the key used when you connected. Disconnect below, fix the key in Vercel, redeploy, then connect again.",
+    };
+  }
 }

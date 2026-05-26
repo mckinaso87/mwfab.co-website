@@ -45,6 +45,11 @@ export default async function IntegrationsSettingsPage({
           Connection failed: {params.error}
         </p>
       )}
+      {connection.tokenError && (
+        <p className="rounded-lg border border-red-500/50 bg-red-500/10 px-4 py-3 text-sm text-red-300">
+          {connection.tokenError}
+        </p>
+      )}
 
       <AdminSectionCard title="QuickBooks Online">
         {connection.connected ? (
@@ -73,9 +78,19 @@ export default async function IntegrationsSettingsPage({
           </div>
         ) : (
           <div>
+            {connection.tokenError && connection.realmId && (
+              <p className="mb-3 text-sm text-foreground-muted">
+                Previous connection (realm {connection.realmId}
+                {connection.companyName ? ` — ${connection.companyName}` : ""}) must be cleared
+                before reconnecting.
+              </p>
+            )}
             <p className="text-sm text-foreground-muted">
               Connect your QuickBooks company to push customers and estimates from the admin panel.
             </p>
+            {(connection.tokenError || oauthConfigured) && (
+              <QboDisconnectForm />
+            )}
             <QboConnectButton configured={oauthConfigured} />
           </div>
         )}
