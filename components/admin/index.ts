@@ -13,3 +13,4 @@ export { AdminPageHeader } from "./AdminPageHeader";
 export { AdminSectionCard } from "./AdminSectionCard";
 export { AdminStatCard } from "./AdminStatCard";
 export { AdminToolbar } from "./AdminToolbar";
+export { QboSyncBadge } from "./QboSyncBadge";

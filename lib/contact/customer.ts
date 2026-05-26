@@ -2,6 +2,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { formatPhoneDisplay } from "@/lib/format-phone";
 import { normalizeEmail } from "@/lib/normalize-email";
 import type { ContactFormPayload } from "@/lib/email/contact-types";
+import { scheduleCustomerQboSync } from "@/lib/qbo/customer-sync";
 
 function normalizePhoneForDb(value: string | null | undefined): string | null {
   if (!value || !value.trim()) return null;
@@ -85,6 +86,7 @@ export async function upsertCustomerFromContact(
           .eq("id", existing.id);
 
         if (updateError) return { ok: false, error: updateError.message };
+        scheduleCustomerQboSync(existing.id);
         return { ok: true, customerId: existing.id, created: false };
       }
     }
@@ -102,6 +104,7 @@ export async function upsertCustomerFromContact(
       .single();
 
     if (insertError) return { ok: false, error: insertError.message };
+    scheduleCustomerQboSync(inserted.id);
     return { ok: true, customerId: inserted.id, created: true };
   } catch (err) {
     const message = err instanceof Error ? err.message : "Database unavailable";

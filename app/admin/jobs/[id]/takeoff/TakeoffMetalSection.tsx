@@ -20,8 +20,10 @@ type Props = {
 export function TakeoffMetalSection({ takeoffId, jobId, takeoff, lines }: Props) {
   const router = useRouter();
   const [editingLine, setEditingLine] = useState<TakeoffMetalLine | null>(null);
+  const [submitError, setSubmitError] = useState<string | null>(null);
   const [scopePendingId, setScopePendingId] = useState<string | null>(null);
   const [scopeTransition, startScopeTransition] = useTransition();
+  const [savePending, startSaveTransition] = useTransition();
 
   const [state, formAction, isPending] = useActionState(
     async (_: unknown, formData: FormData) => upsertMetalLine(takeoffId, jobId, formData),
@@ -31,9 +33,20 @@ export function TakeoffMetalSection({ takeoffId, jobId, takeoff, lines }: Props)
     deleteMetalLineForm.bind(null, takeoffId, lineId, jobId);
 
   async function handleSubmit(formData: FormData) {
-    await formAction(formData);
-    router.refresh();
-    setEditingLine(null);
+    setSubmitError(null);
+    return new Promise<void>((resolve) => {
+      startSaveTransition(async () => {
+        const result = await upsertMetalLine(takeoffId, jobId, formData);
+        if (result?.error) {
+          setSubmitError(result.error);
+          resolve();
+          return;
+        }
+        router.refresh();
+        setEditingLine(null);
+        resolve();
+      });
+    });
   }
 
   function handleScopeSelect(line: TakeoffMetalLine, scope: LineScope) {
@@ -101,7 +114,10 @@ export function TakeoffMetalSection({ takeoffId, jobId, takeoff, lines }: Props)
                       />
                       <button
                         type="button"
-                        onClick={() => setEditingLine(line)}
+                        onClick={() => {
+                          setSubmitError(null);
+                          setEditingLine(line);
+                        }}
                         className="text-sm text-foreground-muted hover:text-foreground hover:underline"
                       >
                         Edit
@@ -137,7 +153,7 @@ export function TakeoffMetalSection({ takeoffId, jobId, takeoff, lines }: Props)
         takeoff={takeoff}
         sortOrder={lines.length}
         onSubmit={handleSubmit}
-        error={state?.error}
+        error={state?.error ?? submitError}
         submitLabel={isPending ? "Adding…" : "Add metal line"}
         pending={isPending}
       />
@@ -150,9 +166,9 @@ export function TakeoffMetalSection({ takeoffId, jobId, takeoff, lines }: Props)
             initial={editingLine}
             sortOrder={editingLine.sort_order}
             onSubmit={handleSubmit}
-            error={state?.error}
-            submitLabel={isPending ? "Saving…" : "Save changes"}
-            pending={isPending}
+            error={submitError ?? state?.error}
+            submitLabel={savePending ? "Saving…" : "Save changes"}
+            pending={savePending}
             lockMode
           />
         </TakeoffSlideOver>

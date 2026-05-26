@@ -319,7 +319,11 @@ export function TakeoffMetalLineEditor({
         <input
           type="hidden"
           name="material_catalog_id"
-          value={mode === "shorthand" && catalogRow ? catalogRow.id : ""}
+          value={
+            mode === "shorthand"
+              ? catalogRow?.id ?? initial?.material_catalog_id ?? ""
+              : ""
+          }
         />
         <input type="hidden" name="is_galvanized" value={isGalvanized ? "true" : "false"} />
 
@@ -855,8 +859,8 @@ export function TakeoffMetalLineEditor({
             type="submit"
             disabled={
               pending ||
-              (mode === "shorthand" && !catalogRow) ||
-              (mode === "plate" && !plateThickness)
+              (!initial && mode === "shorthand" && !catalogRow) ||
+              (!initial && mode === "plate" && !plateThickness.trim())
             }
             className="rounded-md bg-steel-blue px-4 py-2 text-sm font-medium text-foreground hover:bg-steel disabled:opacity-50"
           >

@@ -4,8 +4,9 @@ import { notFound } from "next/navigation";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createOrUpdateCustomer } from "../actions";
 import { CustomerForm } from "../CustomerForm";
-import { AdminPageHeader, AdminSectionCard } from "@/components/admin";
+import { AdminPageHeader, AdminSectionCard, QboSyncBadge } from "@/components/admin";
 import type { Customer } from "@/lib/db-types";
+import { getConnectionStatus } from "@/lib/qbo/connection-store";
 
 export const metadata: Metadata = {
   title: "Customer | Admin | McKinados Welding & Fabrication",
@@ -28,6 +29,7 @@ export default async function CustomerDetailPage({
 
   if (!customer) notFound();
   const c = customer as Customer;
+  const qboConnection = await getConnectionStatus();
 
   const [
     { data: jobs },
@@ -65,7 +67,29 @@ export default async function CustomerDetailPage({
           ← Customers
         </Link>
       </div>
-      <AdminPageHeader title={c.company_name} />
+      <AdminPageHeader
+        title={c.company_name}
+        subtitle={
+          c.qbo_sync_error
+            ? undefined
+            : c.qbo_synced_at
+              ? `Last synced to QuickBooks ${new Date(c.qbo_synced_at).toLocaleString()}`
+              : undefined
+        }
+        actions={
+          <QboSyncBadge
+            connected={qboConnection.connected}
+            qboId={c.qbo_customer_id}
+            syncedAt={c.qbo_synced_at}
+            syncError={c.qbo_sync_error}
+          />
+        }
+      />
+      {c.qbo_sync_error && (
+        <p className="rounded-lg border border-red-500/50 bg-red-500/10 px-4 py-3 text-sm text-red-300">
+          QuickBooks sync error: {c.qbo_sync_error}
+        </p>
+      )}
 
       <AdminSectionCard
         title="Edit customer"

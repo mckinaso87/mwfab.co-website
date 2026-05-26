@@ -25,7 +25,24 @@ export interface Customer {
   phone: string | null;
   address: string | null;
   notes: string | null;
+  qbo_customer_id: string | null;
+  qbo_sync_token: string | null;
+  qbo_synced_at: string | null;
+  qbo_sync_error: string | null;
   created_at: string;
+}
+
+export interface QboConnection {
+  id: string;
+  realm_id: string;
+  company_name: string | null;
+  access_token: string;
+  refresh_token: string;
+  access_token_expires_at: string;
+  refresh_token_expires_at: string | null;
+  connected_by: string | null;
+  created_at: string;
+  updated_at: string;
 }
 
 export interface Job {
@@ -262,5 +279,9 @@ export interface Proposal {
   sent_at: string;
   recipient_email: string;
   subject: string | null;
+  qbo_estimate_id: string | null;
+  qbo_sync_token: string | null;
+  qbo_synced_at: string | null;
+  qbo_sync_error: string | null;
   created_at: string;
 }

@@ -6,6 +6,12 @@ import { formatMoney } from "../takeoff/formatMoney";
 import { normalizeRate } from "@/lib/takeoff-calculations";
 import type { ProposalData } from "./loadProposalData";
 import { SendProposalForm } from "./SendProposalForm";
+import { PushEstimateToQboForm } from "./PushEstimateToQboForm";
+import { createAdminClient } from "@/lib/supabase/admin";
+import { getConnectionStatus } from "@/lib/qbo/connection-store";
+import { getQboSyncEnv } from "@/lib/env";
+import { getQboAppEstimateUrl } from "@/lib/qbo/oauth";
+import { QboSyncBadge } from "@/components/admin";
 import { Letterhead } from "@/components/admin/proposal/Letterhead";
 import { SignatureBlock } from "@/components/admin/proposal/SignatureBlock";
 import { TermsSection } from "@/components/admin/proposal/TermsSection";
@@ -233,6 +239,34 @@ export default async function ProposalPreviewPage({
   const data = await getProposalData(jobId);
   if (!data) notFound();
 
+  const supabase = createAdminClient();
+  const [qboConnection, syncEnv, { data: qboAnchor }] = await Promise.all([
+    getConnectionStatus(),
+    Promise.resolve(getQboSyncEnv()),
+    supabase
+      .from("proposals")
+      .select("qbo_estimate_id, qbo_synced_at, qbo_sync_error")
+      .eq("takeoff_id", data.takeoff.id)
+      .not("qbo_estimate_id", "is", null)
+      .maybeSingle(),
+  ]);
+
+  let pushDisabled = false;
+  let pushDisabledReason: string | undefined;
+  if (!qboConnection.connected) {
+    pushDisabled = true;
+    pushDisabledReason = "Connect QuickBooks under Settings → Integrations.";
+  } else if (!syncEnv) {
+    pushDisabled = true;
+    pushDisabledReason =
+      "Set QBO_DEFAULT_ITEM_ID and QBO_LINE_TAX_CODE (TAX or NON) in environment variables.";
+  }
+
+  const estimateUrl =
+    qboAnchor?.qbo_estimate_id && syncEnv
+      ? getQboAppEstimateUrl(syncEnv.environment, qboAnchor.qbo_estimate_id)
+      : null;
+
   return (
     <div className="space-y-8">
       <div className="no-print flex flex-wrap items-center gap-4">
@@ -246,8 +280,35 @@ export default async function ProposalPreviewPage({
 
       <ProposalDocument data={data} jobId={jobId} />
 
-      <div className="no-print">
-        <SendProposalForm jobId={jobId} data={data} />
+      <div className="no-print space-y-6">
+        {qboAnchor?.qbo_estimate_id && (
+          <div className="flex flex-wrap items-center gap-3">
+            <QboSyncBadge
+              connected={qboConnection.connected}
+              qboId={qboAnchor.qbo_estimate_id}
+              syncedAt={qboAnchor.qbo_synced_at}
+              syncError={qboAnchor.qbo_sync_error}
+            />
+            {estimateUrl && (
+              <a
+                href={estimateUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-sm font-medium text-admin-teal hover:text-admin-amber"
+              >
+                Open in QuickBooks →
+              </a>
+            )}
+          </div>
+        )}
+        <div className="grid gap-6 lg:grid-cols-2">
+          <SendProposalForm jobId={jobId} data={data} />
+          <PushEstimateToQboForm
+            jobId={jobId}
+            disabled={pushDisabled}
+            disabledReason={pushDisabledReason}
+          />
+        </div>
       </div>
     </div>
   );

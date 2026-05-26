@@ -5,6 +5,7 @@ import { revalidatePath } from "next/cache";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { formatPhoneDisplay, isValidPhone } from "@/lib/format-phone";
 import { normalizeEmail } from "@/lib/normalize-email";
+import { scheduleCustomerQboSync } from "@/lib/qbo/customer-sync";
 
 function normalizePhoneForDb(value: string | null | undefined): string | null {
   if (!value || !value.trim()) return null;
@@ -38,6 +39,7 @@ export async function createCustomer(formData: FormData) {
     .single();
 
   if (error) return { error: error.message };
+  scheduleCustomerQboSync(data.id);
   revalidatePath("/admin/customers");
   revalidatePath("/admin/dashboard");
   redirect("/admin/customers");
@@ -67,6 +69,7 @@ export async function updateCustomer(id: string, formData: FormData) {
     .eq("id", id);
 
   if (error) return { error: error.message };
+  scheduleCustomerQboSync(id);
   revalidatePath("/admin/customers");
   revalidatePath(`/admin/customers/${id}`);
   revalidatePath("/admin/dashboard");

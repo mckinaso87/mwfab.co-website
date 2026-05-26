@@ -10,9 +10,11 @@ import {
   AdminDataTableRow,
   AdminEmptyState,
   AdminPageHeader,
+  QboSyncBadge,
 } from "@/components/admin";
 import { DeleteCustomerButton } from "./DeleteCustomerButton";
 import type { Customer } from "@/lib/db-types";
+import { getConnectionStatus } from "@/lib/qbo/connection-store";
 
 export const metadata: Metadata = {
   title: "Customers | Admin | McKinados Welding & Fabrication",
@@ -28,6 +30,7 @@ export default async function AdminCustomersPage() {
     .order("company_name", { ascending: true });
 
   const list = (customers ?? []) as Customer[];
+  const qboConnection = await getConnectionStatus();
 
   return (
     <div className="space-y-8">
@@ -66,6 +69,7 @@ export default async function AdminCustomersPage() {
             <AdminDataTableHeaderCell>Contact</AdminDataTableHeaderCell>
             <AdminDataTableHeaderCell>Email</AdminDataTableHeaderCell>
             <AdminDataTableHeaderCell>Phone</AdminDataTableHeaderCell>
+            <AdminDataTableHeaderCell>QBO</AdminDataTableHeaderCell>
             <AdminDataTableHeaderCell align="right">Actions</AdminDataTableHeaderCell>
           </AdminDataTableHead>
           <AdminDataTableBody>
@@ -87,6 +91,14 @@ export default async function AdminCustomersPage() {
                 </AdminDataTableCell>
                 <AdminDataTableCell className="text-foreground-muted">
                   {c.phone ?? "—"}
+                </AdminDataTableCell>
+                <AdminDataTableCell>
+                  <QboSyncBadge
+                    connected={qboConnection.connected}
+                    qboId={c.qbo_customer_id}
+                    syncedAt={c.qbo_synced_at}
+                    syncError={c.qbo_sync_error}
+                  />
                 </AdminDataTableCell>
                 <AdminDataTableCell align="right">
                   <span className="flex justify-end items-center gap-3">

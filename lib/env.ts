@@ -38,7 +38,21 @@ export const env = {
     apiKey: optional("RESEND_API_KEY"),
     fromEmail: optional("RESEND_FROM_EMAIL"),
   },
+
+  qbo: {
+    clientId: optional("QBO_CLIENT_ID"),
+    clientSecret: optional("QBO_CLIENT_SECRET"),
+    redirectUri: optional("QBO_REDIRECT_URI"),
+    environment: optional("QBO_ENVIRONMENT"),
+    tokenEncryptionKey: optional("QBO_TOKEN_ENCRYPTION_KEY"),
+    defaultItemId: optional("QBO_DEFAULT_ITEM_ID"),
+    /** US estimate lines require TAX or NON, not numeric TaxCode Ids */
+    lineTaxCode: optional("QBO_LINE_TAX_CODE"),
+    legacyTaxCodeId: optional("QBO_DEFAULT_TAX_CODE_ID"),
+  },
 } as const;
+
+export type QboEnvironment = "sandbox" | "production";
 
 /** Call in API routes that need Clerk auth (e.g. admin). Throws if keys missing. */
 export function requireClerkEnv(): { publishableKey: string; secretKey: string } {
@@ -59,4 +73,72 @@ export function getResendEnv(): { apiKey: string; fromEmail: string } | null {
   const fromEmail = optional("RESEND_FROM_EMAIL");
   if (apiKey && fromEmail) return { apiKey, fromEmail };
   return null;
+}
+
+function parseQboEnvironment(): QboEnvironment {
+  const raw = (optional("QBO_ENVIRONMENT") ?? "sandbox").toLowerCase();
+  return raw === "production" ? "production" : "sandbox";
+}
+
+/** True when OAuth credentials are present (connect UI can be shown). */
+export function isQboOAuthConfigured(): boolean {
+  return !!(
+    optional("QBO_CLIENT_ID") &&
+    optional("QBO_CLIENT_SECRET") &&
+    optional("QBO_REDIRECT_URI") &&
+    optional("QBO_TOKEN_ENCRYPTION_KEY")
+  );
+}
+
+/** Throws if OAuth connect/callback is invoked without required keys. */
+export function getQboOAuthEnv(): {
+  clientId: string;
+  clientSecret: string;
+  redirectUri: string;
+  environment: QboEnvironment;
+  tokenEncryptionKey: string;
+} {
+  return {
+    clientId: required("QBO_CLIENT_ID"),
+    clientSecret: required("QBO_CLIENT_SECRET"),
+    redirectUri: required("QBO_REDIRECT_URI"),
+    environment: parseQboEnvironment(),
+    tokenEncryptionKey: required("QBO_TOKEN_ENCRYPTION_KEY"),
+  };
+}
+
+export type QboLineTaxCode = "TAX" | "NON";
+
+/** US QBO companies require line TaxCodeRef value TAX or NON (not numeric TaxCode Ids). */
+export function resolveQboLineTaxCode(): QboLineTaxCode | null {
+  const explicit = optional("QBO_LINE_TAX_CODE")?.trim().toUpperCase();
+  if (explicit === "TAX" || explicit === "NON") return explicit;
+
+  const legacy = optional("QBO_DEFAULT_TAX_CODE_ID")?.trim().toUpperCase();
+  if (legacy === "TAX" || legacy === "NON") return legacy;
+  // Numeric Ids from TaxCode query are not valid on US estimate lines — ignore and use TAX
+  if (legacy && /^\d+$/.test(legacy)) return "TAX";
+
+  return null;
+}
+
+/** Item + line tax code for estimate push; null when estimate sync is not configured. */
+export function getQboSyncEnv(): {
+  defaultItemId: string;
+  lineTaxCode: QboLineTaxCode;
+  environment: QboEnvironment;
+} | null {
+  const defaultItemId = optional("QBO_DEFAULT_ITEM_ID");
+  const lineTaxCode = resolveQboLineTaxCode();
+  if (!defaultItemId || !lineTaxCode) return null;
+  return {
+    defaultItemId,
+    lineTaxCode,
+    environment: parseQboEnvironment(),
+  };
+}
+
+/** Alias for settings UI. */
+export function isQboConfigured(): boolean {
+  return isQboOAuthConfigured();
 }

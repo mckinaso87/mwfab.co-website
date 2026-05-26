@@ -103,3 +103,25 @@ export async function sendProposal(
     return { error: message };
   }
 }
+
+export async function pushEstimateToQbo(
+  jobId: string
+): Promise<{ error?: string; success?: boolean; estimateUrl?: string; estimateId?: string }> {
+  const { pushEstimateToQbo: push } = await import("@/lib/qbo/estimate-push");
+  const result = await push(jobId);
+
+  if (!result.ok) return { error: result.error };
+
+  const data = await getProposalData(jobId);
+  if (data) {
+    revalidatePath(`/admin/jobs/${jobId}`);
+    revalidatePath(`/admin/jobs/${jobId}/proposal`);
+    revalidatePath(`/admin/customers/${data.job.customer_id}`);
+  }
+
+  return {
+    success: true,
+    estimateUrl: result.estimateUrl,
+    estimateId: result.estimateId,
+  };
+}

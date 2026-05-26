@@ -30,6 +30,15 @@ export default function SettingsPage() {
             Manage default exclusion items for takeoff proposals.
           </p>
         </Link>
+        <Link
+          href="/admin/settings/integrations"
+          className="admin-card rounded-xl border p-6 transition-colors hover:border-admin-teal/40"
+        >
+          <h2 className="text-lg font-semibold text-foreground">Integrations</h2>
+          <p className="mt-2 text-sm text-foreground-muted">
+            Connect QuickBooks Online to sync customers and push estimates.
+          </p>
+        </Link>
       </div>
     </div>
   );
