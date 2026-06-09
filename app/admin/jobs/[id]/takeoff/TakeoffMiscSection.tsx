@@ -11,7 +11,15 @@ import {
   setLineScope,
 } from "./actions";
 import { formatMoney } from "./formatMoney";
-import { isGalvanizerLine, computeMiscLineTotal } from "@/lib/takeoff-calculations";
+import {
+  isGalvanizerLine,
+  isGalvanizerShortfallLine,
+  computeMiscLineTotal,
+  computeGalvanizerCost,
+  computeGalvanizerShortfall,
+  computeGalvanizerBillable,
+  GALV_MINIMUM,
+} from "@/lib/takeoff-calculations";
 import type { Takeoff, TakeoffMiscLine, LineScope } from "@/lib/db-types";
 import { TAKEOFF_INNER_BOX } from "@/components/admin/takeoff/takeoff-form-variants";
 import { TakeoffFormSection } from "@/components/admin/takeoff/TakeoffFormSection";
@@ -24,10 +32,6 @@ import { TAKEOFF_ADD_LINE_SHELL } from "@/components/admin/takeoff/takeoff-form-
 import { ScopeQuickToggle } from "@/components/admin/takeoff/ScopeQuickToggle";
 import { TakeoffSlideOver } from "@/components/admin/takeoff/TakeoffSlideOver";
 import { TakeoffMiscLineEditor } from "./TakeoffMiscLineEditor";
-
-const GALV_PCT = 0.15;
-const GALV_RATE = 0.5;
-const GALV_CAP = 750;
 
 type Props = {
   takeoffId: string;
@@ -88,10 +92,24 @@ export function TakeoffMiscSection({
     galvanizerLine?.customer_note_in_proposal,
   ]);
 
-  const galvanizerTotal = Math.min(effectivePounds * GALV_PCT * GALV_RATE, GALV_CAP);
+  const galvRates = { galvPct: takeoff.galv_pct, galvRatePerLb: takeoff.galv_rate_per_lb };
+  const galvPctDisplay =
+    (takeoff.galv_pct ?? 0.15) > 1
+      ? takeoff.galv_pct ?? 15
+      : (takeoff.galv_pct ?? 0.15) * 100;
+  const galvRateDisplay = takeoff.galv_rate_per_lb ?? 0.5;
+  const calculatedGalvCost = computeGalvanizerCost(
+    effectivePounds,
+    takeoff.galv_pct,
+    takeoff.galv_rate_per_lb
+  );
+  const galvShortfall = computeGalvanizerShortfall(calculatedGalvCost);
+  const billableGalvCost = computeGalvanizerBillable(calculatedGalvCost);
+  const galvFormulaText = `LBs × ${galvPctDisplay}% × $${galvRateDisplay.toFixed(2)}, shop minimum $${GALV_MINIMUM}`;
 
   const displayLines = lines.filter((l) => {
     if (isGalvanizerLine(l.label) && galvMode === "not_galvanized") return false;
+    if (isGalvanizerShortfallLine(l.label) && (l.total_price ?? 0) <= 0) return false;
     return true;
   });
 
@@ -149,13 +167,14 @@ export function TakeoffMiscSection({
     <section className="rounded-xl border border-steel/50 bg-card p-6">
       <h2 className="mb-1 text-lg font-semibold text-foreground">Materials – Miscellaneous</h2>
       <p className="mb-4 text-sm text-foreground-muted">
-        Galvanizer: LBs × 15% × $0.50, cap $750. Weight auto-sums from galvanized metal lines.
+        Galvanizer: {galvFormulaText}. Weight auto-sums from galvanized metal, plate, and component
+        lines.
       </p>
 
       {showGalvPanel && (
         <TakeoffFormSection
           title="Galvanizer (auto-calculated)"
-          subtitle="LBs × 15% × $0.50, cap $750. Weight sums from galvanized metal lines."
+          subtitle={`${galvFormulaText}. Weight sums from galvanized metal, plate, and component lines.`}
           variant="galvanizer"
           className="!col-span-1 mb-6"
         >
@@ -164,8 +183,20 @@ export function TakeoffMiscSection({
             Auto-summed weight: <strong>{effectiveAuto.toFixed(1)} lb</strong>
           </p>
           <p className="text-sm text-foreground">
-            Galvanizer total: <strong>{formatMoney(galvanizerTotal)}</strong>
+            Calculated cost: <strong>{formatMoney(calculatedGalvCost)}</strong>
           </p>
+          <p className="text-sm text-foreground">
+            Shop minimum: <strong>{formatMoney(GALV_MINIMUM)}</strong>
+          </p>
+          <p className="text-sm text-foreground">
+            Billable to customer: <strong>{formatMoney(billableGalvCost)}</strong>
+          </p>
+          {galvShortfall > 0 && (
+            <p className="rounded-md border border-amber-500/40 bg-amber-500/10 px-3 py-2 text-sm text-amber-100">
+              Shop minimum not met — {formatMoney(galvShortfall)} added to internal Galvanizer
+              shortfall (hidden on proposal).
+            </p>
+          )}
           <label className="flex items-center gap-2 text-sm text-foreground">
             <input
               type="checkbox"
@@ -264,6 +295,8 @@ export function TakeoffMiscSection({
             <tbody>
               {displayLines.map((line) => {
                 const isGalv = isGalvanizerLine(line.label);
+                const isShortfall = isGalvanizerShortfallLine(line.label);
+                const isAutoManaged = isGalv || isShortfall;
                 return (
                   <tr key={line.id} className="border-b border-steel/30 hover:bg-steel/10">
                     <td className="px-4 py-2.5 font-medium text-foreground">
@@ -277,11 +310,11 @@ export function TakeoffMiscSection({
                     </td>
                     <td className="px-4 py-2.5 text-right tabular-nums font-medium text-foreground">
                       {formatMoney(
-                        isGalv ? computeMiscLineTotal(line) : line.total_price
+                        isGalv ? computeMiscLineTotal(line, galvRates) : line.total_price
                       )}
                     </td>
                     <td className="px-4 py-2.5 text-right">
-                      {isGalv ? (
+                      {isAutoManaged ? (
                         <span className="text-xs text-foreground-muted">
                           Auto
                           {line.include_in_proposal === false ? " · hidden on proposal" : ""}

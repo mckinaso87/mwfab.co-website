@@ -156,6 +156,8 @@ export interface Takeoff {
   galv_mode: "not_galvanized" | "baked_in" | "optional_addon";
   galv_total_override: number | null;
   galv_addon_amount: number;
+  galv_pct: number;
+  galv_rate_per_lb: number;
   plate_default_cost_per_lb: number;
   created_at: string;
   updated_at: string;
@@ -204,6 +206,8 @@ export interface TakeoffComponentLine {
   total_pounds: number | null;
   cost_per_measure: number | null;
   total_price: number;
+  is_galvanized: boolean;
+  galv_pounds: number | null;
   sort_order: number;
   include_in_proposal: boolean;
   customer_note: string | null;

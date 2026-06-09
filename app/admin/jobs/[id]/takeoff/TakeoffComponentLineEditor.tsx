@@ -44,6 +44,7 @@ export function TakeoffComponentLineEditor({
   const [totalPrice, setTotalPrice] = useState(
     initial?.total_price != null ? String(initial.total_price) : ""
   );
+  const [isGalvanized, setIsGalvanized] = useState(initial?.is_galvanized ?? false);
 
   useEffect(() => {
     const cnt = count;
@@ -108,6 +109,20 @@ export function TakeoffComponentLineEditor({
           value={count}
           onChange={(e) => setCount(Number(e.target.value) || 0)}
         />
+      </div>
+      <div className="sm:col-span-2">
+        <label className="flex items-center gap-2 text-sm text-foreground">
+          <input
+            type="checkbox"
+            checked={isGalvanized}
+            onChange={(e) => setIsGalvanized(e.target.checked)}
+          />
+          Galvanized
+        </label>
+        <p className="mt-1 text-xs text-foreground-muted">
+          Adds this component&apos;s total pounds to the Galvanizer line on the takeoff.
+        </p>
+        <input type="hidden" name="is_galvanized" value={isGalvanized ? "true" : "false"} />
       </div>
       <div>
         <label htmlFor="comp_total_pounds_per_piece" className={labelClass}>

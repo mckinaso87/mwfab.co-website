@@ -4,7 +4,7 @@ import {
   subgroupSubtotal,
   SCOPE_SUBGROUP_TITLE,
 } from "@/lib/proposal-line-groups";
-import { isGalvanizerLine } from "@/lib/takeoff-calculations";
+import { isGalvanizerLine, galvanizerProposalAmount } from "@/lib/takeoff-calculations";
 import { proposalLineCustomerNote } from "@/lib/proposal-line-note";
 import type {
   TakeoffMetalLine,
@@ -141,6 +141,8 @@ type Props = {
   fieldMiscLines: TakeoffFieldMisc[];
   sectionNotes: Partial<Record<TakeoffSectionKey, TakeoffSectionNote>>;
   galvMode: string;
+  galvPct?: number | null;
+  galvRatePerLb?: number | null;
   /** When false, list scope/line descriptions only; amounts still roll into takeoff.grand_total. */
   showAmounts?: boolean;
 };
@@ -152,8 +154,11 @@ export function ProposalLineSections({
   fieldMiscLines,
   sectionNotes,
   galvMode,
+  galvPct,
+  galvRatePerLb,
   showAmounts = false,
 }: Props) {
+  const galvRates = { galvPct, galvRatePerLb };
   const miscDisplay = miscLines.filter(
     (l) => !(isGalvanizerLine(l.label) && galvMode === "not_galvanized")
   );
@@ -180,7 +185,9 @@ export function ProposalLineSections({
   const miscCustomer: CustomerLine[] = miscDisplay.map((l) => ({
     id: l.id,
     description: l.label,
-    amount: l.total_price,
+    amount: isGalvanizerLine(l.label)
+      ? galvanizerProposalAmount(l.weight_of_galv, galvRates)
+      : l.total_price,
     scope: l.scope,
     sortKey: l.sort_order,
     customerNote: proposalLineCustomerNote(l),

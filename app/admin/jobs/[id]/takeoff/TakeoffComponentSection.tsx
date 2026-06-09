@@ -58,6 +58,8 @@ export function TakeoffComponentSection({ takeoffId, jobId, lines }: Props) {
               <tr className="border-b border-steel/50 bg-steel/20">
                 <th className="px-4 py-3 text-left font-medium text-foreground">Name</th>
                 <th className="px-4 py-3 text-right font-medium text-foreground">Count</th>
+                <th className="px-4 py-3 text-right font-medium text-foreground">Pounds</th>
+                <th className="px-4 py-3 text-center font-medium text-foreground">Galv</th>
                 <th className="px-4 py-3 text-right font-medium text-foreground">Total</th>
                 <th className="px-4 py-3 text-right font-medium text-foreground">Actions</th>
               </tr>
@@ -70,6 +72,16 @@ export function TakeoffComponentSection({ takeoffId, jobId, lines }: Props) {
                     {line.include_in_proposal === false && <ProposalHiddenBadge />}
                   </td>
                   <td className="px-4 py-2.5 text-right tabular-nums text-foreground">{line.count}</td>
+                  <td className="px-4 py-2.5 text-right tabular-nums text-foreground-muted">
+                    {line.total_pounds != null ? `${line.total_pounds.toFixed(1)} lb` : "—"}
+                  </td>
+                  <td className="px-4 py-2.5 text-center text-foreground-muted">
+                    {line.is_galvanized
+                      ? line.galv_pounds != null
+                        ? `${line.galv_pounds.toFixed(0)} lb`
+                        : "Yes"
+                      : "—"}
+                  </td>
                   <td className="px-4 py-2.5 text-right tabular-nums font-medium text-foreground">
                     {formatMoney(line.total_price)}
                   </td>

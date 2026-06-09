@@ -129,6 +129,8 @@ function ProposalDocument({ data, jobId }: { data: ProposalData; jobId: string }
             fieldMiscLines={fieldMiscLines}
             sectionNotes={sectionNotes}
             galvMode={galvMode}
+            galvPct={takeoff.galv_pct}
+            galvRatePerLb={takeoff.galv_rate_per_lb}
           />
         </div>
 

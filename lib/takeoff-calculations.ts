@@ -1,11 +1,58 @@
 /**
  * Takeoff totals and line calculations. Shared for UI display and Phase 4 PDF.
- * Galvanizer: LBs × 15% × $0.50, cap $750.
+ * Galvanizer: LBs × pct × rate; shop minimum $750 (shortfall tracked on internal misc line).
  */
 
 const GALV_PCT = 0.15;
 const GALV_RATE = 0.5;
-const GALV_CAP = 750;
+export const GALV_MINIMUM = 750;
+
+export type GalvRateOptions = {
+  galvPct?: number | null;
+  galvRatePerLb?: number | null;
+};
+
+export function computeGalvanizerWeightCost(
+  lbs: number,
+  galvPct?: number | null,
+  galvRatePerLb?: number | null
+): number {
+  const weight = Number.isFinite(lbs) && lbs > 0 ? lbs : 0;
+  const pct = normalizeRate(galvPct, GALV_PCT);
+  const rate =
+    galvRatePerLb != null && Number.isFinite(galvRatePerLb) && galvRatePerLb >= 0
+      ? galvRatePerLb
+      : GALV_RATE;
+  return weight * pct * rate;
+}
+
+export function computeGalvanizerShortfall(calculated: number): number {
+  const cost = Number.isFinite(calculated) && calculated > 0 ? calculated : 0;
+  return Math.max(0, GALV_MINIMUM - cost);
+}
+
+export function computeGalvanizerBillable(calculated: number): number {
+  const cost = Number.isFinite(calculated) && calculated > 0 ? calculated : 0;
+  return Math.max(cost, GALV_MINIMUM);
+}
+
+/** Weight-based galvanizer cost (no shop minimum applied). */
+export function computeGalvanizerCost(
+  lbs: number,
+  galvPct?: number | null,
+  galvRatePerLb?: number | null
+): number {
+  return computeGalvanizerWeightCost(lbs, galvPct, galvRatePerLb);
+}
+
+/** Customer-facing galvanizer amount on proposals (at least shop minimum). */
+export function galvanizerProposalAmount(
+  weightLbs: number | null | undefined,
+  rates?: GalvRateOptions
+): number {
+  const calculated = computeGalvanizerWeightCost(weightLbs ?? 0, rates?.galvPct, rates?.galvRatePerLb);
+  return computeGalvanizerBillable(calculated);
+}
 
 export type GalvMode = "not_galvanized" | "baked_in" | "optional_addon";
 
@@ -61,6 +108,8 @@ export interface TakeoffTotalsInput {
   fieldLaborRate: number | null;
   fieldDaysOrNights: number | null;
   fieldLaborTotal: number;
+  galvPct?: number | null;
+  galvRatePerLb?: number | null;
 }
 
 const LINKED_CATEGORIES = new Set([
@@ -75,8 +124,12 @@ const LINKED_CATEGORIES = new Set([
   "plate",
 ]);
 
+export function isGalvanizerShortfallLine(label: string): boolean {
+  return /galvanizer\s+shortfall/i.test(label ?? "");
+}
+
 export function isGalvanizerLine(label: string): boolean {
-  return /galvanizer/i.test(label ?? "");
+  return /galvanizer/i.test(label ?? "") && !isGalvanizerShortfallLine(label);
 }
 
 function product(a: number | null | undefined, b: number | null | undefined): number {
@@ -87,10 +140,14 @@ function product(a: number | null | undefined, b: number | null | undefined): nu
 }
 
 /** Sum hours×rate + days×rate + amount×price when factors present. */
-export function computeMiscLineTotal(line: MiscLineInput): number {
+export function computeMiscLineTotal(line: MiscLineInput, rates?: GalvRateOptions): number {
+  if (isGalvanizerShortfallLine(line.label ?? "")) {
+    if (line.total_price != null && Number.isFinite(line.total_price)) return line.total_price;
+    return product(line.amount, line.price_per);
+  }
   if (isGalvanizerLine(line.label ?? "")) {
     const lbs = line.weight_of_galv ?? 0;
-    return Math.min(lbs * GALV_PCT * GALV_RATE, GALV_CAP);
+    return computeGalvanizerWeightCost(lbs, rates?.galvPct, rates?.galvRatePerLb);
   }
   const fromHours = product(line.hours, line.rate_per_hour);
   const fromDays = product(line.days, line.rate_per_day);
@@ -101,10 +158,10 @@ export function computeMiscLineTotal(line: MiscLineInput): number {
   return 0;
 }
 
-export function computeFieldMiscTotal(line: FieldMiscInput): number {
+export function computeFieldMiscTotal(line: FieldMiscInput, rates?: GalvRateOptions): number {
   if (isGalvanizerLine(line.label ?? "")) {
     const lbs = line.amount ?? 0;
-    return Math.min(lbs * GALV_PCT * GALV_RATE, GALV_CAP);
+    return computeGalvanizerCost(lbs, rates?.galvPct, rates?.galvRatePerLb);
   }
   const fromHours = product(line.hours, line.rate_per_hour);
   const fromDays = product(line.days, line.rate_per_day);
@@ -154,10 +211,19 @@ export function componentSubtotal(lines: ComponentLineInput[]): number {
   return lines.reduce((s, l) => s + (l.total_price ?? 0), 0);
 }
 
-/** Galvanizer line total for optional add-on display (always computed from weight). */
-export function galvanizerAddonAmount(miscLines: MiscLineInput[]): number {
+/** Galvanizer billable total for optional add-on display (shop minimum applied). */
+export function galvanizerAddonAmount(
+  miscLines: MiscLineInput[],
+  rates?: GalvRateOptions
+): number {
   const galv = miscLines.find((l) => isGalvanizerLine(l.label));
-  return galv ? computeMiscLineTotal(galv) : 0;
+  if (!galv) return 0;
+  const calculated = computeGalvanizerWeightCost(
+    galv.weight_of_galv ?? 0,
+    rates?.galvPct,
+    rates?.galvRatePerLb
+  );
+  return computeGalvanizerBillable(calculated);
 }
 
 /** @deprecated Use computeMiscLineTotal */
@@ -166,26 +232,36 @@ export function miscLineTotal(line: MiscLineInput): number {
 }
 
 /** Sum of misc line totals; galvanizer excluded per galv_mode. */
-export function miscSubtotal(lines: MiscLineInput[], galvMode: GalvMode): number {
+export function miscSubtotal(
+  lines: MiscLineInput[],
+  galvMode: GalvMode,
+  rates?: GalvRateOptions
+): number {
   const includeGalv = includeGalvanizerInSubtotal(galvMode);
   return lines.reduce((s, l) => {
-    if (isGalvanizerLine(l.label) && !includeGalv) return s;
-    return s + computeMiscLineTotal(l);
+    if (
+      (isGalvanizerLine(l.label) || isGalvanizerShortfallLine(l.label)) &&
+      !includeGalv
+    ) {
+      return s;
+    }
+    return s + computeMiscLineTotal(l, rates);
   }, 0);
 }
 
 /** Raw sum of all misc line totals (for misc_total column / proposal row). */
-export function miscLinesRawTotal(lines: MiscLineInput[]): number {
-  return lines.reduce((s, l) => s + computeMiscLineTotal(l), 0);
+export function miscLinesRawTotal(lines: MiscLineInput[], rates?: GalvRateOptions): number {
+  return lines.reduce((s, l) => s + computeMiscLineTotal(l, rates), 0);
 }
 
 /** Other material = components + misc. */
 export function otherMaterialSubtotal(
   componentLines: ComponentLineInput[],
   miscLines: MiscLineInput[],
-  galvMode: GalvMode
+  galvMode: GalvMode,
+  rates?: GalvRateOptions
 ): number {
-  return componentSubtotal(componentLines) + miscSubtotal(miscLines, galvMode);
+  return componentSubtotal(componentLines) + miscSubtotal(miscLines, galvMode, rates);
 }
 
 /** All material = metal TOTALS + other material (components + misc). */
@@ -193,9 +269,10 @@ export function allMaterialSubtotal(
   metalLines: MetalLineInput[],
   componentLines: ComponentLineInput[],
   miscLines: MiscLineInput[],
-  galvMode: GalvMode
+  galvMode: GalvMode,
+  rates?: GalvRateOptions
 ): number {
-  return metalSubtotal(metalLines) + otherMaterialSubtotal(componentLines, miscLines, galvMode);
+  return metalSubtotal(metalLines) + otherMaterialSubtotal(componentLines, miscLines, galvMode, rates);
 }
 
 /**
@@ -232,9 +309,13 @@ export function drawingsTotal(shopDrawingsAmount: number): number {
 }
 
 /** misc lines + field misc for proposal breakdown row. */
-export function miscTotalColumn(miscLines: MiscLineInput[], fieldMisc: FieldMiscInput[]): number {
-  const miscSum = miscLinesRawTotal(miscLines);
-  const fieldSum = fieldMisc.reduce((s, r) => s + computeFieldMiscTotal(r), 0);
+export function miscTotalColumn(
+  miscLines: MiscLineInput[],
+  fieldMisc: FieldMiscInput[],
+  rates?: GalvRateOptions
+): number {
+  const miscSum = miscLinesRawTotal(miscLines, rates);
+  const fieldSum = fieldMisc.reduce((s, r) => s + computeFieldMiscTotal(r, rates), 0);
   return miscSum + fieldSum;
 }
 
@@ -286,11 +367,16 @@ export function marginOptions(projectTotalVal: number): {
 /** Compute all totals from current takeoff data. */
 export function computeTakeoffTotals(input: TakeoffTotalsInput & { marginRate: number }) {
   const galvMode = input.galvMode;
+  const galvRates: GalvRateOptions = {
+    galvPct: input.galvPct,
+    galvRatePerLb: input.galvRatePerLb,
+  };
   const allMat = allMaterialSubtotal(
     input.metalLines,
     input.componentLines,
     input.miscLines,
-    galvMode
+    galvMode,
+    galvRates
   );
   const taxRate = normalizeRate(input.taxRate, 0.07);
   const marginRate = normalizeRate(input.marginRate, 0.2);
@@ -300,12 +386,13 @@ export function computeTakeoffTotals(input: TakeoffTotalsInput & { marginRate: n
   const otherMatSub = otherMaterialSubtotal(
     input.componentLines,
     input.miscLines,
-    galvMode
+    galvMode,
+    galvRates
   );
   const drawingsTotalVal = drawingsTotal(input.shopDrawingsAmount);
   const shopTotalVal = shopLaborTotal(input.shopLaborAmount);
   const installTotalVal = installTotal(input.fieldLaborTotal);
-  const miscTotalVal = miscTotalColumn(input.miscLines, input.fieldMisc);
+  const miscTotalVal = miscTotalColumn(input.miscLines, input.fieldMisc, galvRates);
   const fieldTotalVal = fieldTotal(input.fieldLaborTotal, input.fieldMisc);
   const proj = projectTotal(
     materialWithTax,
@@ -317,7 +404,7 @@ export function computeTakeoffTotals(input: TakeoffTotalsInput & { marginRate: n
   const withPct = proj * (1 + marginRate);
   const margins = marginOptions(proj);
   const galv_addon_amount =
-    galvMode === "optional_addon" ? galvanizerAddonAmount(input.miscLines) : 0;
+    galvMode === "optional_addon" ? galvanizerAddonAmount(input.miscLines, galvRates) : 0;
   return {
     metal_subtotal: metalSub,
     other_material_subtotal: otherMatSub,

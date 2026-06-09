@@ -84,6 +84,8 @@ export function TakeoffMetalLineEditor({
   const [plateThickness, setPlateThickness] = useState("");
   const [plateWidth, setPlateWidth] = useState("");
   const [plateHeight, setPlateHeight] = useState("");
+  const [poundsPerPiece, setPoundsPerPiece] = useState("");
+  const [poundsPerPieceTouched, setPoundsPerPieceTouched] = useState(false);
   const [scope, setScope] = useState<LineScope>(initial?.scope ?? "furnish_install");
   const [includeInProposal, setIncludeInProposal] = useState(
     initial?.include_in_proposal ?? true
@@ -130,6 +132,16 @@ export function TakeoffMetalLineEditor({
       );
       setPlateWidth(initial.plate_width_in != null ? String(initial.plate_width_in) : "");
       setPlateHeight(initial.plate_height_in != null ? String(initial.plate_height_in) : "");
+      const perPiece =
+        initial.total_pounds_per_piece != null
+          ? initial.total_pounds_per_piece
+          : initial.total_pounds != null && initial.count > 0
+            ? initial.total_pounds / initial.count
+            : null;
+      if (perPiece != null && Number.isFinite(perPiece)) {
+        setPoundsPerPiece(String(perPiece));
+      }
+      setPoundsPerPieceTouched(true);
     } else if (initial.category === "other") {
       setMode("other");
       setOtherUnit((initial.other_unit as "lbs" | "ft") ?? "lbs");
@@ -183,12 +195,9 @@ export function TakeoffMetalLineEditor({
     const mult = Math.max(1, Math.floor(Number(count) || 1));
 
     if (mode === "plate") {
-      const t = parseFloat(plateThickness);
-      const w = parseFloat(plateWidth);
-      const h = parseFloat(plateHeight);
-      if (Number.isFinite(t) && Number.isFinite(w) && Number.isFinite(h) && Number.isFinite(c)) {
-        const lbs = t * w * h * mult * STEEL_DENSITY_LB_PER_IN3;
-        return (lbs * c).toFixed(2);
+      const lbsPerPiece = parseFloat(poundsPerPiece);
+      if (Number.isFinite(lbsPerPiece) && lbsPerPiece > 0 && Number.isFinite(c)) {
+        return (mult * lbsPerPiece * c).toFixed(2);
       }
       return "";
     }
@@ -234,19 +243,26 @@ export function TakeoffMetalLineEditor({
   }, [catalogRow?.id, catalogRow?.weight_per_ft, totalLengthFt, count, mode]);
 
   useEffect(() => {
-    if (mode === "plate") {
-      const t = parseFloat(plateThickness);
-      const w = parseFloat(plateWidth);
-      const h = parseFloat(plateHeight);
-      const mult = Math.max(1, Math.floor(Number(count) || 1));
-      if (Number.isFinite(t) && Number.isFinite(w) && Number.isFinite(h)) {
-        setTotalPounds(String(t * w * h * mult * STEEL_DENSITY_LB_PER_IN3));
-        if (!displayName.trim()) {
-          setDisplayName(`PL ${t} × ${w} × ${h}`);
-        }
-      }
+    if (mode !== "plate") return;
+    const t = parseFloat(plateThickness);
+    const w = parseFloat(plateWidth);
+    const h = parseFloat(plateHeight);
+    if (!poundsPerPieceTouched && Number.isFinite(t) && Number.isFinite(w) && Number.isFinite(h) && t > 0 && w > 0 && h > 0) {
+      setPoundsPerPiece(String(t * w * h * STEEL_DENSITY_LB_PER_IN3));
     }
-  }, [plateThickness, plateWidth, plateHeight, count, mode]);
+    if (!displayName.trim() && Number.isFinite(t) && Number.isFinite(w) && Number.isFinite(h)) {
+      setDisplayName(`PL ${t} × ${w} × ${h}`);
+    }
+  }, [plateThickness, plateWidth, plateHeight, mode, poundsPerPieceTouched, displayName]);
+
+  const plateTotalPounds = (() => {
+    const lbsPerPiece = parseFloat(poundsPerPiece);
+    const mult = Math.max(1, Math.floor(Number(count) || 1));
+    if (Number.isFinite(lbsPerPiece) && lbsPerPiece > 0) {
+      return String(lbsPerPiece * mult);
+    }
+    return "";
+  })();
 
   useEffect(() => {
     if (isGalvanized && totalLengthFt && !galvLengthFt) {
@@ -268,6 +284,8 @@ export function TakeoffMetalLineEditor({
     setPlateThickness("");
     setPlateWidth("");
     setPlateHeight("");
+    setPoundsPerPiece("");
+    setPoundsPerPieceTouched(false);
     setShowDetails(false);
   };
 
@@ -313,9 +331,11 @@ export function TakeoffMetalLineEditor({
                 onClick={() => {
                   setMode(m);
                   resetForm();
-                  if (m === "plate") {
-                    setCostPerUnit(String(plateDefaultCost));
-                  }
+              if (m === "plate") {
+                setCostPerUnit(String(plateDefaultCost));
+                setPoundsPerPieceTouched(false);
+                setPoundsPerPiece("");
+              }
                 }}
                 className={`rounded-lg px-4 py-2 text-sm font-medium transition-colors ${
                   mode === m ? MODE_BUTTON_ACTIVE[m] : MODE_BUTTON_IDLE
@@ -443,6 +463,27 @@ export function TakeoffMetalLineEditor({
                   value={plateHeight}
                   onChange={(e) => setPlateHeight(e.target.value)}
                 />
+              </div>
+              <div>
+                <label htmlFor="plate_pounds_per_piece" className={labelClass}>
+                  Pounds per piece
+                </label>
+                <input
+                  id="plate_pounds_per_piece"
+                  name="total_pounds_per_piece"
+                  type="number"
+                  step="0.01"
+                  min="0"
+                  className="input-admin"
+                  value={poundsPerPiece}
+                  onChange={(e) => {
+                    setPoundsPerPiece(e.target.value);
+                    setPoundsPerPieceTouched(true);
+                  }}
+                />
+                <p className="mt-1 text-xs text-foreground-muted">
+                  Suggested: T × W × H × 0.2836. Override if needed.
+                </p>
               </div>
               <div>
                 <label htmlFor="plate_cost" className={labelClass}>
@@ -613,7 +654,17 @@ export function TakeoffMetalLineEditor({
                 />
               </div>
             )}
-            <input type="hidden" name="total_pounds" value={totalPounds} />
+            <div className="col-span-full">
+              <label className="flex items-center gap-2 text-sm text-foreground">
+                <input
+                  type="checkbox"
+                  checked={isGalvanized}
+                  onChange={(e) => setIsGalvanized(e.target.checked)}
+                />
+                Galvanized?
+              </label>
+            </div>
+            <input type="hidden" name="total_pounds" value={plateTotalPounds} />
           </>
         )}
 

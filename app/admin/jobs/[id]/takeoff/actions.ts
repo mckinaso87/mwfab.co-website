@@ -8,7 +8,10 @@ import {
   computeTakeoffTotals,
   computeMiscLineTotal,
   computeFieldMiscTotal,
+  computeGalvanizerWeightCost,
+  computeGalvanizerShortfall,
   isGalvanizerLine,
+  isGalvanizerShortfallLine,
   normalizeRate,
   type GalvMode,
   type TakeoffTotalsInput,
@@ -165,11 +168,13 @@ export async function getMaterialFieldConfig(
 
 export async function getSumGalvPounds(takeoffId: string): Promise<number> {
   const supabase = createAdminClient();
-  const { data } = await supabase
-    .from("takeoff_metal_lines")
-    .select("galv_pounds")
-    .eq("takeoff_id", takeoffId);
-  return (data ?? []).reduce((s, r) => s + (Number(r.galv_pounds) || 0), 0);
+  const [{ data: metal }, { data: components }] = await Promise.all([
+    supabase.from("takeoff_metal_lines").select("galv_pounds").eq("takeoff_id", takeoffId),
+    supabase.from("takeoff_component_lines").select("galv_pounds").eq("takeoff_id", takeoffId),
+  ]);
+  const metalSum = (metal ?? []).reduce((s, r) => s + (Number(r.galv_pounds) || 0), 0);
+  const compSum = (components ?? []).reduce((s, r) => s + (Number(r.galv_pounds) || 0), 0);
+  return metalSum + compSum;
 }
 
 export async function setGalvTotalOverride(
@@ -315,6 +320,14 @@ export async function updateTakeoffHeader(
       ? galvModeRaw
       : "not_galvanized";
   const plateDefault = parseFloat((formData.get("plate_default_cost_per_lb") as string) ?? "1.1");
+  const galvPctRaw = parseFloat((formData.get("galv_pct") as string) ?? "15");
+  const galvRateRaw = parseFloat((formData.get("galv_rate_per_lb") as string) ?? "0.5");
+  const galvPctStored = normalizeRate(
+    Number.isFinite(galvPctRaw) && galvPctRaw >= 0 && galvPctRaw <= 100 ? galvPctRaw : 15,
+    0.15
+  );
+  const galvRatePerLb =
+    Number.isFinite(galvRateRaw) && galvRateRaw >= 0 ? galvRateRaw : 0.5;
   const shopLaborHours = parseFloat((formData.get("shop_labor_hours") as string) ?? "");
   const shopLaborRate = parseFloat((formData.get("shop_labor_rate") as string) ?? "");
   const shopDaysOrNights = parseFloat((formData.get("shop_days_or_nights") as string) ?? "");
@@ -339,6 +352,8 @@ export async function updateTakeoffHeader(
       margin_rate: marginRate,
       notes,
       galv_mode: galvMode,
+      galv_pct: galvPctStored,
+      galv_rate_per_lb: galvRatePerLb,
       plate_default_cost_per_lb: Number.isFinite(plateDefault) ? plateDefault : 1.1,
       shop_labor_hours: Number.isFinite(shopLaborHours) ? shopLaborHours : null,
       shop_labor_rate: Number.isFinite(shopLaborRate) ? shopLaborRate : null,
@@ -360,19 +375,24 @@ async function syncGalvanizerMiscLine(
   takeoffId: string,
   galvMode: GalvMode,
   effectiveGalvPounds: number,
-  miscLines: TakeoffMiscLine[]
+  miscLines: TakeoffMiscLine[],
+  galvPct: number,
+  galvRatePerLb: number
 ): Promise<TakeoffMiscLine[]> {
   if (galvMode === "not_galvanized") return miscLines;
 
   const supabase = createAdminClient();
   const weight = effectiveGalvPounds;
-  const totalPrice = computeMiscLineTotal({
-    label: "Galvanizer",
-    amount: null,
-    weight_of_galv: weight,
-    price_per: null,
-    total_price: 0,
-  });
+  const totalPrice = computeMiscLineTotal(
+    {
+      label: "Galvanizer",
+      amount: null,
+      weight_of_galv: weight,
+      price_per: null,
+      total_price: 0,
+    },
+    { galvPct, galvRatePerLb }
+  );
 
   let galvLine = miscLines.find((l) => isGalvanizerLine(l.label));
   if (!galvLine) {
@@ -406,6 +426,81 @@ async function syncGalvanizerMiscLine(
   );
 }
 
+const GALVANIZER_SHORTFALL_LABEL = "Galvanizer shortfall";
+
+async function syncGalvanizerShortfallLine(
+  takeoffId: string,
+  galvMode: GalvMode,
+  calculatedCost: number,
+  miscLines: TakeoffMiscLine[]
+): Promise<TakeoffMiscLine[]> {
+  const supabase = createAdminClient();
+  const shortfallLine = miscLines.find((l) => isGalvanizerShortfallLine(l.label));
+  const shortfall =
+    galvMode === "not_galvanized" || calculatedCost <= 0
+      ? 0
+      : computeGalvanizerShortfall(calculatedCost);
+
+  if (shortfall <= 0) {
+    if (!shortfallLine) return miscLines;
+    await supabase
+      .from("takeoff_misc_lines")
+      .update({
+        amount: null,
+        price_per: null,
+        total_price: 0,
+        include_in_proposal: false,
+      })
+      .eq("id", shortfallLine.id);
+    return miscLines.map((l) =>
+      l.id === shortfallLine.id
+        ? { ...l, amount: null, price_per: null, total_price: 0, include_in_proposal: false }
+        : l
+    );
+  }
+
+  if (!shortfallLine) {
+    const maxSort = miscLines.reduce((m, l) => Math.max(m, l.sort_order), -1);
+    const { data: inserted, error } = await supabase
+      .from("takeoff_misc_lines")
+      .insert({
+        takeoff_id: takeoffId,
+        label: GALVANIZER_SHORTFALL_LABEL,
+        amount: 1,
+        price_per: shortfall,
+        total_price: shortfall,
+        include_in_proposal: false,
+        sort_order: maxSort + 1,
+      })
+      .select("*")
+      .single();
+    if (error || !inserted) return miscLines;
+    return [...miscLines, inserted as TakeoffMiscLine];
+  }
+
+  await supabase
+    .from("takeoff_misc_lines")
+    .update({
+      amount: 1,
+      price_per: shortfall,
+      total_price: shortfall,
+      include_in_proposal: false,
+    })
+    .eq("id", shortfallLine.id);
+
+  return miscLines.map((l) =>
+    l.id === shortfallLine.id
+      ? {
+          ...l,
+          amount: 1,
+          price_per: shortfall,
+          total_price: shortfall,
+          include_in_proposal: false,
+        }
+      : l
+  );
+}
+
 export async function recomputeAndSaveTotals(
   takeoffId: string,
   jobId: string
@@ -435,13 +530,41 @@ export async function recomputeAndSaveTotals(
   const componentLines = (componentRows ?? []) as TakeoffComponentLine[];
   const fieldMisc = (fieldMiscRows ?? []) as TakeoffFieldMisc[];
 
-  const sumGalvPounds = metalLines.reduce((s, l) => s + (Number(l.galv_pounds) || 0), 0);
+  const sumGalvPounds =
+    metalLines.reduce((s, l) => s + (Number(l.galv_pounds) || 0), 0) +
+    componentLines.reduce((s, l) => s + (Number(l.galv_pounds) || 0), 0);
   const override = takeoff.galv_total_override;
   const effectiveGalvPounds =
     override != null && Number.isFinite(Number(override)) ? Number(override) : sumGalvPounds;
 
   const galvMode = (takeoff.galv_mode ?? "not_galvanized") as GalvMode;
-  miscLines = await syncGalvanizerMiscLine(takeoffId, galvMode, effectiveGalvPounds, miscLines);
+  const galvPct = normalizeRate(takeoff.galv_pct, 0.15);
+  const galvRatePerLb =
+    takeoff.galv_rate_per_lb != null &&
+    Number.isFinite(Number(takeoff.galv_rate_per_lb)) &&
+    Number(takeoff.galv_rate_per_lb) >= 0
+      ? Number(takeoff.galv_rate_per_lb)
+      : 0.5;
+  miscLines = await syncGalvanizerMiscLine(
+    takeoffId,
+    galvMode,
+    effectiveGalvPounds,
+    miscLines,
+    galvPct,
+    galvRatePerLb
+  );
+
+  const calculatedGalvCost = computeGalvanizerWeightCost(
+    effectiveGalvPounds,
+    galvPct,
+    galvRatePerLb
+  );
+  miscLines = await syncGalvanizerShortfallLine(
+    takeoffId,
+    galvMode,
+    calculatedGalvCost,
+    miscLines
+  );
 
   const input: TakeoffTotalsInput & { marginRate: number } = {
     metalLines: metalLines.map((l) => ({
@@ -486,6 +609,8 @@ export async function recomputeAndSaveTotals(
     fieldLaborRate: takeoff.field_labor_rate,
     fieldDaysOrNights: takeoff.field_days_or_nights,
     fieldLaborTotal: takeoff.field_labor_total ?? 0,
+    galvPct,
+    galvRatePerLb,
   };
   const totals = computeTakeoffTotals(input);
   const { error } = await supabase
@@ -550,21 +675,28 @@ export async function upsertMetalLine(
   let materialCatalogIdResolved: string | null = materialCatalogId;
   let catalogRowForSync: MaterialCatalogRow | null = null;
 
+  let resolvedTotalPoundsPerPiece = totalPoundsPerPiece;
+
   if (category === "plate") {
     materialCatalogIdResolved = null;
+    let lbsPerPiece = totalPoundsPerPiece;
     if (
+      !Number.isFinite(lbsPerPiece) &&
       Number.isFinite(plateThickness) &&
       Number.isFinite(plateWidth) &&
       Number.isFinite(plateHeight)
     ) {
-      resolvedTotalPounds =
-        plateThickness * plateWidth * plateHeight * countNum * STEEL_DENSITY_LB_PER_IN3;
-      if (!resolvedDisplayName) {
-        resolvedDisplayName = `PL ${plateThickness} × ${plateWidth} × ${plateHeight}`;
-      }
+      lbsPerPiece = plateThickness * plateWidth * plateHeight * STEEL_DENSITY_LB_PER_IN3;
     }
-    if (Number.isFinite(resolvedTotalPounds) && Number.isFinite(resolvedCostPerUnit)) {
-      resolvedTotalPrice = resolvedTotalPounds * resolvedCostPerUnit;
+    if (!resolvedDisplayName && Number.isFinite(plateThickness)) {
+      resolvedDisplayName = `PL ${plateThickness} × ${plateWidth} × ${plateHeight}`;
+    }
+    if (Number.isFinite(lbsPerPiece) && lbsPerPiece > 0) {
+      resolvedTotalPoundsPerPiece = lbsPerPiece;
+      resolvedTotalPounds = lbsPerPiece * countNum;
+      if (Number.isFinite(resolvedCostPerUnit)) {
+        resolvedTotalPrice = resolvedTotalPounds * resolvedCostPerUnit;
+      }
     }
     if (isGalvanized && Number.isFinite(resolvedTotalPounds)) {
       galvPounds = resolvedTotalPounds;
@@ -624,7 +756,12 @@ export async function upsertMetalLine(
     display_name: resolvedDisplayName || "—",
     count,
     total_length_ft: Number.isFinite(totalLengthFt) ? totalLengthFt : null,
-    total_pounds_per_piece: Number.isFinite(totalPoundsPerPiece) ? totalPoundsPerPiece : null,
+    total_pounds_per_piece:
+      category === "plate" && Number.isFinite(resolvedTotalPoundsPerPiece)
+        ? resolvedTotalPoundsPerPiece
+        : Number.isFinite(totalPoundsPerPiece)
+          ? totalPoundsPerPiece
+          : null,
     total_pounds: Number.isFinite(resolvedTotalPounds) ? resolvedTotalPounds : null,
     cost_per_unit: Number.isFinite(resolvedCostPerUnit) ? resolvedCostPerUnit : null,
     total_price: Number.isFinite(resolvedTotalPrice) ? resolvedTotalPrice : 0,
@@ -705,21 +842,33 @@ export async function upsertComponentLine(
   const id = (formData.get("id") as string)?.trim();
   const displayName = (formData.get("display_name") as string)?.trim();
   const count = parseFloat((formData.get("count") as string) ?? "1") || 1;
+  const countNum = Math.max(1, Math.floor(count));
   const totalPoundsPerPiece = parseFloat((formData.get("total_pounds_per_piece") as string) ?? "");
   const totalPounds = parseFloat((formData.get("total_pounds") as string) ?? "");
   const costPerMeasure = parseFloat((formData.get("cost_per_measure") as string) ?? "");
   const totalPrice = parseFloat((formData.get("total_price") as string) ?? "");
   const sortOrder = parseInt((formData.get("sort_order") as string) ?? "0", 10) || 0;
   const scope = parseScope(formData);
+  const isGalvanized =
+    formData.get("is_galvanized") === "on" || formData.get("is_galvanized") === "true";
+  const effectivePounds =
+    Number.isFinite(totalPounds) && totalPounds > 0
+      ? totalPounds
+      : Number.isFinite(totalPoundsPerPiece) && totalPoundsPerPiece > 0 && countNum > 0
+        ? countNum * totalPoundsPerPiece
+        : null;
+  const galvPounds = isGalvanized && effectivePounds != null ? effectivePounds : null;
   const payload = {
     takeoff_id: takeoffId,
     scope,
     display_name: displayName || "—",
     count,
     total_pounds_per_piece: Number.isFinite(totalPoundsPerPiece) ? totalPoundsPerPiece : null,
-    total_pounds: Number.isFinite(totalPounds) ? totalPounds : null,
+    total_pounds: effectivePounds,
     cost_per_measure: Number.isFinite(costPerMeasure) ? costPerMeasure : null,
     total_price: Number.isFinite(totalPrice) ? totalPrice : 0,
+    is_galvanized: isGalvanized,
+    galv_pounds: galvPounds,
     sort_order: sortOrder,
     include_in_proposal: parseIncludeInProposal(formData),
     ...parseCustomerNoteFields(formData),
@@ -777,8 +926,25 @@ export async function upsertMiscLine(
   const sortOrder = parseInt((formData.get("sort_order") as string) ?? "0", 10) || 0;
   const scope = parseScope(formData);
 
+  if (id) {
+    const { data: existing } = await supabase
+      .from("takeoff_misc_lines")
+      .select("label")
+      .eq("id", id)
+      .maybeSingle();
+    if (existing && isGalvanizerLine(existing.label)) {
+      return { error: "Galvanizer weight is managed automatically from metal lines." };
+    }
+    if (existing && isGalvanizerShortfallLine(existing.label)) {
+      return { error: "Galvanizer shortfall is managed automatically when shop minimum applies." };
+    }
+  }
+
   if (isGalvanizerLine(label ?? "")) {
     return { error: "Galvanizer weight is managed automatically from metal lines." };
+  }
+  if (isGalvanizerShortfallLine(label ?? "")) {
+    return { error: "Galvanizer shortfall is managed automatically when shop minimum applies." };
   }
 
   const miscInput = {
@@ -829,6 +995,17 @@ export async function deleteMiscLine(
   jobId: string
 ): Promise<{ error?: string }> {
   const supabase = createAdminClient();
+  const { data: line } = await supabase
+    .from("takeoff_misc_lines")
+    .select("label")
+    .eq("id", lineId)
+    .maybeSingle();
+  if (line && isGalvanizerLine(line.label)) {
+    return { error: "Galvanizer line is managed automatically." };
+  }
+  if (line && isGalvanizerShortfallLine(line.label)) {
+    return { error: "Galvanizer shortfall is managed automatically." };
+  }
   const { error } = await supabase.from("takeoff_misc_lines").delete().eq("id", lineId);
   if (error) return { error: error.message };
   revalidatePath(`/admin/jobs/${jobId}/takeoff`);

@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState } from "react";
+import { useActionState, useState } from "react";
 import { updateTakeoffHeader } from "./actions";
 import { AdminFormSection } from "@/components/admin";
 import type { Takeoff } from "@/lib/db-types";
@@ -26,6 +26,13 @@ export function TakeoffHeaderForm({ takeoff, jobId, staff }: Props) {
     async (_: unknown, formData: FormData) => action(formData),
     null as { error?: string } | null
   );
+  const initialGalvMode = takeoff.galv_mode ?? "not_galvanized";
+  const [galvMode, setGalvMode] = useState(initialGalvMode);
+  const galvPctDisplay =
+    (takeoff.galv_pct ?? 0.15) > 1
+      ? takeoff.galv_pct ?? 15
+      : (takeoff.galv_pct ?? 0.15) * 100;
+  const galvRateDisplay = takeoff.galv_rate_per_lb ?? 0.5;
 
   return (
     <form
@@ -144,7 +151,8 @@ export function TakeoffHeaderForm({ takeoff, jobId, staff }: Props) {
               type="radio"
               name="galv_mode"
               value="not_galvanized"
-              defaultChecked={(takeoff.galv_mode ?? "not_galvanized") === "not_galvanized"}
+              checked={galvMode === "not_galvanized"}
+              onChange={() => setGalvMode("not_galvanized")}
             />
             None
           </label>
@@ -153,7 +161,8 @@ export function TakeoffHeaderForm({ takeoff, jobId, staff }: Props) {
               type="radio"
               name="galv_mode"
               value="baked_in"
-              defaultChecked={takeoff.galv_mode === "baked_in"}
+              checked={galvMode === "baked_in"}
+              onChange={() => setGalvMode("baked_in")}
             />
             Included in total
           </label>
@@ -162,11 +171,48 @@ export function TakeoffHeaderForm({ takeoff, jobId, staff }: Props) {
               type="radio"
               name="galv_mode"
               value="optional_addon"
-              defaultChecked={takeoff.galv_mode === "optional_addon"}
+              checked={galvMode === "optional_addon"}
+              onChange={() => setGalvMode("optional_addon")}
             />
             Optional add-on
           </label>
         </fieldset>
+        {galvMode !== "not_galvanized" && (
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <div>
+              <label htmlFor="galv_pct" className={labelClass}>
+                Galv rate (%)
+              </label>
+              <input
+                id="galv_pct"
+                name="galv_pct"
+                type="number"
+                step="0.1"
+                min="0"
+                max="100"
+                defaultValue={galvPctDisplay}
+                className="input-admin max-w-[8rem]"
+              />
+            </div>
+            <div>
+              <label htmlFor="galv_rate_per_lb" className={labelClass}>
+                Galv $/lb
+              </label>
+              <input
+                id="galv_rate_per_lb"
+                name="galv_rate_per_lb"
+                type="number"
+                step="0.01"
+                min="0"
+                defaultValue={galvRateDisplay}
+                className="input-admin max-w-[8rem]"
+              />
+            </div>
+            <p className="sm:col-span-2 text-xs text-foreground-muted">
+              Formula: lbs × {galvPctDisplay}% × ${galvRateDisplay.toFixed(2)}; shop minimum $750.
+            </p>
+          </div>
+        )}
         <div>
           <label htmlFor="plate_default_cost_per_lb" className={labelClass}>
             Plate default $/lb
