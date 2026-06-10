@@ -1,4 +1,4 @@
-import { PROPOSAL_LICENSES } from "@/lib/licenses";
+import { PROPOSAL_LICENSES, PROPOSAL_STATE_LICENSE } from "@/lib/licenses";
 import { SITE_NAME, SITE_URL, PUBLIC_CONTACT_EMAIL } from "@/lib/site";
 
 export function licensedAreaServed() {
@@ -9,7 +9,14 @@ export function licensedAreaServed() {
 }
 
 export function licenseIdentifiers() {
-  const ids: { "@type": "PropertyValue"; propertyID: string; name: string; value: string }[] = [];
+  const ids: { "@type": "PropertyValue"; propertyID: string; name: string; value: string }[] = [
+    {
+      "@type": "PropertyValue",
+      propertyID: "ContractorLicense",
+      name: "Florida State Certified Contractor",
+      value: PROPOSAL_STATE_LICENSE.number,
+    },
+  ];
   for (const entry of PROPOSAL_LICENSES) {
     for (const number of entry.numbers) {
       ids.push({
@@ -54,7 +61,16 @@ export function organizationJsonLd() {
       "Hot-dip galvanizing",
     ],
     description:
-      "Licensed structural and ornamental steel contractor serving East Coast Florida and South Florida. 17+ years experience.",
+      "Florida state licensed structural and ornamental steel contractor. Licensed statewide in Florida with active operations on the East Coast and in South Florida. 17+ years experience.",
+    hasCredential: {
+      "@type": "EducationalOccupationalCredential",
+      credentialCategory: "license",
+      name: `Florida State Certified Contractor (${PROPOSAL_STATE_LICENSE.number})`,
+      recognizedBy: {
+        "@type": "GovernmentOrganization",
+        name: "Florida Department of Business and Professional Regulation",
+      },
+    },
     // TODO: Replace each URL when profiles are live.
     sameAs: [
       "TODO_GOOGLE_BUSINESS_PROFILE_URL",
