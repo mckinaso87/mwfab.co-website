@@ -1,4 +1,5 @@
 import { Hero } from "@/components/sections/Hero";
+import { TrustStrip } from "@/components/sections/TrustStrip";
 import { ServicesOverview } from "@/components/sections/ServicesOverview";
 import { ServiceArea } from "@/components/sections/ServiceArea";
 import { WhyChooseUs } from "@/components/sections/WhyChooseUs";
@@ -17,6 +18,7 @@ export default function HomePage() {
   return (
     <>
       <Hero />
+      <TrustStrip />
       <ServicesOverview />
       <ServiceArea />
       <WhyChooseUs />

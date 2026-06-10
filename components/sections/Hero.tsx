@@ -1,5 +1,6 @@
 import Image from "next/image";
 import { Button } from "@/components/ui/Button";
+import { PROPOSAL_STATE_LICENSE } from "@/lib/licenses";
 import { cn } from "@/lib/utils";
 
 export function Hero({ className }: { className?: string }) {
@@ -11,11 +12,15 @@ export function Hero({ className }: { className?: string }) {
       <div className="container relative z-10 mx-auto px-4 md:px-6">
         <div className="grid gap-8 lg:grid-cols-2 lg:gap-12 lg:items-center">
           <div>
-            <h1 className="text-3xl font-bold tracking-tight text-foreground md:text-4xl lg:text-5xl">
-              Structural & Ornamental Steel Construction for East Coast Florida
+            <p className="text-xs font-medium uppercase tracking-widest text-foreground-muted">
+              Florida State Certified Contractor · {PROPOSAL_STATE_LICENSE.number}
+            </p>
+            <h1 className="mt-3 text-3xl font-bold tracking-tight text-foreground md:text-4xl lg:text-5xl">
+              Structural & Ornamental Steel — Built in Florida
             </h1>
             <p className="mt-4 text-lg text-foreground-muted md:text-xl">
-              Licensed steel contractor with 17+ years of experience. From St. Augustine to Miami — commercial, industrial, and custom steel fabrication.
+              Licensed statewide in Florida. 17+ years building structural and ornamental steel —
+              headquartered on the East Coast, available across Florida for qualifying projects.
             </p>
             <div className="mt-8">
               <Button href="/contact">Request a Bid</Button>
