@@ -12,7 +12,7 @@ const FOOTER_LINKS = [
   { href: "/projects", label: "Projects" },
   { href: "/about", label: "About" },
   { href: "/faq", label: "FAQ" },
-  { href: "/contact", label: "Contact" },
+  { href: "/contact", label: "Request a Bid" },
 ] as const;
 
 export function Footer() {
@@ -41,14 +41,6 @@ export function Footer() {
                   </Link>
                 </li>
               ))}
-              <li>
-                <Link
-                  href="/contact"
-                  className="text-sm font-medium text-accent-link transition-colors hover:text-foreground"
-                >
-                  Request a Bid
-                </Link>
-              </li>
             </ul>
           </nav>
           <div>

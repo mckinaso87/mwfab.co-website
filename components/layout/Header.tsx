@@ -15,7 +15,6 @@ const NAV_LINKS = [
   { href: "/services", label: "Services" },
   { href: "/projects", label: "Projects" },
   { href: "/about", label: "About" },
-  { href: "/contact", label: "Contact" },
 ] as const;
 
 export function Header() {
