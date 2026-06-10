@@ -3,7 +3,7 @@
 import { useActionState } from "react";
 import { recomputeAndSaveTotals } from "./actions";
 import { formatMoney } from "./formatMoney";
-import { normalizeRate } from "@/lib/takeoff-calculations";
+import { normalizeRate, computeGalvanizerWeightCost } from "@/lib/takeoff-calculations";
 import type { Takeoff } from "@/lib/db-types";
 
 type Props = { takeoff: Takeoff; jobId: string };
@@ -21,6 +21,27 @@ export function TakeoffTotalsSection({ takeoff, jobId }: Props) {
   const taxPct = normalizeRate(takeoff.tax_rate, 0.07) * 100;
   const marginPct = normalizeRate(takeoff.margin_rate, 0.2) * 100;
   const marginAmt = (takeoff.grand_total ?? 0) - (takeoff.project_total ?? 0);
+  const galvMode = takeoff.galv_mode ?? "not_galvanized";
+  const hasWeightOverride =
+    takeoff.galv_total_override != null && Number.isFinite(Number(takeoff.galv_total_override));
+  const hasCostOverride =
+    takeoff.galv_cost_override != null && Number.isFinite(Number(takeoff.galv_cost_override));
+  const galvPct = normalizeRate(takeoff.galv_pct, 0.15);
+  const galvRatePerLb =
+    takeoff.galv_rate_per_lb != null &&
+    Number.isFinite(Number(takeoff.galv_rate_per_lb)) &&
+    Number(takeoff.galv_rate_per_lb) >= 0
+      ? Number(takeoff.galv_rate_per_lb)
+      : 0.5;
+  const galvanizerOverrideDollars =
+    galvMode === "not_galvanized"
+      ? null
+      : hasCostOverride
+        ? Number(takeoff.galv_cost_override)
+        : hasWeightOverride
+          ? computeGalvanizerWeightCost(Number(takeoff.galv_total_override), galvPct, galvRatePerLb)
+          : null;
+  const galvAddonAmount = Number(takeoff.galv_addon_amount ?? 0);
   const [state, formAction, isPending] = useActionState(
     async (_: unknown, __: FormData) => recomputeAndSaveTotals(takeoff.id, jobId),
     null as { error?: string } | null
@@ -46,6 +67,20 @@ export function TakeoffTotalsSection({ takeoff, jobId }: Props) {
             <SummaryRow key={r.label} label={r.label} value={formatMoney(r.value)} />
           ) : null
         )}
+        {galvanizerOverrideDollars != null && galvanizerOverrideDollars >= 0 && (
+          <SummaryRow
+            label="Galvanizer (override)"
+            value={formatMoney(galvanizerOverrideDollars)}
+          />
+        )}
+        {galvMode === "optional_addon" &&
+          galvanizerOverrideDollars == null &&
+          galvAddonAmount > 0 && (
+            <SummaryRow
+              label="Galvanizer (optional add-on)"
+              value={formatMoney(galvAddonAmount)}
+            />
+          )}
         {marginAmt > 0 && (
           <SummaryRow
             label={`Margin (${marginPct % 1 === 0 ? marginPct.toFixed(0) : marginPct.toFixed(1)}%)`}

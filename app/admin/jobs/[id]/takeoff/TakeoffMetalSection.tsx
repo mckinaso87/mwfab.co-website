@@ -4,6 +4,7 @@ import { useActionState, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { upsertMetalLine, deleteMetalLineForm, setLineScope } from "./actions";
 import { formatMoney } from "./formatMoney";
+import { subgroupSubtotal } from "@/lib/proposal-line-groups";
 import { CATEGORY_LABEL } from "@/lib/takeoff-catalog-spec";
 import type { Takeoff, TakeoffMetalLine, LineScope } from "@/lib/db-types";
 import { TakeoffSlideOver } from "@/components/admin/takeoff/TakeoffSlideOver";
@@ -65,6 +66,10 @@ export function TakeoffMetalSection({ takeoffId, jobId, takeoff, lines }: Props)
       router.refresh();
     });
   }
+
+  // All lines in the section (matches what flows into the takeoff total), regardless of
+  // proposal visibility.
+  const sectionTotal = subgroupSubtotal(lines);
 
   return (
     <section className="rounded-xl border border-steel/50 bg-card p-6">
@@ -152,6 +157,17 @@ export function TakeoffMetalSection({ takeoffId, jobId, takeoff, lines }: Props)
                 </tr>
               ))}
             </tbody>
+            <tfoot>
+              <tr className="border-t-2 border-steel/50 bg-steel/20">
+                <td colSpan={6} className="px-4 py-3 text-right text-sm font-semibold text-foreground">
+                  Section total
+                </td>
+                <td className="px-4 py-3 text-right tabular-nums text-sm font-bold text-foreground">
+                  {formatMoney(sectionTotal)}
+                </td>
+                <td />
+              </tr>
+            </tfoot>
           </table>
         </div>
       ) : (

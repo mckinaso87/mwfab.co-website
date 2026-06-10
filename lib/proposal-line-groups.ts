@@ -16,13 +16,28 @@ function lineAmount<L extends { total_price?: number | null; total?: number | nu
   amountKey: "total_price" | "total"
 ): number {
   const v = amountKey === "total" ? line.total : line.total_price;
-  return v != null && Number.isFinite(v) ? v : 0;
+  if (v == null) return 0;
+  const n = Number(v);
+  return Number.isFinite(n) ? n : 0;
 }
 
 export function subgroupSubtotal<
   L extends { total_price?: number | null; total?: number | null },
 >(lines: L[], amountKey: "total_price" | "total" = "total_price"): number {
   return lines.reduce((s, l) => s + lineAmount(l, amountKey), 0);
+}
+
+/** Sum line amounts for rows included on the customer proposal. */
+export function proposalSectionSubtotal<
+  L extends {
+    total_price?: number | null;
+    total?: number | null;
+    include_in_proposal?: boolean;
+  },
+>(lines: L[], amountKey: "total_price" | "total" = "total_price"): number {
+  return lines
+    .filter((l) => l.include_in_proposal !== false)
+    .reduce((s, l) => s + lineAmount(l, amountKey), 0);
 }
 
 export type ScopeGroups<T> = { scope: LineScope; lines: T[] }[];

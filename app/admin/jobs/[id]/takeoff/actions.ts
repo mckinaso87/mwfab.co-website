@@ -10,6 +10,8 @@ import {
   computeFieldMiscTotal,
   computeGalvanizerWeightCost,
   computeGalvanizerShortfall,
+  computeMetalLineGalvPounds,
+  computeComponentLineGalvPounds,
   isGalvanizerLine,
   isGalvanizerShortfallLine,
   normalizeRate,
@@ -178,19 +180,32 @@ export async function getSumGalvPounds(takeoffId: string): Promise<number> {
   return metalSum + compSum;
 }
 
+export async function setGalvOverride(
+  takeoffId: string,
+  jobId: string,
+  weightOverride: number | null,
+  costOverride: number | null
+): Promise<{ error?: string }> {
+  const supabase = createAdminClient();
+  const { error } = await supabase
+    .from("takeoffs")
+    .update({
+      galv_total_override: weightOverride,
+      galv_cost_override: costOverride,
+    })
+    .eq("id", takeoffId);
+  if (error) return { error: error.message };
+  await recomputeAndSaveTotals(takeoffId, jobId);
+  return {};
+}
+
+/** @deprecated Use setGalvOverride */
 export async function setGalvTotalOverride(
   takeoffId: string,
   jobId: string,
   override: number | null
 ): Promise<{ error?: string }> {
-  const supabase = createAdminClient();
-  const { error } = await supabase
-    .from("takeoffs")
-    .update({ galv_total_override: override })
-    .eq("id", takeoffId);
-  if (error) return { error: error.message };
-  await recomputeAndSaveTotals(takeoffId, jobId);
-  return {};
+  return setGalvOverride(takeoffId, jobId, override, null);
 }
 
 export async function setGalvanizerIncludeInProposal(
@@ -378,22 +393,26 @@ async function syncGalvanizerMiscLine(
   effectiveGalvPounds: number,
   miscLines: TakeoffMiscLine[],
   galvPct: number,
-  galvRatePerLb: number
+  galvRatePerLb: number,
+  galvCostOverride: number | null
 ): Promise<TakeoffMiscLine[]> {
   if (galvMode === "not_galvanized") return miscLines;
 
   const supabase = createAdminClient();
   const weight = effectiveGalvPounds;
-  const totalPrice = computeMiscLineTotal(
-    {
-      label: "Galvanizer",
-      amount: null,
-      weight_of_galv: weight,
-      price_per: null,
-      total_price: 0,
-    },
-    { galvPct, galvRatePerLb }
-  );
+  const totalPrice =
+    galvCostOverride != null && Number.isFinite(galvCostOverride) && galvCostOverride >= 0
+      ? galvCostOverride
+      : computeMiscLineTotal(
+          {
+            label: "Galvanizer",
+            amount: null,
+            weight_of_galv: weight,
+            price_per: null,
+            total_price: 0,
+          },
+          { galvPct, galvRatePerLb }
+        );
 
   let galvLine = miscLines.find((l) => isGalvanizerLine(l.label));
   if (!galvLine) {
@@ -502,6 +521,58 @@ async function syncGalvanizerShortfallLine(
   );
 }
 
+async function refreshLineGalvPounds(
+  metalLines: TakeoffMetalLine[],
+  componentLines: TakeoffComponentLine[]
+): Promise<{ metalLines: TakeoffMetalLine[]; componentLines: TakeoffComponentLine[] }> {
+  const supabase = createAdminClient();
+  const catalogIds = [
+    ...new Set(
+      metalLines.map((l) => l.material_catalog_id).filter((id): id is string => Boolean(id))
+    ),
+  ];
+  const weightByCatalogId = new Map<string, number>();
+  if (catalogIds.length > 0) {
+    const { data: catalogRows } = await supabase
+      .from("material_catalog")
+      .select("id, weight_per_ft")
+      .in("id", catalogIds);
+    for (const row of catalogRows ?? []) {
+      const wpf = Number(row.weight_per_ft);
+      if (Number.isFinite(wpf)) weightByCatalogId.set(row.id as string, wpf);
+    }
+  }
+
+  const updatedMetal = [...metalLines];
+  for (let i = 0; i < updatedMetal.length; i++) {
+    const line = updatedMetal[i]!;
+    const wpf = line.material_catalog_id
+      ? weightByCatalogId.get(line.material_catalog_id)
+      : undefined;
+    const next = computeMetalLineGalvPounds(line, wpf);
+    const prev = line.galv_pounds;
+    if (next === prev || (next != null && prev != null && Math.abs(next - prev) < 1e-6)) {
+      continue;
+    }
+    await supabase.from("takeoff_metal_lines").update({ galv_pounds: next }).eq("id", line.id);
+    updatedMetal[i] = { ...line, galv_pounds: next };
+  }
+
+  const updatedComponent = [...componentLines];
+  for (let i = 0; i < updatedComponent.length; i++) {
+    const line = updatedComponent[i]!;
+    const next = computeComponentLineGalvPounds(line);
+    const prev = line.galv_pounds;
+    if (next === prev || (next != null && prev != null && Math.abs(next - prev) < 1e-6)) {
+      continue;
+    }
+    await supabase.from("takeoff_component_lines").update({ galv_pounds: next }).eq("id", line.id);
+    updatedComponent[i] = { ...line, galv_pounds: next };
+  }
+
+  return { metalLines: updatedMetal, componentLines: updatedComponent };
+}
+
 export async function recomputeAndSaveTotals(
   takeoffId: string,
   jobId: string
@@ -526,17 +597,28 @@ export async function recomputeAndSaveTotals(
     supabase.from("takeoff_field_misc").select("*").eq("takeoff_id", takeoffId).order("sort_order"),
   ]);
 
-  const metalLines = (metalRows ?? []) as TakeoffMetalLine[];
+  const metalRowsLoaded = (metalRows ?? []) as TakeoffMetalLine[];
+  const componentRowsLoaded = (componentRows ?? []) as TakeoffComponentLine[];
+  const { metalLines, componentLines } = await refreshLineGalvPounds(
+    metalRowsLoaded,
+    componentRowsLoaded
+  );
   let miscLines = (miscRows ?? []) as TakeoffMiscLine[];
-  const componentLines = (componentRows ?? []) as TakeoffComponentLine[];
   const fieldMisc = (fieldMiscRows ?? []) as TakeoffFieldMisc[];
 
   const sumGalvPounds =
     metalLines.reduce((s, l) => s + (Number(l.galv_pounds) || 0), 0) +
     componentLines.reduce((s, l) => s + (Number(l.galv_pounds) || 0), 0);
-  const override = takeoff.galv_total_override;
+  const weightOverride = takeoff.galv_total_override;
+  const costOverride = takeoff.galv_cost_override;
   const effectiveGalvPounds =
-    override != null && Number.isFinite(Number(override)) ? Number(override) : sumGalvPounds;
+    weightOverride != null && Number.isFinite(Number(weightOverride))
+      ? Number(weightOverride)
+      : sumGalvPounds;
+  const effectiveGalvCostOverride =
+    costOverride != null && Number.isFinite(Number(costOverride)) && Number(costOverride) >= 0
+      ? Number(costOverride)
+      : null;
 
   const galvMode = (takeoff.galv_mode ?? "not_galvanized") as GalvMode;
   const galvPct = normalizeRate(takeoff.galv_pct, 0.15);
@@ -552,14 +634,14 @@ export async function recomputeAndSaveTotals(
     effectiveGalvPounds,
     miscLines,
     galvPct,
-    galvRatePerLb
+    galvRatePerLb,
+    effectiveGalvCostOverride
   );
 
-  const calculatedGalvCost = computeGalvanizerWeightCost(
-    effectiveGalvPounds,
-    galvPct,
-    galvRatePerLb
-  );
+  const calculatedGalvCost =
+    effectiveGalvCostOverride != null
+      ? effectiveGalvCostOverride
+      : computeGalvanizerWeightCost(effectiveGalvPounds, galvPct, galvRatePerLb);
   miscLines = await syncGalvanizerShortfallLine(
     takeoffId,
     galvMode,
@@ -612,6 +694,7 @@ export async function recomputeAndSaveTotals(
     fieldLaborTotal: takeoff.field_labor_total ?? 0,
     galvPct,
     galvRatePerLb,
+    galvCostOverride: effectiveGalvCostOverride,
   };
   const totals = computeTakeoffTotals(input);
   const { error } = await supabase

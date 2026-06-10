@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import {
   upsertMiscLine,
   deleteMiscLineForm,
-  setGalvTotalOverride,
+  setGalvOverride,
   setGalvanizerIncludeInProposal,
   setLineCustomerNote,
   setLineScope,
@@ -72,10 +72,13 @@ export function TakeoffMiscSection({
       : effectiveAuto;
 
   const [overrideEnabled, setOverrideEnabled] = useState(
-    takeoff.galv_total_override != null
+    takeoff.galv_total_override != null || takeoff.galv_cost_override != null
   );
   const [overrideLbs, setOverrideLbs] = useState(
     takeoff.galv_total_override != null ? String(takeoff.galv_total_override) : ""
+  );
+  const [overrideDollars, setOverrideDollars] = useState(
+    takeoff.galv_cost_override != null ? String(takeoff.galv_cost_override) : ""
   );
   const [overrideSaving, setOverrideSaving] = useState(false);
   const [proposalSaving, setProposalSaving] = useState(false);
@@ -95,17 +98,23 @@ export function TakeoffMiscSection({
     galvanizerLine?.customer_note_in_proposal,
   ]);
 
-  const galvRates = { galvPct: takeoff.galv_pct, galvRatePerLb: takeoff.galv_rate_per_lb };
+  const galvRates = {
+    galvPct: takeoff.galv_pct,
+    galvRatePerLb: takeoff.galv_rate_per_lb,
+    galvCostOverride: takeoff.galv_cost_override,
+  };
+  const hasWeightOverride =
+    takeoff.galv_total_override != null && Number.isFinite(takeoff.galv_total_override);
+  const hasCostOverride =
+    takeoff.galv_cost_override != null && Number.isFinite(takeoff.galv_cost_override);
   const galvPctDisplay =
     (takeoff.galv_pct ?? 0.15) > 1
       ? takeoff.galv_pct ?? 15
       : (takeoff.galv_pct ?? 0.15) * 100;
   const galvRateDisplay = takeoff.galv_rate_per_lb ?? 0.5;
-  const calculatedGalvCost = computeGalvanizerCost(
-    effectivePounds,
-    takeoff.galv_pct,
-    takeoff.galv_rate_per_lb
-  );
+  const calculatedGalvCost = hasCostOverride
+    ? takeoff.galv_cost_override!
+    : computeGalvanizerCost(effectivePounds, takeoff.galv_pct, takeoff.galv_rate_per_lb);
   const galvShortfall = computeGalvanizerShortfall(calculatedGalvCost);
   const billableGalvCost = computeGalvanizerBillable(calculatedGalvCost);
   const galvFormulaText = `(LBs + LBs × ${galvPctDisplay}%) × $${galvRateDisplay.toFixed(2)}, shop minimum $${GALV_MINIMUM}`;
@@ -118,13 +127,25 @@ export function TakeoffMiscSection({
 
   const labelClass = "block text-sm font-medium text-foreground";
 
-  async function applyOverride(enabled: boolean, lbs: string) {
+  // All displayed lines (matches what flows into the takeoff total), regardless of
+  // proposal visibility.
+  const sectionTotal = displayLines.reduce((sum, line) => {
+    const isGalv = isGalvanizerLine(line.label);
+    const amount = isGalv
+      ? computeMiscLineTotal(line, galvRates)
+      : Number(line.total_price ?? 0) || 0;
+    return sum + amount;
+  }, 0);
+
+  async function applyOverride(enabled: boolean, lbs: string, dollars: string) {
     setOverrideSaving(true);
-    const val = enabled && lbs.trim() !== "" ? parseFloat(lbs) : null;
-    await setGalvTotalOverride(
+    const weightVal = enabled && lbs.trim() !== "" ? parseFloat(lbs) : null;
+    const costVal = enabled && dollars.trim() !== "" ? parseFloat(dollars) : null;
+    await setGalvOverride(
       takeoffId,
       jobId,
-      val != null && Number.isFinite(val) ? val : null
+      weightVal != null && Number.isFinite(weightVal) ? weightVal : null,
+      costVal != null && Number.isFinite(costVal) ? costVal : null
     );
     setOverrideSaving(false);
     router.refresh();
@@ -199,9 +220,15 @@ export function TakeoffMiscSection({
           <div className="space-y-3">
           <p className="text-sm text-foreground">
             Auto-summed weight: <strong>{effectiveAuto.toFixed(1)} lb</strong>
+            {hasWeightOverride && (
+              <span className="ml-2 text-xs text-amber-200/90">(override: {effectivePounds.toFixed(1)} lb)</span>
+            )}
           </p>
           <p className="text-sm text-foreground">
             Calculated cost: <strong>{formatMoney(calculatedGalvCost)}</strong>
+            {hasCostOverride && (
+              <span className="ml-2 text-xs text-amber-200/90">(override)</span>
+            )}
           </p>
           <p className="text-sm text-foreground">
             Shop minimum: <strong>{formatMoney(GALV_MINIMUM)}</strong>
@@ -224,16 +251,24 @@ export function TakeoffMiscSection({
                 setOverrideEnabled(on);
                 if (!on) {
                   setOverrideLbs("");
-                  applyOverride(false, "");
+                  setOverrideDollars("");
+                  applyOverride(false, "", "");
                 } else {
-                  setOverrideLbs(String(effectiveAuto));
+                  setOverrideLbs(
+                    takeoff.galv_total_override != null
+                      ? String(takeoff.galv_total_override)
+                      : String(effectiveAuto)
+                  );
+                  setOverrideDollars(
+                    takeoff.galv_cost_override != null ? String(takeoff.galv_cost_override) : ""
+                  );
                 }
               }}
             />
             Override
           </label>
           {overrideEnabled && (
-            <div className="flex flex-wrap items-end gap-2">
+            <div className="flex flex-wrap items-end gap-3">
               <div>
                 <label htmlFor="galv_override_lbs" className={labelClass}>
                   Weight (lb)
@@ -247,11 +282,32 @@ export function TakeoffMiscSection({
                   value={overrideLbs}
                   onChange={(e) => setOverrideLbs(e.target.value)}
                 />
+                <p className="mt-1 text-xs text-foreground-muted">
+                  Overrides lbs used in the cost formula.
+                </p>
+              </div>
+              <div>
+                <label htmlFor="galv_override_dollars" className={labelClass}>
+                  Custom cost ($)
+                </label>
+                <input
+                  id="galv_override_dollars"
+                  type="number"
+                  step="0.01"
+                  min="0"
+                  className="input-admin max-w-[10rem]"
+                  value={overrideDollars}
+                  onChange={(e) => setOverrideDollars(e.target.value)}
+                  placeholder="Optional"
+                />
+                <p className="mt-1 text-xs text-foreground-muted">
+                  Leave blank to calculate from weight. Shown in pricing summary as (override).
+                </p>
               </div>
               <button
                 type="button"
                 disabled={overrideSaving}
-                onClick={() => applyOverride(true, overrideLbs)}
+                onClick={() => applyOverride(true, overrideLbs, overrideDollars)}
                 className="rounded-md bg-steel-blue px-3 py-2 text-sm font-medium text-foreground hover:bg-steel disabled:opacity-50"
               >
                 {overrideSaving ? "Saving…" : "Apply override"}
@@ -321,7 +377,8 @@ export function TakeoffMiscSection({
                       {line.label}
                       {isGalv && line.weight_of_galv != null && (
                         <span className="ml-2 text-xs text-foreground-muted">
-                          ({line.weight_of_galv.toFixed(1)} lb)
+                          ({line.weight_of_galv.toFixed(1)} lb
+                          {hasWeightOverride ? " · override" : ""})
                         </span>
                       )}
                       {line.include_in_proposal === false && <ProposalHiddenBadge />}
@@ -329,6 +386,9 @@ export function TakeoffMiscSection({
                     <td className="px-4 py-2.5 text-right tabular-nums font-medium text-foreground">
                       {formatMoney(
                         isGalv ? computeMiscLineTotal(line, galvRates) : line.total_price
+                      )}
+                      {isGalv && hasCostOverride && (
+                        <span className="ml-1 text-xs font-normal text-amber-200/90">(override)</span>
                       )}
                     </td>
                     <td className="px-4 py-2.5 text-right">
@@ -373,6 +433,17 @@ export function TakeoffMiscSection({
                 );
               })}
             </tbody>
+            <tfoot>
+              <tr className="border-t-2 border-steel/50 bg-steel/20">
+                <td className="px-4 py-3 text-right text-sm font-semibold text-foreground">
+                  Section total
+                </td>
+                <td className="px-4 py-3 text-right tabular-nums text-sm font-bold text-foreground">
+                  {formatMoney(sectionTotal)}
+                </td>
+                <td />
+              </tr>
+            </tfoot>
           </table>
         </div>
       ) : (

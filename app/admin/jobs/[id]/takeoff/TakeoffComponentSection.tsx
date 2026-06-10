@@ -4,6 +4,7 @@ import { useActionState, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { upsertComponentLine, deleteComponentLineForm, setLineScope } from "./actions";
 import { formatMoney } from "./formatMoney";
+import { subgroupSubtotal } from "@/lib/proposal-line-groups";
 import { TakeoffSlideOver } from "@/components/admin/takeoff/TakeoffSlideOver";
 import { ProposalHiddenBadge } from "@/components/admin/takeoff/IncludeInProposalField";
 import { TAKEOFF_ADD_LINE_SHELL } from "@/components/admin/takeoff/takeoff-form-variants";
@@ -63,6 +64,10 @@ export function TakeoffComponentSection({ takeoffId, jobId, lines }: Props) {
       router.refresh();
     });
   }
+
+  // All lines in the section (matches what flows into the takeoff total), regardless of
+  // proposal visibility.
+  const sectionTotal = subgroupSubtotal(lines);
 
   return (
     <section className="rounded-xl border border-steel/50 bg-card p-6">
@@ -143,6 +148,17 @@ export function TakeoffComponentSection({ takeoffId, jobId, lines }: Props) {
                 </tr>
               ))}
             </tbody>
+            <tfoot>
+              <tr className="border-t-2 border-steel/50 bg-steel/20">
+                <td colSpan={5} className="px-4 py-3 text-right text-sm font-semibold text-foreground">
+                  Section total
+                </td>
+                <td className="px-4 py-3 text-right tabular-nums text-sm font-bold text-foreground">
+                  {formatMoney(sectionTotal)}
+                </td>
+                <td />
+              </tr>
+            </tfoot>
           </table>
         </div>
       ) : (

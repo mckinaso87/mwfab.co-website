@@ -10,6 +10,8 @@ export const GALV_MINIMUM = 750;
 export type GalvRateOptions = {
   galvPct?: number | null;
   galvRatePerLb?: number | null;
+  /** When set, replaces formula-derived galvanizer cost. */
+  galvCostOverride?: number | null;
 };
 
 export function computeGalvanizerWeightCost(
@@ -110,6 +112,7 @@ export interface TakeoffTotalsInput {
   fieldLaborTotal: number;
   galvPct?: number | null;
   galvRatePerLb?: number | null;
+  galvCostOverride?: number | null;
 }
 
 const LINKED_CATEGORIES = new Set([
@@ -146,6 +149,13 @@ export function computeMiscLineTotal(line: MiscLineInput, rates?: GalvRateOption
     return product(line.amount, line.price_per);
   }
   if (isGalvanizerLine(line.label ?? "")) {
+    if (
+      rates?.galvCostOverride != null &&
+      Number.isFinite(rates.galvCostOverride) &&
+      rates.galvCostOverride >= 0
+    ) {
+      return rates.galvCostOverride;
+    }
     const lbs = line.weight_of_galv ?? 0;
     return computeGalvanizerWeightCost(lbs, rates?.galvPct, rates?.galvRatePerLb);
   }
@@ -216,6 +226,13 @@ export function galvanizerAddonAmount(
   miscLines: MiscLineInput[],
   rates?: GalvRateOptions
 ): number {
+  if (
+    rates?.galvCostOverride != null &&
+    Number.isFinite(rates.galvCostOverride) &&
+    rates.galvCostOverride >= 0
+  ) {
+    return computeGalvanizerBillable(rates.galvCostOverride);
+  }
   const galv = miscLines.find((l) => isGalvanizerLine(l.label));
   if (!galv) return 0;
   const calculated = computeGalvanizerWeightCost(
@@ -370,6 +387,7 @@ export function computeTakeoffTotals(input: TakeoffTotalsInput & { marginRate: n
   const galvRates: GalvRateOptions = {
     galvPct: input.galvPct,
     galvRatePerLb: input.galvRatePerLb,
+    galvCostOverride: input.galvCostOverride,
   };
   const allMat = allMaterialSubtotal(
     input.metalLines,
@@ -424,6 +442,46 @@ export function computeTakeoffTotals(input: TakeoffTotalsInput & { marginRate: n
     margin_pct20: margins.pct20,
     margin_pct25: margins.pct25,
   };
+}
+
+/** Cached galv_pounds for a metal line from stored dimensions. */
+export function computeMetalLineGalvPounds(
+  line: {
+    category: string;
+    is_galvanized: boolean;
+    total_pounds?: number | null;
+    galv_length_ft?: number | null;
+    total_length_ft?: number | null;
+    count?: number;
+  },
+  weightPerFt?: number | null
+): number | null {
+  if (!line.is_galvanized) return null;
+  if (line.category === "plate" || line.category === "other") {
+    const lbs = line.total_pounds;
+    return lbs != null && Number.isFinite(lbs) && lbs > 0 ? lbs : null;
+  }
+  if (weightPerFt != null && Number.isFinite(weightPerFt) && weightPerFt > 0) {
+    const count = Math.max(1, Math.floor(line.count ?? 1));
+    const galvLen =
+      line.galv_length_ft != null && Number.isFinite(line.galv_length_ft)
+        ? line.galv_length_ft
+        : line.total_length_ft;
+    if (galvLen != null && Number.isFinite(galvLen)) {
+      return galvLen * count * weightPerFt;
+    }
+  }
+  return null;
+}
+
+/** Cached galv_pounds for a component line. */
+export function computeComponentLineGalvPounds(line: {
+  is_galvanized: boolean;
+  total_pounds?: number | null;
+}): number | null {
+  if (!line.is_galvanized) return null;
+  const lbs = line.total_pounds;
+  return lbs != null && Number.isFinite(lbs) && lbs > 0 ? lbs : null;
 }
 
 export function scopeBadge(scope: string | undefined): string {

@@ -155,6 +155,7 @@ export interface Takeoff {
   grand_total: number;
   galv_mode: "not_galvanized" | "baked_in" | "optional_addon";
   galv_total_override: number | null;
+  galv_cost_override: number | null;
   galv_addon_amount: number;
   galv_pct: number;
   galv_rate_per_lb: number;
