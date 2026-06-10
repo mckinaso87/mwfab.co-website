@@ -24,6 +24,19 @@ export function formatCountyListForCopy(): string {
   }).join(", ");
 }
 
+export type CountySelectOption = { value: string; label: string };
+
+/** Options for contact form county select. */
+export function getCountySelectOptions(): CountySelectOption[] {
+  const counties = PROPOSAL_LICENSES.map((entry) => {
+    const slug = toCountySlug(entry.county);
+    const meta = COUNTY_META[slug];
+    const name = meta?.displayName ?? entry.county;
+    return { value: name, label: `${name} County` };
+  });
+  return [...counties, { value: "other", label: "Other / Outside listed counties" }];
+}
+
 export type ProposalLicenseEntry = (typeof PROPOSAL_LICENSES)[number];
 
 export interface CountyMeta {

@@ -6,12 +6,17 @@ import { sendContactNotification } from "@/lib/email/contact";
 /**
  * Contact form payload. Honeypot field (website) should be empty; if set, treat as spam.
  * Anti-spam: honeypot + optional future rate limit or Turnstile. See /docs for strategy.
+ *
+ * Optional fields (added with contact form redesign): projectType, county — accepted and
+ * stored in request body; email notification template unchanged.
  */
 const contactSchema = z.object({
   name: z.string().min(1, "Name is required").max(200),
   company: z.string().max(200).optional(),
   email: z.string().email("Invalid email"),
   phone: z.string().max(50).optional(),
+  projectType: z.string().max(100).optional(),
+  county: z.string().max(200).optional(),
   projectDescription: z.string().min(1, "Project description is required").max(5000),
   website: z.string().max(0).optional(), // honeypot: must be empty
 });

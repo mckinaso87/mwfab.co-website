@@ -28,7 +28,7 @@ export default function AboutPage() {
           <p className="text-lg">
             McKinados Welding &amp; Fabrication is a licensed structural and ornamental steel contractor
             headquartered on Florida&apos;s East Coast. We have more than 17 years of experience delivering
-            commercial, industrial, and custom steel fabrication—licensed statewide in Florida with active
+            commercial, industrial, and custom steel fabrication, licensed statewide in Florida with active
             operations in the counties listed below.
           </p>
 
@@ -37,7 +37,7 @@ export default function AboutPage() {
 
           <h2 className="text-xl font-semibold text-foreground">Mission</h2>
           <p>
-            We fabricate and install steel that meets the engineer&apos;s design and the owner&apos;s schedule—without
+            We fabricate and install steel that meets the engineer&apos;s design and the owner&apos;s schedule, without
             shortcuts on weld quality, connection detailing, or permit documentation. Our mission is to be the
             contractor general contractors call when steel scope must be right the first time in Florida&apos;s
             coastal environment.
@@ -76,7 +76,7 @@ export default function AboutPage() {
                     {meta && (
                       <span className="text-foreground-muted">
                         {" "}
-                        — {meta.displayName} County
+                        · {meta.displayName} County
                       </span>
                     )}
                   </li>

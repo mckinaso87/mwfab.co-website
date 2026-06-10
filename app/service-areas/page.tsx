@@ -50,7 +50,7 @@ export default function ServiceAreasPage() {
             <p className="mt-4 text-foreground-muted">
               This Florida Department of Business and Professional Regulation state certified license
               authorizes our company to perform contractor work in all 67 Florida counties. County
-              licenses below reflect where we maintain local credentials and operate today—they
+              licenses below reflect where we maintain local credentials and operate today. They
               complement, not replace, statewide authority.
             </p>
           </article>
@@ -61,7 +61,7 @@ export default function ServiceAreasPage() {
             Active Service Areas
           </h2>
           <p className="mt-2 max-w-3xl text-foreground-muted">
-            Where we operate today on Florida&apos;s East Coast and in South Florida—not a limit on
+            Where we operate today on Florida&apos;s East Coast and in South Florida, not a limit on
             where we are licensed to work statewide.
           </p>
           <ul className="mt-6 grid gap-6 sm:grid-cols-2">

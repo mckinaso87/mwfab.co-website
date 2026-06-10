@@ -4,6 +4,7 @@ import "@/styles/global.css";
 import { ClerkProvider } from "@/components/providers/ClerkProvider";
 import { Header } from "@/components/layout/Header";
 import { ConditionalFooter } from "@/components/layout/ConditionalFooter";
+import { PublicMain } from "@/components/layout/PublicMain";
 import { JsonLd } from "@/components/seo/JsonLd";
 
 const geistSans = Geist({
@@ -59,7 +60,7 @@ export default function RootLayout({
         <ClerkProvider>
           <div className="flex min-h-screen flex-col">
             <Header />
-            <main className="flex-1">{children}</main>
+            <PublicMain>{children}</PublicMain>
             <ConditionalFooter />
           </div>
         </ClerkProvider>

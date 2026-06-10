@@ -16,16 +16,16 @@ const countyList = formatCountyListForCopy();
 export const FAQ_ITEMS: FaqItem[] = [
   {
     question: "Is McKinados licensed across the entire state of Florida?",
-    answer: `Yes — we hold Florida State Certified Contractor license ${PROPOSAL_STATE_LICENSE.number}, which authorizes us to work in all 67 Florida counties. We also carry county-specific licenses in ${countyList}.`,
+    answer: `Yes. We hold Florida State Certified Contractor license ${PROPOSAL_STATE_LICENSE.number}, which authorizes us to work in all 67 Florida counties. We also carry county-specific licenses in ${countyList}.`,
   },
   {
     question: "What does a Florida state contractor license mean?",
     answer:
-      "A Florida State Certified Contractor license is issued by the Florida Department of Business and Professional Regulation (DBPR) and is recognized statewide—you can perform permitted work in any Florida county under that credential. County contractor registrations are local credentials that complement state authority; we maintain both where we operate regularly.",
+      "A Florida State Certified Contractor license is issued by the Florida Department of Business and Professional Regulation (DBPR) and is recognized statewide. You can perform permitted work in any Florida county under that credential. County contractor registrations are local credentials that complement state authority; we maintain both where we operate regularly.",
   },
   {
     question: "Which Florida counties are you licensed in?",
-    answer: `Our statewide state license covers all of Florida. For local presence and active operations, we also hold county licenses in: ${licenseAnswer}. These counties are where we focus field and shop resources today—not the limit of where we are authorized to work.`,
+    answer: `Our statewide state license covers all of Florida. For local presence and active operations, we also hold county licenses in: ${licenseAnswer}. These counties are where we focus field and shop resources today, not the limit of where we are authorized to work.`,
   },
   {
     question: "How long have you been in business?",
@@ -35,7 +35,7 @@ export const FAQ_ITEMS: FaqItem[] = [
   {
     question: "What is the difference between structural and ornamental steel?",
     answer:
-      "Structural steel carries building loads—columns, beams, bracing, and connections designed by a structural engineer. Ornamental steel is the visible metalwork such as railings, stairs, gates, and architectural features that must still meet strength and life-safety rules. We are licensed for both and often provide both scopes on one project.",
+      "Structural steel carries building loads: columns, beams, bracing, and connections designed by a structural engineer. Ornamental steel is the visible metalwork such as railings, stairs, gates, and architectural features that must still meet strength and life-safety rules. We are licensed for both and often provide both scopes on one project.",
   },
   {
     question: "How do Florida wind loads and building codes affect my project?",
@@ -45,7 +45,7 @@ export const FAQ_ITEMS: FaqItem[] = [
   {
     question: "Should I specify powder coat or galvanizing?",
     answer:
-      "Hot-dip galvanizing per ASTM A123 is common for exterior structural steel exposed to weather and salt air. Powder coat adds color and UV resistance and is typical for ornamental rails and feature metal. The right choice depends on exposure, maintenance, and the project specification—we price both paths when you include finish requirements in your bid request.",
+      "Hot-dip galvanizing per ASTM A123 is common for exterior structural steel exposed to weather and salt air. Powder coat adds color and UV resistance and is typical for ornamental rails and feature metal. The right choice depends on exposure, maintenance, and the project specification. We price both paths when you include finish requirements in your bid request.",
   },
   {
     question: "What is a typical project timeline?",
@@ -55,7 +55,7 @@ export const FAQ_ITEMS: FaqItem[] = [
   {
     question: "How do I request a bid?",
     answer:
-      "Use the contact form at mwfab.co/contact with your project address, scope description, and drawing set if available. We confirm license jurisdiction for your county and respond with questions or a formal proposal. Email contact@mwfab.co works for plan files and addenda.",
+      "Use the contact form at mwfab.co/contact with your project address, scope description, and drawing set if available. We confirm license jurisdiction for your county and respond with questions or a formal proposal. Email sales@mwfab.co works for plan files and addenda.",
   },
   {
     question: "Do you work on residential or commercial projects?",

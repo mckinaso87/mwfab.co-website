@@ -25,7 +25,7 @@ export function ServiceGallery({ folder, title }: ServiceGalleryProps) {
               <div className="relative aspect-[4/3] overflow-hidden rounded-lg border border-steel/30">
                 <Image
                   src={src}
-                  alt={`${title} project ${index + 1} — McKinados Welding & Fabrication`}
+                  alt={`${title} project ${index + 1}, McKinados Welding & Fabrication`}
                   width={400}
                   height={300}
                   className="object-cover"

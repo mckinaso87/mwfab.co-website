@@ -8,7 +8,7 @@ import { SERVICE_SLUGS } from "@/lib/services";
 import { SITE_URL, SITE_NAME, PUBLIC_CONTACT_EMAIL } from "@/lib/site";
 
 export function GET() {
-  const stateLicenseLine = `- ${PROPOSAL_STATE_LICENSE.label}: ${PROPOSAL_STATE_LICENSE.number} (statewide — all 67 Florida counties)`;
+  const stateLicenseLine = `- ${PROPOSAL_STATE_LICENSE.label}: ${PROPOSAL_STATE_LICENSE.number} (statewide, all 67 Florida counties)`;
   const countyLicenseLines = PROPOSAL_LICENSES.map((e) => `- ${formatLicenseLine(e)}`).join("\n");
   const serviceLinks = SERVICE_SLUGS.map((s) => `- ${SITE_URL}/services/${s}`).join("\n");
   const countyLinks = licensedCountySlugs()

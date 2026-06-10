@@ -1,11 +1,5 @@
-import Image from "next/image";
-import Link from "next/link";
-import {
-  SteelBeamIcon,
-  ColumnIcon,
-  StructuralFrameIcon,
-} from "@/components/ui/icons";
 import { BreadcrumbJsonLd } from "@/components/seo/BreadcrumbJsonLd";
+import { ServiceHubSection } from "@/components/services/ServiceHubSection";
 import { publicPageMetadata } from "@/lib/metadata";
 import { SERVICE_SLUGS, SERVICES } from "@/lib/services";
 
@@ -17,12 +11,7 @@ const HUB_SECTIONS = SERVICE_SLUGS.map((slug) => {
     hubBlurb: service.hubBlurb,
     href: `/services/${slug}`,
     heroImage: service.heroImage,
-    Icon:
-      slug === "structural-steel"
-        ? SteelBeamIcon
-        : slug === "ornamental-steel"
-          ? ColumnIcon
-          : StructuralFrameIcon,
+    iconKey: slug,
   };
 });
 
@@ -52,42 +41,15 @@ export default function ServicesPage() {
         </p>
       </div>
       {HUB_SECTIONS.map((section) => (
-        <section
+        <ServiceHubSection
           key={section.id}
           id={section.id}
-          className="border-t border-steel/30 py-12 md:py-16"
-          aria-labelledby={`${section.id}-heading`}
-        >
-          <div className="container mx-auto px-4 md:px-6">
-            <div className="grid gap-8 lg:grid-cols-2 lg:items-center lg:gap-12">
-              <div>
-                <section.Icon className="h-12 w-12 text-steel-blue" />
-                <h2 id={`${section.id}-heading`} className="mt-4 text-2xl font-bold text-foreground md:text-3xl">
-                  {section.title}
-                </h2>
-                <p className="mt-4 text-foreground-muted">{section.hubBlurb}</p>
-                <p className="mt-4">
-                  <Link
-                    href={section.href}
-                    className="font-medium text-steel-blue transition-colors hover:text-foreground"
-                  >
-                    Read full {section.title.toLowerCase()} overview
-                  </Link>
-                </p>
-              </div>
-              <div className="relative aspect-video w-full overflow-hidden rounded-lg border border-steel/30">
-                <Image
-                  src={section.heroImage}
-                  alt={`${section.title} — McKinados Welding & Fabrication`}
-                  width={1200}
-                  height={675}
-                  className="object-cover"
-                  sizes="(max-width: 1024px) 100vw, 50vw"
-                />
-              </div>
-            </div>
-          </div>
-        </section>
+          title={section.title}
+          hubBlurb={section.hubBlurb}
+          href={section.href}
+          heroImage={section.heroImage}
+          iconKey={section.iconKey}
+        />
       ))}
     </div>
   );

@@ -3,5 +3,7 @@ export interface ContactFormPayload {
   company?: string;
   email: string;
   phone?: string;
+  projectType?: string;
+  county?: string;
   projectDescription: string;
 }

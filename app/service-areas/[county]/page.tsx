@@ -1,14 +1,8 @@
 import Link from "next/link";
 import { publicPageMetadata } from "@/lib/metadata";
 import { notFound } from "next/navigation";
-import {
-  PROPOSAL_STATE_LICENSE,
-  getCountyBySlug,
-  getLicenseBySlug,
-  licensedCountySlugs,
-  neighborSlug,
-} from "@/lib/licenses";
-import { SERVICE_SLUGS, SERVICES } from "@/lib/services";
+import { CountyPageContent } from "@/components/service-areas/CountyPageContent";
+import { getCountyBySlug, getLicenseBySlug, licensedCountySlugs } from "@/lib/licenses";
 import { BreadcrumbJsonLd } from "@/components/seo/BreadcrumbJsonLd";
 import { CountyPageJsonLd } from "@/components/seo/CountyPageJsonLd";
 
@@ -76,72 +70,7 @@ export default async function CountyServiceAreaPage({ params }: CountyPageProps)
           Steel Contractor in {meta.displayName} County, Florida
         </h1>
 
-        <div className="mt-8 max-w-3xl space-y-6 text-foreground-muted">
-          <p className="rounded-lg border border-steel/30 bg-gunmetal/50 p-4 text-sm text-foreground">
-            <span className="font-semibold">
-              {PROPOSAL_STATE_LICENSE.label} · {PROPOSAL_STATE_LICENSE.number}
-            </span>
-            {" — also licensed locally in "}
-            {meta.displayName} County: {license.numbers.join(" · ")}.
-          </p>
-
-          <p>
-            McKinados Welding &amp; Fabrication provides structural steel, ornamental steel, and
-            protective finishes for commercial and industrial projects in {meta.displayName} County.
-            We routinely work in {citiesList} and across the Treasure Coast and South Florida where
-            our license is active. East Coast Florida building codes, including wind-load and
-            corrosion considerations, are part of every bid and submittal.
-          </p>
-
-          <section>
-            <h2 className="text-xl font-semibold text-foreground">Services in this county</h2>
-            <ul className="mt-4 list-disc space-y-2 pl-6">
-              {SERVICE_SLUGS.map((slug) => {
-                const service = SERVICES[slug];
-                return (
-                  <li key={slug}>
-                    <Link
-                      href={`/services/${slug}`}
-                      className="font-medium text-steel-blue hover:text-foreground"
-                    >
-                      {service.title}
-                    </Link>
-                  </li>
-                );
-              })}
-            </ul>
-          </section>
-
-          {meta.neighboringCounties.length > 0 && (
-            <section>
-              <h2 className="text-xl font-semibold text-foreground">
-                Neighboring counties we also serve
-              </h2>
-              <ul className="mt-4 list-disc space-y-2 pl-6">
-                {meta.neighboringCounties.map((neighbor) => (
-                  <li key={neighbor}>
-                    <Link
-                      href={`/service-areas/${neighborSlug(neighbor)}`}
-                      className="font-medium text-steel-blue hover:text-foreground"
-                    >
-                      {neighbor} County
-                    </Link>
-                  </li>
-                ))}
-              </ul>
-            </section>
-          )}
-
-          <p>
-            <Link
-              href="/contact"
-              className="font-medium text-steel-blue transition-colors hover:text-foreground"
-            >
-              Request a bid
-            </Link>{" "}
-            for work in {meta.displayName} County with your drawings and target schedule.
-          </p>
-        </div>
+        <CountyPageContent meta={meta} license={license} citiesList={citiesList} />
       </div>
     </div>
   );
