@@ -1,12 +1,18 @@
 import Link from "next/link";
 import { PersonJsonLd } from "@/components/seo/PersonJsonLd";
-import { PROPOSAL_LICENSES, getCountyBySlug, toCountySlug } from "@/lib/licenses";
+import {
+  PROPOSAL_LICENSES,
+  formatLicenseLine,
+  formatStateLicenseLine,
+  getCountyBySlug,
+  toCountySlug,
+} from "@/lib/licenses";
 import { publicPageMetadata } from "@/lib/metadata";
 
 export const metadata = publicPageMetadata({
   title: "About | McKinados Welding & Fabrication | Florida Steel Contractor",
   description:
-    "McKinados Welding & Fabrication: 17+ years of structural and ornamental steel experience. Licensed in seven South Florida and Treasure Coast counties.",
+    "McKinados Welding & Fabrication: 17+ years of structural and ornamental steel experience. Florida state licensed contractor with active operations on the East Coast and in South Florida.",
   pathname: "/about",
 });
 
@@ -21,9 +27,9 @@ export default function AboutPage() {
         <div className="mt-8 max-w-3xl space-y-6 text-foreground-muted">
           <p className="text-lg">
             McKinados Welding &amp; Fabrication is a licensed structural and ornamental steel contractor
-            serving East Coast Florida and South Florida. We have more than 17 years of experience delivering
-            commercial, industrial, and custom steel fabrication in the counties where we hold active
-            licenses.
+            headquartered on Florida&apos;s East Coast. We have more than 17 years of experience delivering
+            commercial, industrial, and custom steel fabrication—licensed statewide in Florida with active
+            operations in the counties listed below.
           </p>
 
           <h2 className="text-xl font-semibold text-foreground">Leadership</h2>
@@ -47,30 +53,37 @@ export default function AboutPage() {
 
           <h2 className="text-xl font-semibold text-foreground">Licensed &amp; insured</h2>
           <p>
-            We are licensed and insured to operate as a steel contractor in the Florida counties listed below.
-            Our work is performed to AISC and project specifications under the structural engineer of record.
+            We hold Florida State Certified Contractor authority plus county-specific licenses where we
+            maintain local presence. Our work is performed to AISC and project specifications under the
+            structural engineer of record.
           </p>
 
-          <h2 className="text-xl font-semibold text-foreground">Counties we serve</h2>
-          <p>
-            Licensed work is available in these jurisdictions on the East Coast and in South Florida:
-          </p>
-          <ul className="list-disc space-y-2 pl-6">
-            {PROPOSAL_LICENSES.map((entry) => {
-              const slug = toCountySlug(entry.county);
-              const meta = getCountyBySlug(slug);
-              return (
-                <li key={slug}>
-                  <Link
-                    href={`/service-areas/${slug}`}
-                    className="font-medium text-steel-blue hover:text-foreground"
-                  >
-                    {meta?.displayName ?? entry.county} County
-                  </Link>
-                </li>
-              );
-            })}
-          </ul>
+          <section id="licenses">
+            <h2 className="text-xl font-semibold text-foreground">Licenses &amp; Credentials</h2>
+            <ul className="mt-4 list-disc space-y-2 pl-6">
+              <li className="font-medium text-foreground">{formatStateLicenseLine()}</li>
+              {PROPOSAL_LICENSES.map((entry) => {
+                const slug = toCountySlug(entry.county);
+                const meta = getCountyBySlug(slug);
+                return (
+                  <li key={slug}>
+                    <Link
+                      href={`/service-areas/${slug}`}
+                      className="font-medium text-steel-blue hover:text-foreground"
+                    >
+                      {formatLicenseLine(entry)}
+                    </Link>
+                    {meta && (
+                      <span className="text-foreground-muted">
+                        {" "}
+                        — {meta.displayName} County
+                      </span>
+                    )}
+                  </li>
+                );
+              })}
+            </ul>
+          </section>
         </div>
       </div>
     </div>
