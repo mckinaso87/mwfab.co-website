@@ -4,6 +4,7 @@ import { usePathname } from "next/navigation";
 import type { ReactNode } from "react";
 
 import { MotionProvider } from "@/components/motion/MotionProvider";
+import { SmoothScroll } from "@/components/motion/SmoothScroll";
 
 type PublicMainProps = {
   children: ReactNode;
@@ -20,6 +21,7 @@ export function PublicMain({ children }: PublicMainProps) {
 
   return (
     <MotionProvider>
+      <SmoothScroll />
       <main className="flex-1">{children}</main>
     </MotionProvider>
   );
