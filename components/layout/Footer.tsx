@@ -1,5 +1,10 @@
 import Link from "next/link";
-import { PROPOSAL_LICENSES, formatLicenseLine, toCountySlug } from "@/lib/licenses";
+import {
+  PROPOSAL_LICENSES,
+  PROPOSAL_STATE_LICENSE,
+  formatLicenseLine,
+  toCountySlug,
+} from "@/lib/licenses";
 
 const FOOTER_LINKS = [
   { href: "/services", label: "Services" },
@@ -20,8 +25,8 @@ export function Footer() {
               McKinados Welding & Fabrication
             </p>
             <p className="mt-2 text-sm">
-              Structural and ornamental steel construction. East Coast Florida and
-              South Florida. Licensed and insured. 17+ years experience.
+              Structural and ornamental steel construction. Licensed statewide in Florida with
+              active operations on the East Coast and in South Florida. 17+ years experience.
             </p>
           </div>
           <nav aria-label="Footer">
@@ -48,6 +53,9 @@ export function Footer() {
           </nav>
           <div>
             <p className="font-semibold text-foreground">Licensed in</p>
+            <p className="mt-2 text-sm font-semibold text-foreground">
+              {PROPOSAL_STATE_LICENSE.label} Contractor · {PROPOSAL_STATE_LICENSE.number}
+            </p>
             <ul className="mt-2 space-y-1 text-sm">
               {PROPOSAL_LICENSES.map((entry) => {
                 const slug = toCountySlug(entry.county);
@@ -67,7 +75,8 @@ export function Footer() {
         </div>
         <div className="mt-8 border-t border-steel/30 pt-8 text-sm">
           <p>
-            Service area: licensed counties on Florida&apos;s East Coast and in South Florida.
+            Licensed to operate statewide in Florida; actively serving counties on the East Coast
+            and in South Florida.
           </p>
         </div>
       </div>
