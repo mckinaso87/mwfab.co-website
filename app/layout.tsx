@@ -17,7 +17,7 @@ const DEFAULT_OG_IMAGE = "/og/default.png";
 export const metadata: Metadata = {
   title: "McKinados Welding & Fabrication | Structural & Ornamental Steel | Florida",
   description:
-    "Licensed structural and ornamental steel construction. East Coast Florida. 17+ years experience. Request a bid for your project.",
+    "Florida state licensed structural and ornamental steel contractor (SCC131154189). 17+ years experience. Serving all of Florida from the East Coast.",
   metadataBase: new URL("https://mwfab.co"),
   alternates: {
     canonical: "https://mwfab.co",
@@ -25,7 +25,7 @@ export const metadata: Metadata = {
   openGraph: {
     title: "McKinados Welding & Fabrication | Structural & Ornamental Steel | Florida",
     description:
-      "Licensed structural and ornamental steel construction. East Coast Florida. 17+ years experience.",
+      "Florida state licensed structural and ornamental steel contractor (SCC131154189). 17+ years experience. Serving all of Florida from the East Coast.",
     url: "https://mwfab.co",
     siteName: "McKinados Welding & Fabrication",
     locale: "en_US",
@@ -34,7 +34,8 @@ export const metadata: Metadata = {
   twitter: {
     card: "summary_large_image",
     title: "McKinados Welding & Fabrication | Structural & Ornamental Steel | Florida",
-    description: "Licensed structural and ornamental steel construction. East Coast Florida.",
+    description:
+      "Florida state licensed structural and ornamental steel contractor (SCC131154189). 17+ years experience. Serving all of Florida from the East Coast.",
     images: [DEFAULT_OG_IMAGE],
   },
 };
