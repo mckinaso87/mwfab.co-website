@@ -1,4 +1,9 @@
-import { PROPOSAL_LICENSES, formatLicenseLine } from "@/lib/licenses";
+import {
+  PROPOSAL_LICENSES,
+  PROPOSAL_STATE_LICENSE,
+  formatCountyListForCopy,
+  formatLicenseLine,
+} from "@/lib/licenses";
 
 export interface FaqItem {
   question: string;
@@ -6,11 +11,21 @@ export interface FaqItem {
 }
 
 const licenseAnswer = PROPOSAL_LICENSES.map((entry) => formatLicenseLine(entry)).join("; ");
+const countyList = formatCountyListForCopy();
 
 export const FAQ_ITEMS: FaqItem[] = [
   {
+    question: "Is McKinados licensed across the entire state of Florida?",
+    answer: `Yes — we hold Florida State Certified Contractor license ${PROPOSAL_STATE_LICENSE.number}, which authorizes us to work in all 67 Florida counties. We also carry county-specific licenses in ${countyList}.`,
+  },
+  {
+    question: "What does a Florida state contractor license mean?",
+    answer:
+      "A Florida State Certified Contractor license is issued by the Florida Department of Business and Professional Regulation (DBPR) and is recognized statewide—you can perform permitted work in any Florida county under that credential. County contractor registrations are local credentials that complement state authority; we maintain both where we operate regularly.",
+  },
+  {
     question: "Which Florida counties are you licensed in?",
-    answer: `We hold active contractor licenses in seven jurisdictions: ${licenseAnswer}. Work outside these counties requires a separate license or subcontract arrangement.`,
+    answer: `Our statewide state license covers all of Florida. For local presence and active operations, we also hold county licenses in: ${licenseAnswer}. These counties are where we focus field and shop resources today—not the limit of where we are authorized to work.`,
   },
   {
     question: "How long have you been in business?",
@@ -65,7 +80,7 @@ export const FAQ_ITEMS: FaqItem[] = [
   {
     question: "Where on the Florida coast do you focus?",
     answer:
-      "We are licensed and focus on South Florida and the Treasure Coast: Miami-Dade through Indian River counties on the East Coast. Marketing copy may reference East Coast Florida broadly; our active licenses are in the seven counties listed on this site's service-areas pages.",
+      "We are licensed statewide in Florida and focus active operations on South Florida and the Treasure Coast: Miami-Dade through Indian River counties on the East Coast. See our service-areas pages for where we operate today.",
   },
   {
     question: "Are you insured?",
