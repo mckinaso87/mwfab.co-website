@@ -2,7 +2,7 @@ import Link from "next/link";
 import { publicPageMetadata } from "@/lib/metadata";
 import { notFound } from "next/navigation";
 import {
-  formatLicenseLine,
+  PROPOSAL_STATE_LICENSE,
   getCountyBySlug,
   getLicenseBySlug,
   licensedCountySlugs,
@@ -78,8 +78,11 @@ export default async function CountyServiceAreaPage({ params }: CountyPageProps)
 
         <div className="mt-8 max-w-3xl space-y-6 text-foreground-muted">
           <p className="rounded-lg border border-steel/30 bg-gunmetal/50 p-4 text-sm text-foreground">
-            <span className="font-semibold">Contractor license: </span>
-            {formatLicenseLine(license)}
+            <span className="font-semibold">
+              {PROPOSAL_STATE_LICENSE.label} · {PROPOSAL_STATE_LICENSE.number}
+            </span>
+            {" — also licensed locally in "}
+            {meta.displayName} County: {license.numbers.join(" · ")}.
           </p>
 
           <p>
