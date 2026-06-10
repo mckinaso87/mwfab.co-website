@@ -209,7 +209,7 @@ export function TakeoffHeaderForm({ takeoff, jobId, staff }: Props) {
               />
             </div>
             <p className="sm:col-span-2 text-xs text-foreground-muted">
-              Formula: lbs × {galvPctDisplay}% × ${galvRateDisplay.toFixed(2)}; shop minimum $750.
+              Formula: (LBs + LBs × {galvPctDisplay}%) × ${galvRateDisplay.toFixed(2)}; shop minimum $750.
             </p>
           </div>
         )}

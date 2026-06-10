@@ -108,7 +108,7 @@ export function TakeoffMiscSection({
   );
   const galvShortfall = computeGalvanizerShortfall(calculatedGalvCost);
   const billableGalvCost = computeGalvanizerBillable(calculatedGalvCost);
-  const galvFormulaText = `LBs × ${galvPctDisplay}% × $${galvRateDisplay.toFixed(2)}, shop minimum $${GALV_MINIMUM}`;
+  const galvFormulaText = `(LBs + LBs × ${galvPctDisplay}%) × $${galvRateDisplay.toFixed(2)}, shop minimum $${GALV_MINIMUM}`;
 
   const displayLines = lines.filter((l) => {
     if (isGalvanizerLine(l.label) && galvMode === "not_galvanized") return false;

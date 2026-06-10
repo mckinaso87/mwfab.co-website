@@ -1,6 +1,6 @@
 /**
  * Takeoff totals and line calculations. Shared for UI display and Phase 4 PDF.
- * Galvanizer: LBs × pct × rate; shop minimum $750 (shortfall tracked on internal misc line).
+ * Galvanizer: (LBs + LBs × pct) × rate; shop minimum $750 (shortfall tracked on internal misc line).
  */
 
 const GALV_PCT = 0.15;
@@ -23,7 +23,7 @@ export function computeGalvanizerWeightCost(
     galvRatePerLb != null && Number.isFinite(galvRatePerLb) && galvRatePerLb >= 0
       ? galvRatePerLb
       : GALV_RATE;
-  return weight * pct * rate;
+  return weight * (1 + pct) * rate;
 }
 
 export function computeGalvanizerShortfall(calculated: number): number {
