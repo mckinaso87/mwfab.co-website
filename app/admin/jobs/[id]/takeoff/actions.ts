@@ -17,6 +17,7 @@ import {
   type TakeoffTotalsInput,
 } from "@/lib/takeoff-calculations";
 import { STEEL_DENSITY_LB_PER_IN3 } from "@/lib/takeoff-catalog-spec";
+import { parseFractionalToDecimal, formatDecimalAsFraction } from "@/lib/parse-fraction";
 import type {
   Takeoff,
   TakeoffMetalLine,
@@ -649,7 +650,8 @@ export async function upsertMetalLine(
   const displayName = (formData.get("display_name") as string)?.trim();
   const category = ((formData.get("category") as string)?.trim() || "other") as TakeoffMetalLine["category"];
   const count = parseFloat((formData.get("count") as string) ?? "1") || 1;
-  const totalLengthFt = parseFloat((formData.get("total_length_ft") as string) ?? "");
+  const totalLengthFt =
+    parseFractionalToDecimal((formData.get("total_length_ft") as string) ?? "") ?? NaN;
   const totalPoundsPerPiece = parseFloat((formData.get("total_pounds_per_piece") as string) ?? "");
   const totalPoundsForm = parseFloat((formData.get("total_pounds") as string) ?? "");
   const costPerUnit = parseFloat((formData.get("cost_per_unit") as string) ?? "");
@@ -657,10 +659,14 @@ export async function upsertMetalLine(
   const sortOrder = parseInt((formData.get("sort_order") as string) ?? "0", 10) || 0;
   const materialCatalogId = (formData.get("material_catalog_id") as string)?.trim() || null;
   const isGalvanized = formData.get("is_galvanized") === "on" || formData.get("is_galvanized") === "true";
-  const galvLengthFt = parseFloat((formData.get("galv_length_ft") as string) ?? "");
-  const plateThickness = parseFloat((formData.get("plate_thickness_in") as string) ?? "");
-  const plateWidth = parseFloat((formData.get("plate_width_in") as string) ?? "");
-  const plateHeight = parseFloat((formData.get("plate_height_in") as string) ?? "");
+  const galvLengthFt =
+    parseFractionalToDecimal((formData.get("galv_length_ft") as string) ?? "") ?? NaN;
+  const plateThickness =
+    parseFractionalToDecimal((formData.get("plate_thickness_in") as string) ?? "") ?? NaN;
+  const plateWidth =
+    parseFractionalToDecimal((formData.get("plate_width_in") as string) ?? "") ?? NaN;
+  const plateHeight =
+    parseFractionalToDecimal((formData.get("plate_height_in") as string) ?? "") ?? NaN;
   const scope = parseScope(formData);
   const otherUnitRaw = (formData.get("other_unit") as string)?.trim();
   const otherUnit: "lbs" | "ft" | null =
@@ -686,10 +692,12 @@ export async function upsertMetalLine(
       Number.isFinite(plateWidth) &&
       Number.isFinite(plateHeight)
     ) {
-      lbsPerPiece = plateThickness * plateWidth * plateHeight * STEEL_DENSITY_LB_PER_IN3;
+      lbsPerPiece = Number(
+        (plateThickness * plateWidth * plateHeight * STEEL_DENSITY_LB_PER_IN3).toFixed(1)
+      );
     }
     if (!resolvedDisplayName && Number.isFinite(plateThickness)) {
-      resolvedDisplayName = `PL ${plateThickness} × ${plateWidth} × ${plateHeight}`;
+      resolvedDisplayName = `PL ${formatDecimalAsFraction(plateThickness)} × ${formatDecimalAsFraction(plateWidth)} × ${formatDecimalAsFraction(plateHeight)}`;
     }
     if (Number.isFinite(lbsPerPiece) && lbsPerPiece > 0) {
       resolvedTotalPoundsPerPiece = lbsPerPiece;

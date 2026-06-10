@@ -16,6 +16,8 @@ import {
   MODE_BUTTON_ACTIVE,
   MODE_BUTTON_IDLE,
 } from "@/components/admin/takeoff/takeoff-form-variants";
+import { FractionalInput } from "@/components/admin/takeoff/FractionalInput";
+import { parseFractionalToDecimal, formatDecimalAsFraction } from "@/lib/parse-fraction";
 
 type EntryMode = "shorthand" | "plate" | "other";
 
@@ -248,10 +250,12 @@ export function TakeoffMetalLineEditor({
     const w = parseFloat(plateWidth);
     const h = parseFloat(plateHeight);
     if (!poundsPerPieceTouched && Number.isFinite(t) && Number.isFinite(w) && Number.isFinite(h) && t > 0 && w > 0 && h > 0) {
-      setPoundsPerPiece(String(t * w * h * STEEL_DENSITY_LB_PER_IN3));
+      setPoundsPerPiece((t * w * h * STEEL_DENSITY_LB_PER_IN3).toFixed(1));
     }
     if (!displayName.trim() && Number.isFinite(t) && Number.isFinite(w) && Number.isFinite(h)) {
-      setDisplayName(`PL ${t} × ${w} × ${h}`);
+      setDisplayName(
+        `PL ${formatDecimalAsFraction(t)} × ${formatDecimalAsFraction(w)} × ${formatDecimalAsFraction(h)}`
+      );
     }
   }, [plateThickness, plateWidth, plateHeight, mode, poundsPerPieceTouched, displayName]);
 
@@ -423,45 +427,39 @@ export function TakeoffMetalLineEditor({
                 <label htmlFor="plate_thickness" className={labelClass}>
                   Thickness (in)
                 </label>
-                <input
+                <FractionalInput
                   id="plate_thickness"
                   name="plate_thickness_in"
-                  type="number"
-                  step="0.001"
-                  min="0"
                   className="input-admin"
-                  value={plateThickness}
-                  onChange={(e) => setPlateThickness(e.target.value)}
+                  min={0}
+                  value={plateThickness === "" ? null : parseFractionalToDecimal(plateThickness)}
+                  onValueChange={(d) => setPlateThickness(d == null ? "" : String(d))}
                 />
               </div>
               <div>
                 <label htmlFor="plate_width" className={labelClass}>
                   Width (in)
                 </label>
-                <input
+                <FractionalInput
                   id="plate_width"
                   name="plate_width_in"
-                  type="number"
-                  step="0.01"
-                  min="0"
                   className="input-admin"
-                  value={plateWidth}
-                  onChange={(e) => setPlateWidth(e.target.value)}
+                  min={0}
+                  value={plateWidth === "" ? null : parseFractionalToDecimal(plateWidth)}
+                  onValueChange={(d) => setPlateWidth(d == null ? "" : String(d))}
                 />
               </div>
               <div>
                 <label htmlFor="plate_height" className={labelClass}>
                   Height (in)
                 </label>
-                <input
+                <FractionalInput
                   id="plate_height"
                   name="plate_height_in"
-                  type="number"
-                  step="0.01"
-                  min="0"
                   className="input-admin"
-                  value={plateHeight}
-                  onChange={(e) => setPlateHeight(e.target.value)}
+                  min={0}
+                  value={plateHeight === "" ? null : parseFractionalToDecimal(plateHeight)}
+                  onValueChange={(d) => setPlateHeight(d == null ? "" : String(d))}
                 />
               </div>
               <div>
@@ -569,15 +567,13 @@ export function TakeoffMetalLineEditor({
                   <label htmlFor="other_length_ft" className={labelClass}>
                     Linear ft
                   </label>
-                  <input
+                  <FractionalInput
                     id="other_length_ft"
                     name="total_length_ft"
-                    type="number"
-                    step="0.01"
-                    min="0"
                     className="input-admin"
-                    value={totalLengthFt}
-                    onChange={(e) => setTotalLengthFt(e.target.value)}
+                    min={0}
+                    value={totalLengthFt === "" ? null : parseFractionalToDecimal(totalLengthFt)}
+                    onValueChange={(d) => setTotalLengthFt(d == null ? "" : String(d))}
                   />
                 </div>
               )}
@@ -690,15 +686,13 @@ export function TakeoffMetalLineEditor({
                 <label htmlFor="metal_total_length_ft" className={labelClass}>
                   Linear feet (purchased)
                 </label>
-                <input
+                <FractionalInput
                   id="metal_total_length_ft"
                   name="total_length_ft"
-                  type="number"
-                  step="0.01"
-                  min="0"
                   className="input-admin"
-                  value={totalLengthFt}
-                  onChange={(e) => setTotalLengthFt(e.target.value)}
+                  min={0}
+                  value={totalLengthFt === "" ? null : parseFractionalToDecimal(totalLengthFt)}
+                  onValueChange={(d) => setTotalLengthFt(d == null ? "" : String(d))}
                 />
               </div>
             )}
@@ -734,15 +728,13 @@ export function TakeoffMetalLineEditor({
                   <label htmlFor="galv_length_ft" className={labelClass}>
                     Galv length (ft)
                   </label>
-                  <input
+                  <FractionalInput
                     id="galv_length_ft"
                     name="galv_length_ft"
-                    type="number"
-                    step="0.01"
-                    min="0"
                     className="input-admin"
-                    value={galvLengthFt}
-                    onChange={(e) => setGalvLengthFt(e.target.value)}
+                    min={0}
+                    value={galvLengthFt === "" ? null : parseFractionalToDecimal(galvLengthFt)}
+                    onValueChange={(d) => setGalvLengthFt(d == null ? "" : String(d))}
                   />
                 </div>
               )}
