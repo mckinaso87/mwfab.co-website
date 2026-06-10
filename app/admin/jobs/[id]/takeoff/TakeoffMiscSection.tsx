@@ -50,8 +50,11 @@ export function TakeoffMiscSection({
 }: Props) {
   const router = useRouter();
   const [editingLine, setEditingLine] = useState<TakeoffMiscLine | null>(null);
+  const [submitError, setSubmitError] = useState<string | null>(null);
+  const [addFormKey, setAddFormKey] = useState(0);
   const [scopePendingId, setScopePendingId] = useState<string | null>(null);
   const [scopeTransition, startScopeTransition] = useTransition();
+  const [savePending, startSaveTransition] = useTransition();
 
   const [state, formAction, isPending] = useActionState(
     async (_: unknown, formData: FormData) => upsertMiscLine(takeoffId, jobId, formData),
@@ -148,9 +151,23 @@ export function TakeoffMiscSection({
   }
 
   async function handleSubmit(formData: FormData) {
-    await formAction(formData);
-    router.refresh();
-    setEditingLine(null);
+    setSubmitError(null);
+    return new Promise<void>((resolve) => {
+      startSaveTransition(async () => {
+        const result = await upsertMiscLine(takeoffId, jobId, formData);
+        if (result?.error) {
+          setSubmitError(result.error);
+          resolve();
+          return;
+        }
+        if (!formData.get("id")?.trim()) {
+          setAddFormKey((k) => k + 1);
+        }
+        router.refresh();
+        setEditingLine(null);
+        resolve();
+      });
+    });
   }
 
   function handleScopeSelect(line: TakeoffMiscLine, scope: LineScope) {
@@ -364,23 +381,25 @@ export function TakeoffMiscSection({
       <h3 className="mb-3 text-base font-semibold text-foreground">Add misc line</h3>
       <div className={TAKEOFF_ADD_LINE_SHELL.misc}>
       <TakeoffMiscLineEditor
+        key={`add-${addFormKey}`}
         sortOrder={lines.length}
         onSubmit={handleSubmit}
-        error={state?.error}
-        submitLabel={isPending ? "Adding…" : "Add misc line"}
-        pending={isPending}
+        error={submitError ?? state?.error}
+        submitLabel={isPending || savePending ? "Adding…" : "Add misc line"}
+        pending={isPending || savePending}
       />
       </div>
 
       {editingLine && (
         <TakeoffSlideOver title="Edit misc line" onClose={() => setEditingLine(null)}>
           <TakeoffMiscLineEditor
+            key={editingLine.id}
             initial={editingLine}
             sortOrder={editingLine.sort_order}
             onSubmit={handleSubmit}
-            error={state?.error}
-            submitLabel={isPending ? "Saving…" : "Save changes"}
-            pending={isPending}
+            error={submitError ?? state?.error}
+            submitLabel={savePending ? "Saving…" : "Save changes"}
+            pending={savePending}
           />
         </TakeoffSlideOver>
       )}

@@ -20,8 +20,11 @@ type Props = {
 export function TakeoffFieldMiscSection({ takeoffId, jobId, lines }: Props) {
   const router = useRouter();
   const [editingLine, setEditingLine] = useState<TakeoffFieldMisc | null>(null);
+  const [submitError, setSubmitError] = useState<string | null>(null);
+  const [addFormKey, setAddFormKey] = useState(0);
   const [scopePendingId, setScopePendingId] = useState<string | null>(null);
   const [scopeTransition, startScopeTransition] = useTransition();
+  const [savePending, startSaveTransition] = useTransition();
 
   const [state, formAction, isPending] = useActionState(
     async (_: unknown, formData: FormData) => upsertFieldMiscLine(takeoffId, jobId, formData),
@@ -31,9 +34,23 @@ export function TakeoffFieldMiscSection({ takeoffId, jobId, lines }: Props) {
     deleteFieldMiscLineForm.bind(null, takeoffId, lineId, jobId);
 
   async function handleSubmit(formData: FormData) {
-    await formAction(formData);
-    router.refresh();
-    setEditingLine(null);
+    setSubmitError(null);
+    return new Promise<void>((resolve) => {
+      startSaveTransition(async () => {
+        const result = await upsertFieldMiscLine(takeoffId, jobId, formData);
+        if (result?.error) {
+          setSubmitError(result.error);
+          resolve();
+          return;
+        }
+        if (!formData.get("id")?.trim()) {
+          setAddFormKey((k) => k + 1);
+        }
+        router.refresh();
+        setEditingLine(null);
+        resolve();
+      });
+    });
   }
 
   function handleScopeSelect(line: TakeoffFieldMisc, scope: LineScope) {
@@ -116,23 +133,25 @@ export function TakeoffFieldMiscSection({ takeoffId, jobId, lines }: Props) {
       <h3 className="mb-3 text-base font-semibold text-foreground">Add field misc line</h3>
       <div className={`mb-6 ${TAKEOFF_ADD_LINE_SHELL.field}`}>
       <TakeoffFieldMiscLineEditor
+        key={`add-${addFormKey}`}
         sortOrder={lines.length}
         onSubmit={handleSubmit}
-        error={state?.error}
-        submitLabel={isPending ? "Adding…" : "Add field misc"}
-        pending={isPending}
+        error={submitError ?? state?.error}
+        submitLabel={isPending || savePending ? "Adding…" : "Add field misc"}
+        pending={isPending || savePending}
       />
       </div>
 
       {editingLine && (
         <TakeoffSlideOver title="Edit field misc line" onClose={() => setEditingLine(null)}>
           <TakeoffFieldMiscLineEditor
+            key={editingLine.id}
             initial={editingLine}
             sortOrder={editingLine.sort_order}
             onSubmit={handleSubmit}
-            error={state?.error}
-            submitLabel={isPending ? "Saving…" : "Save changes"}
-            pending={isPending}
+            error={submitError ?? state?.error}
+            submitLabel={savePending ? "Saving…" : "Save changes"}
+            pending={savePending}
           />
         </TakeoffSlideOver>
       )}

@@ -20,8 +20,11 @@ type Props = {
 export function TakeoffComponentSection({ takeoffId, jobId, lines }: Props) {
   const router = useRouter();
   const [editingLine, setEditingLine] = useState<TakeoffComponentLine | null>(null);
+  const [submitError, setSubmitError] = useState<string | null>(null);
+  const [addFormKey, setAddFormKey] = useState(0);
   const [scopePendingId, setScopePendingId] = useState<string | null>(null);
   const [scopeTransition, startScopeTransition] = useTransition();
+  const [savePending, startSaveTransition] = useTransition();
 
   const [state, formAction, isPending] = useActionState(
     async (_: unknown, formData: FormData) => upsertComponentLine(takeoffId, jobId, formData),
@@ -31,9 +34,23 @@ export function TakeoffComponentSection({ takeoffId, jobId, lines }: Props) {
     deleteComponentLineForm.bind(null, takeoffId, lineId, jobId);
 
   async function handleSubmit(formData: FormData) {
-    await formAction(formData);
-    router.refresh();
-    setEditingLine(null);
+    setSubmitError(null);
+    return new Promise<void>((resolve) => {
+      startSaveTransition(async () => {
+        const result = await upsertComponentLine(takeoffId, jobId, formData);
+        if (result?.error) {
+          setSubmitError(result.error);
+          resolve();
+          return;
+        }
+        if (!formData.get("id")?.trim()) {
+          setAddFormKey((k) => k + 1);
+        }
+        router.refresh();
+        setEditingLine(null);
+        resolve();
+      });
+    });
   }
 
   function handleScopeSelect(line: TakeoffComponentLine, scope: LineScope) {
@@ -128,23 +145,25 @@ export function TakeoffComponentSection({ takeoffId, jobId, lines }: Props) {
       <h3 className="mb-3 text-base font-semibold text-foreground">Add component line</h3>
       <div className={`mb-6 ${TAKEOFF_ADD_LINE_SHELL.component}`}>
       <TakeoffComponentLineEditor
+        key={`add-${addFormKey}`}
         sortOrder={lines.length}
         onSubmit={handleSubmit}
-        error={state?.error}
-        submitLabel={isPending ? "Adding…" : "Add component"}
-        pending={isPending}
+        error={submitError ?? state?.error}
+        submitLabel={isPending || savePending ? "Adding…" : "Add component"}
+        pending={isPending || savePending}
       />
       </div>
 
       {editingLine && (
         <TakeoffSlideOver title="Edit component line" onClose={() => setEditingLine(null)}>
           <TakeoffComponentLineEditor
+            key={editingLine.id}
             initial={editingLine}
             sortOrder={editingLine.sort_order}
             onSubmit={handleSubmit}
-            error={state?.error}
-            submitLabel={isPending ? "Saving…" : "Save changes"}
-            pending={isPending}
+            error={submitError ?? state?.error}
+            submitLabel={savePending ? "Saving…" : "Save changes"}
+            pending={savePending}
           />
         </TakeoffSlideOver>
       )}

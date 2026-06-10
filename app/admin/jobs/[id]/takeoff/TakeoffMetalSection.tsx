@@ -23,6 +23,7 @@ export function TakeoffMetalSection({ takeoffId, jobId, takeoff, lines }: Props)
   const router = useRouter();
   const [editingLine, setEditingLine] = useState<TakeoffMetalLine | null>(null);
   const [submitError, setSubmitError] = useState<string | null>(null);
+  const [addFormKey, setAddFormKey] = useState(0);
   const [scopePendingId, setScopePendingId] = useState<string | null>(null);
   const [scopeTransition, startScopeTransition] = useTransition();
   const [savePending, startSaveTransition] = useTransition();
@@ -43,6 +44,9 @@ export function TakeoffMetalSection({ takeoffId, jobId, takeoff, lines }: Props)
           setSubmitError(result.error);
           resolve();
           return;
+        }
+        if (!formData.get("id")?.trim()) {
+          setAddFormKey((k) => k + 1);
         }
         router.refresh();
         setEditingLine(null);
@@ -156,12 +160,13 @@ export function TakeoffMetalSection({ takeoffId, jobId, takeoff, lines }: Props)
       <h3 className="mb-3 text-base font-semibold text-foreground">Add metal line</h3>
       <div className={`mb-6 ${TAKEOFF_ADD_LINE_SHELL.metal}`}>
       <TakeoffMetalLineEditor
+        key={`add-${addFormKey}`}
         takeoff={takeoff}
         sortOrder={lines.length}
         onSubmit={handleSubmit}
-        error={state?.error ?? submitError}
-        submitLabel={isPending ? "Adding…" : "Add metal line"}
-        pending={isPending}
+        error={submitError ?? state?.error}
+        submitLabel={savePending ? "Adding…" : "Add metal line"}
+        pending={savePending}
       />
       </div>
 
