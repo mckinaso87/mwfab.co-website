@@ -43,7 +43,8 @@ export function TakeoffFieldMiscSection({ takeoffId, jobId, lines }: Props) {
           resolve();
           return;
         }
-        if (!formData.get("id")?.trim()) {
+        const id = formData.get("id");
+        if (typeof id !== "string" || !id.trim()) {
           setAddFormKey((k) => k + 1);
         }
         router.refresh();
