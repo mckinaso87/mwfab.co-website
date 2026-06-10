@@ -46,6 +46,15 @@ export function TakeoffComponentLineEditor({
   );
   const [isGalvanized, setIsGalvanized] = useState(initial?.is_galvanized ?? false);
 
+  const pp = parseFloat(totalPoundsPerPiece);
+  const perPieceActive = Number.isFinite(pp) && pp > 0 && count > 0;
+
+  useEffect(() => {
+    if (!perPieceActive) return;
+    const derived = parseFloat((count * pp).toFixed(4));
+    setTotalPounds(String(derived));
+  }, [count, totalPoundsPerPiece, perPieceActive, pp]);
+
   useEffect(() => {
     const cnt = count;
     const pp = parseFloat(totalPoundsPerPiece);
@@ -126,7 +135,7 @@ export function TakeoffComponentLineEditor({
       </div>
       <div>
         <label htmlFor="comp_total_pounds_per_piece" className={labelClass}>
-          Total pounds per piece
+          Weight per piece (lb)
         </label>
         <input
           id="comp_total_pounds_per_piece"
@@ -135,13 +144,14 @@ export function TakeoffComponentLineEditor({
           step="0.01"
           min="0"
           className="input-admin"
+          placeholder="e.g. 0.605"
           value={totalPoundsPerPiece}
           onChange={(e) => setTotalPoundsPerPiece(e.target.value)}
         />
       </div>
       <div>
         <label htmlFor="comp_total_pounds" className={labelClass}>
-          Total pounds
+          {perPieceActive ? "Total pounds (auto)" : "Total pounds"}
         </label>
         <input
           id="comp_total_pounds"
@@ -149,7 +159,8 @@ export function TakeoffComponentLineEditor({
           type="number"
           step="0.01"
           min="0"
-          className="input-admin"
+          readOnly={perPieceActive}
+          className={perPieceActive ? "input-admin bg-steel/30" : "input-admin"}
           value={totalPounds}
           onChange={(e) => setTotalPounds(e.target.value)}
         />
