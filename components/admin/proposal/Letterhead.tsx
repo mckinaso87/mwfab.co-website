@@ -10,6 +10,12 @@ export const LETTERHEAD = {
   fax: "(772) 345-1768",
 } as const;
 
+export const PROPOSAL_STATE_LICENSE = {
+  jurisdiction: "Florida",
+  label: "Florida State Certified",
+  number: "SCC131154189",
+} as const;
+
 /** Shown at the end of Terms and Conditions (proposal preview, PDF). */
 export const PROPOSAL_LICENSES = [
   { county: "Miami Dade", numbers: ["#10BS00296"] },
@@ -23,9 +29,11 @@ export const PROPOSAL_LICENSES = [
 
 /** Plain-text lines for PDF terms footer. */
 export function proposalLicenseLines(): string[] {
-  return PROPOSAL_LICENSES.map(
+  const stateLine = `${PROPOSAL_STATE_LICENSE.label}: ${PROPOSAL_STATE_LICENSE.number}`;
+  const countyLines = PROPOSAL_LICENSES.map(
     (entry) => `${entry.county}: ${entry.numbers.join(" · ")}`
   );
+  return [stateLine, ...countyLines];
 }
 
 export function Letterhead() {
