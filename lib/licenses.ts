@@ -1,6 +1,28 @@
-import { PROPOSAL_LICENSES } from "@/components/admin/proposal/Letterhead";
+import {
+  PROPOSAL_LICENSES,
+  PROPOSAL_STATE_LICENSE,
+} from "@/components/admin/proposal/Letterhead";
 
-export { PROPOSAL_LICENSES };
+export { PROPOSAL_LICENSES, PROPOSAL_STATE_LICENSE };
+
+/** All license numbers in display order (state first, then counties). */
+export function getAllLicenseNumbers(): string[] {
+  const countyNumbers = PROPOSAL_LICENSES.flatMap((entry) => [...entry.numbers]);
+  return [PROPOSAL_STATE_LICENSE.number, ...countyNumbers];
+}
+
+export function formatStateLicenseLine(): string {
+  return `${PROPOSAL_STATE_LICENSE.label}: ${PROPOSAL_STATE_LICENSE.number}`;
+}
+
+/** Human-readable county list for marketing copy (e.g. FAQ). */
+export function formatCountyListForCopy(): string {
+  return PROPOSAL_LICENSES.map((entry) => {
+    const slug = toCountySlug(entry.county);
+    const meta = COUNTY_META[slug];
+    return meta?.displayName ?? entry.county;
+  }).join(", ");
+}
 
 export type ProposalLicenseEntry = (typeof PROPOSAL_LICENSES)[number];
 
